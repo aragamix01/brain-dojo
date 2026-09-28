@@ -200,8 +200,8 @@ export default function Home() {
 
       <ClientOnly fallback={<div className="h-[520px]" />}>
         <div className="space-y-5">
-          <QuestCard />
           <DailyCard />
+          <QuestCard />
           <Nova />
         </div>
       </ClientOnly>

@@ -34,6 +34,8 @@ export type ProgressData = {
   chests: Record<string, number>;
   /** claim codes the uncle marked as paid out on this device */
   delivered: Record<string, number>;
+  /** guides/tutorials already shown, by id */
+  seen: Record<string, number>;
 };
 
 type Actions = {
@@ -46,6 +48,7 @@ type Actions = {
   addHint: () => void;
   openChest: (id: string) => void;
   markDelivered: (code: string) => void;
+  markSeen: (id: string) => void;
   importData: (d: ProgressData) => void;
   reset: () => void;
 };
@@ -61,6 +64,7 @@ export const emptyProgress = (): ProgressData => ({
   daily: {},
   chests: {},
   delivered: {},
+  seen: {},
 });
 
 function touchStreak(s: ProgressData): Pick<ProgressData, "streak" | "bestStreak" | "lastActive"> {
@@ -105,6 +109,7 @@ export const useProgress = create<ProgressData & Actions>()(
       addHint: () => set((s) => ({ hintsUsed: s.hintsUsed + 1 })),
       openChest: (id) => set((s) => (s.chests[id] ? s : { chests: { ...s.chests, [id]: Date.now() } })),
       markDelivered: (code) => set((s) => ({ delivered: { ...s.delivered, [code]: Date.now() } })),
+      markSeen: (id) => set((s) => ({ seen: { ...s.seen, [id]: Date.now() } })),
       importData: (d) => set({ ...emptyProgress(), ...d }),
       reset: () => set(emptyProgress()),
     }),
@@ -128,6 +133,7 @@ function pickData(s: ProgressData): ProgressData {
     daily: s.daily,
     chests: s.chests,
     delivered: s.delivered,
+    seen: s.seen,
   };
 }
 

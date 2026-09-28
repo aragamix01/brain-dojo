@@ -44,12 +44,13 @@ export function solve(g: LightsGrid, n: number): number[] | null {
 
 export type LightsPuzzle = { n: number; grid: LightsGrid; par: number };
 
-export function generateLights(rng: Rng, n: number): LightsPuzzle {
+/** `minPar` stops trivial boards; quest nodes lower it for gentle early puzzles. */
+export function generateLights(rng: Rng, n: number, minPar = n + 2): LightsPuzzle {
   // Scrambling by presses from the solved board guarantees solvability.
   for (;;) {
     let g: LightsGrid = Array(n * n).fill(false);
     for (let i = 0; i < n * n; i++) if (rng() < 0.45) g = press(g, n, i);
     const sol = solve(g, n);
-    if (sol && sol.length >= n + 2) return { n, grid: g, par: sol.length };
+    if (sol && sol.length >= minPar) return { n, grid: g, par: sol.length };
   }
 }

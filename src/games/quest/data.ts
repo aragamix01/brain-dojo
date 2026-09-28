@@ -2,7 +2,7 @@ import type { JugVariant } from "../jugs/logic";
 
 export type QuestGame =
   | { kind: "robot"; level: string }
-  | { kind: "lights"; size: number }
+  | { kind: "lights"; size: number; minPar?: number; maxPar?: number }
   | { kind: "jugs"; variant: JugVariant; maxPar?: number }
   | { kind: "nonogram"; size: number }
   | { kind: "hanoi"; disks: number }
@@ -37,7 +37,7 @@ export const ISLANDS: Island[] = [
     lesson: "Sequence",
     nodes: [
       robot("b1", "seq-1"),
-      { id: "b2", kind: "lights", size: 3 },
+      { id: "b2", kind: "lights", size: 3, minPar: 2, maxPar: 3 },
       robot("b3", "seq-2"),
       { id: "b4", kind: "sprint", goal: 10, seconds: 45 },
       robot("b5", "seq-3"),
@@ -58,7 +58,7 @@ export const ISLANDS: Island[] = [
     lesson: "Functions",
     nodes: [
       robot("j1", "func-1"),
-      { id: "j2", kind: "lights", size: 4 },
+      { id: "j2", kind: "lights", size: 4, minPar: 3, maxPar: 5 },
       robot("j3", "func-2"),
       { id: "j4", kind: "situation", theme: "lost-trail" },
       robot("j5", "func-3"),
@@ -84,7 +84,7 @@ export const ISLANDS: Island[] = [
       robot("l5", "loop-3"),
       { id: "l6", kind: "situation", theme: "party-prep" },
       robot("l7", "loop-4"),
-      { id: "l8", kind: "lights", size: 5 },
+      { id: "l8", kind: "lights", size: 5, minPar: 5, maxPar: 8 },
       { id: "l9", kind: "hanoi", disks: 5, boss: true },
     ],
   },
@@ -118,7 +118,7 @@ export const ISLANDS: Island[] = [
     lesson: "If/Else + Nested Loops",
     nodes: [
       robot("d1", "else-1"),
-      { id: "d2", kind: "lights", size: 5 },
+      { id: "d2", kind: "lights", size: 5, maxPar: 10 },
       robot("d3", "else-2"),
       { id: "d4", kind: "situation", theme: "anime-con" },
       robot("d5", "nest-1"),

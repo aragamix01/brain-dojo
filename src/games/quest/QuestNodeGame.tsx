@@ -55,7 +55,7 @@ function QuestPuzzle({ node, nextHref }: { node: Extract<QuestNode, { kind: "lig
 
   const props = { session, onSolved };
   let game: React.ReactNode;
-  if (node.kind === "lights") game = <LightsGame puzzle={generateLights(rngFrom(seed), node.size)} {...props} />;
+  if (node.kind === "lights") game = <LightsGame puzzle={generateLights(rngFrom(seed), node.size, node.minPar)} {...props} />;
   else if (node.kind === "jugs") game = <JugsGame puzzle={generateJugs(rngFrom(seed), node.variant)} {...props} />;
   else if (node.kind === "nonogram")
     game = <NonogramGame puzzle={generateNonogram(rngFrom(seed), node.size)} {...props} />;

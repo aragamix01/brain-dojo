@@ -4,11 +4,12 @@ import Link from "next/link";
 import { useRef, useState } from "react";
 import { BackHeader, ClientOnly } from "@/components/ui";
 import { ChestModal } from "@/games/quest/ChestModal";
+import { QUEST_GUIDE_ID, QuestGuide } from "@/games/quest/QuestGuide";
 import { ISLAND_ART, SeaSprite, ShipMarker } from "@/games/quest/SeaArt";
 import { WorldMap } from "@/games/quest/WorldMap";
 import { ISLANDS, QUEST_NODES, type Island } from "@/games/quest/data";
 import { chestId, nodeInfo, questView, type QuestView } from "@/games/quest/progress";
-import { useProgress } from "@/lib/store";
+import { useHydrated, useProgress } from "@/lib/store";
 
 const ROW = 96;
 
@@ -225,7 +226,12 @@ function QuestMap() {
   const currentRef = useRef<HTMLAnchorElement | null>(null);
   const [chest, setChest] = useState<number | null>(null);
   const done = QUEST_NODES.filter((n) => view.stars[n.id] > 0).length;
-
+  // First visit opens the guide automatically; afterwards it lives behind the help button.
+  const hydrated = useHydrated();
+  const guideSeen = useProgress((s) => !!s.seen[QUEST_GUIDE_ID]);
+  const markSeen = useProgress((s) => s.markSeen);
+  const [guideOpen, setGuideOpen] = useState(false);
+  const showGuide = guideOpen || (hydrated && !guideSeen);
 
   return (
     <>
@@ -244,6 +250,12 @@ function QuestMap() {
             style={{ width: `${(done / QUEST_NODES.length) * 100}%` }}
           />
         </div>
+        <button
+          className="mt-3 w-full rounded-xl border-2 border-dashed border-ink/40 py-1.5 font-display text-sm font-bold text-ink/80"
+          onClick={() => setGuideOpen(true)}
+        >
+          ❓ วิธีเล่น · ได้อะไรบ้าง
+        </button>
       </div>
 
       <WorldMap view={view} />
@@ -273,6 +285,15 @@ function QuestMap() {
       </p>
 
       {chest !== null && <ChestModal island={ISLANDS[chest]} index={chest} onClose={() => setChest(null)} />}
+
+      {showGuide && (
+        <QuestGuide
+          onClose={() => {
+            markSeen(QUEST_GUIDE_ID);
+            setGuideOpen(false);
+          }}
+        />
+      )}
     </>
   );
 }

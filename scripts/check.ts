@@ -133,7 +133,10 @@ check("quest map", () => {
   assert.deepEqual(missing, [], "robot levels missing from the quest");
   for (const n of QUEST_NODES) {
     if (n.kind === "situation") assert.ok(theme(n.theme), `unknown theme ${n.theme}`);
-    if (n.kind === "lights") generateLights(rngFrom(nodeSeed(n)), n.size);
+    if (n.kind === "lights") {
+      const p = generateLights(rngFrom(nodeSeed(n)), n.size, n.minPar);
+      if (n.maxPar) assert.ok(p.par <= n.maxPar, `${n.id} par ${p.par}`);
+    }
     if (n.kind === "jugs") {
       const p = generateJugs(rngFrom(nodeSeed(n)), n.variant);
       if (n.maxPar) assert.ok(p.par <= n.maxPar, `${n.id} par ${p.par}`);

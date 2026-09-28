@@ -1,6 +1,7 @@
 import { hashString, rngFrom } from "@/lib/rng";
 import type { GameStat } from "@/lib/store";
 import { generateJugs } from "../jugs/logic";
+import { generateLights } from "../lights/logic";
 import { robotLevel } from "../robot/levels";
 import { theme } from "../situation/data";
 import { CHEST_RATIO, ISLANDS, QUEST_NODES, type Island, type QuestNode } from "./data";
@@ -38,16 +39,23 @@ export function nodeInfo(n: QuestNode): { emoji: string; title: string; sub: str
   }
 }
 
+/** Par of the puzzle a node would play with this seed (only for kinds that can be capped). */
+function parOf(n: QuestNode, seed: number): number | null {
+  if (n.kind === "jugs") return generateJugs(rngFrom(seed), n.variant).par;
+  if (n.kind === "lights") return generateLights(rngFrom(seed), n.size, n.minPar).par;
+  return null;
+}
+
 /** Every node plays one fixed puzzle, so the map is the same for everyone. */
 export function nodeSeed(n: QuestNode): number {
-  if (n.kind === "jugs" && n.maxPar) {
-    // Early jug nodes should be gentle: take the first seed whose puzzle fits the cap.
-    for (let i = 0; ; i++) {
-      const seed = hashString(`quest:${n.id}:${i}`);
-      if (generateJugs(rngFrom(seed), n.variant).par <= n.maxPar) return seed;
-    }
+  const maxPar = "maxPar" in n ? n.maxPar : undefined;
+  if (!maxPar) return hashString(`quest:${n.id}`);
+  // Early nodes should be gentle: take the first seed whose puzzle fits the cap.
+  for (let i = 0; i < 500; i++) {
+    const seed = hashString(`quest:${n.id}:${i}`);
+    if (parOf(n, seed)! <= maxPar) return seed;
   }
-  return hashString(`quest:${n.id}`);
+  throw new Error(`no puzzle for ${n.id} within par ${maxPar}`);
 }
 
 export type QuestView = {
