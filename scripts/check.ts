@@ -3,12 +3,14 @@ import assert from "node:assert/strict";
 import { rngFrom } from "../src/lib/rng";
 import { parseBoard, parseProgram, runToEnd } from "../src/games/robot/engine";
 import { ROBOT_LEVELS } from "../src/games/robot/levels";
+import { RANDOM_TIERS, generateRobotLevel } from "../src/games/robot/generate";
 import { generateLights, press, solve } from "../src/games/lights/logic";
 import { generateJugs, shortestPath } from "../src/games/jugs/logic";
 import { generateNonogram, isSolved } from "../src/games/nonogram/logic";
 import { move, nextMove } from "../src/games/hanoi/logic";
 import { makeQuestion } from "../src/games/sprint/logic";
-import { SCENARIOS } from "../src/games/situation/data";
+import { THEMES } from "../src/games/situation/data";
+import { generateScenario } from "../src/games/situation/generate";
 import { bestBudget, bestSchedule } from "../src/games/situation/solver";
 
 let failures = 0;
@@ -29,7 +31,26 @@ for (const lv of ROBOT_LEVELS) {
     assert.ok(b.stars.length > 0, "no stars");
     const s = runToEnd(lv, parseProgram(lv.solution, lv.funcs));
     assert.equal(s.status, "won", `solution ends with ${s.status} at ${s.x},${s.y}`);
+    if (lv.preset) {
+      const bug = runToEnd(lv, parseProgram(lv.preset, lv.funcs));
+      assert.notEqual(bug.status, "won", "buggy preset already wins");
+      return `${s.steps} steps, preset fails with ${bug.status}`;
+    }
     return `${s.steps} steps`;
+  });
+}
+
+for (const tier of RANDOM_TIERS) {
+  check(`robot random ${tier.id} (200 seeds)`, () => {
+    const t0 = Date.now();
+    const sizes = new Set<string>();
+    for (let seed = 0; seed < 200; seed++) {
+      const lv = generateRobotLevel(tier.id, seed);
+      const s = runToEnd(lv, parseProgram(lv.solution, lv.funcs));
+      assert.equal(s.status, "won", `seed ${seed}: ${lv.solution} → ${s.status}\n${lv.board.join("\n")}`);
+      sizes.add(`${lv.board[0].length}x${lv.board.length}`);
+    }
+    return `${((Date.now() - t0) / 200).toFixed(1)}ms/level, ${sizes.size} board sizes`;
   });
 }
 
@@ -81,11 +102,21 @@ check("sprint answers are whole non-negative numbers", () => {
   }
 });
 
-for (const sc of SCENARIOS) {
-  check(`situation ${sc.id}`, () => {
-    const best = sc.kind === "budget" ? bestBudget(sc) : bestSchedule(sc);
-    assert.ok(Number.isFinite(best) && best > 0);
-    return `best ${best}`;
+for (const th of THEMES) {
+  check(`situation ${th.id} (50 seeds)`, () => {
+    const t0 = Date.now();
+    const bests: number[] = [];
+    for (let seed = 0; seed < 50; seed++) {
+      const sc = generateScenario(th, seed);
+      const best = sc.kind === "budget" ? bestBudget(sc) : bestSchedule(sc);
+      assert.ok(Number.isFinite(best) && best > 0, `seed ${seed}`);
+      if (sc.kind === "budget") {
+        const all = sc.items.reduce((a, i) => a + i.value, 0);
+        assert.ok(best < all, `seed ${seed}: taking everything is optimal`);
+      }
+      bests.push(best);
+    }
+    return `best ${Math.min(...bests)}–${Math.max(...bests)}, ${((Date.now() - t0) / 50).toFixed(0)}ms/puzzle`;
   });
 }
 

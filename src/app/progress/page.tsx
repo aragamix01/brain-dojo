@@ -4,7 +4,7 @@ import { useState } from "react";
 import { BackHeader, ClientOnly, Stars } from "@/components/ui";
 import { LOGIC_GAMES } from "@/games/catalog";
 import { ROBOT_LEVELS } from "@/games/robot/levels";
-import { SCENARIOS } from "@/games/situation/data";
+import { THEMES } from "@/games/situation/data";
 import { dayKey, formatTime } from "@/lib/date";
 import { rankFor } from "@/lib/rank";
 import { decodeProgress, encodeProgress, type Decoded } from "@/lib/share";
@@ -72,7 +72,7 @@ function Summary({ data, exportedAt }: { data: ProgressData; exportedAt?: number
 
       <div className="card p-4 text-sm">
         <p className="mb-2 font-display">🤖 Robot Code</p>
-        <div className="grid grid-cols-5 gap-1.5">
+        <div className="grid grid-cols-8 gap-1">
           {ROBOT_LEVELS.map((l, i) => (
             <div key={l.id} className="rounded-lg bg-white/5 py-1 text-center">
               <p className="text-[10px] text-muted">{i + 1}</p>
@@ -97,7 +97,7 @@ function Summary({ data, exportedAt }: { data: ProgressData; exportedAt?: number
         })}
 
         <p className="mb-2 mt-4 font-display">🎯 Situations</p>
-        {SCENARIOS.map((sc) => (
+        {THEMES.map((sc) => (
           <div key={sc.id} className="flex justify-between border-b border-white/5 py-1">
             <span>{sc.title}</span>
             <Stars n={g[`situation:${sc.id}`]?.bestStars ?? 0} size="text-sm" />

@@ -17,6 +17,8 @@ export type RobotLevel = {
   funcs: number[];
   /** reference solution, used only by tests — "F R:r 1 | F F" */
   solution: string;
+  /** starting program (Debug levels hand you a buggy one) */
+  preset?: string;
 };
 
 export type Board = { w: number; h: number; tiles: (Color | null)[]; stars: number[] };
@@ -140,6 +142,17 @@ export function parseProgram(src: string, funcs: number[]): Program {
     });
     return [...cmds, ...Array(n - cmds.length).fill(null)];
   });
+}
+
+export function programToString(program: Program): string {
+  return program
+    .map((f) =>
+      f
+        .filter((c): c is Cmd => !!c)
+        .map((c) => (c.op === "C" ? String(c.fn! + 1) : c.op) + (c.cond ? `:${c.cond}` : ""))
+        .join(" "),
+    )
+    .join(" | ");
 }
 
 export function runToEnd(level: RobotLevel, program: Program): RunState {

@@ -8,6 +8,7 @@ import {
   compact,
   initRun,
   parseBoard,
+  parseProgram,
   step,
   type Cmd,
   type Color,
@@ -32,9 +33,22 @@ function CmdIcon({ cmd }: { cmd: Cmd }) {
   return <>{cmd.op === "C" ? `F${cmd.fn! + 1}` : OP_ICON[cmd.op]}</>;
 }
 
-export function RobotGame({ level, nextId }: { level: RobotLevel; nextId?: string }) {
+const emptyProgram = (level: RobotLevel): Program =>
+  level.preset ? parseProgram(level.preset, level.funcs) : level.funcs.map((n) => Array(n).fill(null));
+
+export function RobotGame({
+  level,
+  nextId,
+  onNext,
+  recordKey = `robot:${level.id}`,
+}: {
+  level: RobotLevel;
+  nextId?: string;
+  onNext?: () => void;
+  recordKey?: string;
+}) {
   const board = useMemo(() => parseBoard(level.board), [level]);
-  const [program, setProgram] = useState<Program>(() => level.funcs.map((n) => Array(n).fill(null)));
+  const [program, setProgram] = useState<Program>(() => emptyProgram(level));
   const [run, setRun] = useState<RunState>(() => initRun(level, board));
   const runRef = useRef(run);
   const [playing, setPlaying] = useState(false);
@@ -68,7 +82,7 @@ export function RobotGame({ level, nextId }: { level: RobotLevel; nextId?: strin
     if (next.status === "won") {
       const stars = Math.max(1, 3 - session.hints);
       const ms = elapsedSince(session.startedAt);
-      const xp = recordWin(`robot:${level.id}`, { stars, timeMs: ms, xpBase: 20 });
+      const xp = recordWin(recordKey, { stars, timeMs: ms, xpBase: 20 });
       setTimeout(() => setResult({ stars, xp, ms }), 500);
     }
   };
@@ -199,6 +213,19 @@ export function RobotGame({ level, nextId }: { level: RobotLevel; nextId?: strin
 
       {/* Program */}
       <div className="card mt-4 space-y-2 p-3">
+        <div className="flex items-center justify-between text-xs text-muted">
+          <span>{level.preset ? "🐞 โปรแกรมนี้มีบั๊ก — หาให้เจอ" : "โปรแกรม"}</span>
+          <button
+            className="underline disabled:opacity-40"
+            disabled={!editable}
+            onClick={() => {
+              setProgram(emptyProgram(level));
+              reset();
+            }}
+          >
+            {level.preset ? "คืนค่าเริ่มต้น" : "ล้างทั้งหมด"}
+          </button>
+        </div>
         {program.map((f, fi) => (
           <div key={fi} className="flex items-center gap-2">
             <span className="w-8 shrink-0 font-display text-sm text-pink">F{fi + 1}</span>
@@ -305,6 +332,8 @@ export function RobotGame({ level, nextId }: { level: RobotLevel; nextId?: strin
         onRetry={() => setResult(null)}
         retryLabel="ดูโปรแกรมอีกที"
         nextHref={nextId ? `/robot/${nextId}` : undefined}
+        onNext={onNext}
+        nextLabel={onNext ? "🎲 ด่านสุ่มถัดไป" : undefined}
         backHref="/robot"
       />
     </div>

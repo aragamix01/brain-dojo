@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState, useSyncExternalStore } from "react";
+import { shareCurrentUrl } from "@/lib/seedUrl";
 
 export function BackHeader({
   title,
@@ -70,6 +71,28 @@ export function Tabs<T extends string | number>({
           {o.label}
         </button>
       ))}
+    </div>
+  );
+}
+
+/** Puzzle code + "challenge a friend" link sharing. */
+export function SeedBar({ code, title, onNew }: { code: string; title: string; onNew: () => void }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <div className="flex items-center gap-2">
+      <span className="rounded-lg bg-white/5 px-2 py-1 font-mono text-xs text-muted" title="รหัสโจทย์">
+        #{code}
+      </span>
+      <div className="flex-1" />
+      <button
+        className="btn btn-ghost !min-h-9 !px-3 text-xs"
+        onClick={async () => setCopied(await shareCurrentUrl(title))}
+      >
+        {copied ? "คัดลอกลิงก์แล้ว ✔" : "📤 ท้าเพื่อน"}
+      </button>
+      <button className="btn btn-ghost !min-h-9 !px-3 text-xs" onClick={onNew}>
+        🎲 โจทย์ใหม่
+      </button>
     </div>
   );
 }

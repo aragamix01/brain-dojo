@@ -60,17 +60,18 @@ export function simulate(tasks: Task[], order: string[]): { slots: Slot[]; total
 
 export function bestSchedule(sc: ScheduleScenario): number {
   let best = Infinity;
-  const ids = sc.tasks.map((t) => t.id);
-  const permute = (order: string[], rest: string[]) => {
+  // Only extend orders whose dependencies are already placed, so invalid branches are never explored.
+  const permute = (order: string[], rest: Task[]) => {
     if (!rest.length) {
-      const r = simulate(sc.tasks, order);
-      if (!r.error) best = Math.min(best, r.total);
+      best = Math.min(best, simulate(sc.tasks, order).total);
       return;
     }
-    for (let i = 0; i < rest.length; i++) {
-      permute([...order, rest[i]], [...rest.slice(0, i), ...rest.slice(i + 1)]);
+    for (const t of rest) {
+      if ((t.deps ?? []).every((d) => order.includes(d))) {
+        permute([...order, t.id], rest.filter((x) => x !== t));
+      }
     }
   };
-  permute([], ids);
+  permute([], sc.tasks);
   return best;
 }

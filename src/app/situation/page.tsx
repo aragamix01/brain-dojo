@@ -2,16 +2,16 @@
 
 import Link from "next/link";
 import { BackHeader, ClientOnly, Stars } from "@/components/ui";
-import { SCENARIOS } from "@/games/situation/data";
+import { THEMES } from "@/games/situation/data";
 import { useProgress } from "@/lib/store";
 
 export default function SituationList() {
   const games = useProgress((s) => s.games);
   return (
     <>
-      <BackHeader title="🎯 Situations" sub="ปัญหาเฉพาะหน้า — ไม่มีคำตอบเดียว แต่มีคำตอบที่ดีที่สุด" />
+      <BackHeader title="🎯 Situations" sub="ปัญหาเฉพาะหน้า — สุ่มโจทย์ใหม่ได้ไม่รู้จบ" />
       <div className="space-y-3">
-        {SCENARIOS.map((sc) => (
+        {THEMES.map((sc) => (
           <Link key={sc.id} href={`/situation/${sc.id}`} className="card flex items-center gap-3 p-4 active:scale-[0.98]">
             <span className="text-3xl">{sc.kind === "budget" ? "🎒" : "⏱️"}</span>
             <div className="min-w-0 flex-1">

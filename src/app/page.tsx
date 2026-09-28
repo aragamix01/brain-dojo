@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Nova } from "@/components/Nova";
 import { ClientOnly } from "@/components/ui";
 import { ROBOT_LEVELS } from "@/games/robot/levels";
-import { SCENARIOS } from "@/games/situation/data";
+import { THEMES } from "@/games/situation/data";
 import { dayKey } from "@/lib/date";
 import { rankFor } from "@/lib/rank";
 import { liveStreak, useHydrated, useProgress } from "@/lib/store";
@@ -79,13 +79,13 @@ function ModeCard({
 function Modes() {
   const games = useProgress((s) => s.games);
   const robotDone = ROBOT_LEVELS.filter((l) => games[`robot:${l.id}`]).length;
-  const sitDone = SCENARIOS.filter((s) => games[`situation:${s.id}`]).length;
+  const sitDone = THEMES.filter((s) => games[`situation:${s.id}`]).length;
   const logicWins = ["lights", "jugs", "nonogram", "hanoi"].reduce((a, g) => a + (games[`logic:${g}`]?.wins ?? 0), 0);
   return (
     <div className="grid grid-cols-2 gap-3">
       <ModeCard href="/robot" emoji="🤖" title="Robot Code" th="เขียนโปรแกรมพาหุ่นเก็บดาว" meta={`${robotDone}/${ROBOT_LEVELS.length} ด่าน`} accent="#ff5fcf" />
       <ModeCard href="/logic" emoji="🧩" title="Logic Lab" th="ปริศนาตรรกะ สุ่มไม่ซ้ำ" meta={`ชนะแล้ว ${logicWins} ครั้ง`} accent="#41e8ff" />
-      <ModeCard href="/situation" emoji="🎯" title="Situations" th="ปัญหาเฉพาะหน้า วางแผนให้รอด" meta={`${sitDone}/${SCENARIOS.length} สถานการณ์`} accent="#ffd84d" />
+      <ModeCard href="/situation" emoji="🎯" title="Situations" th="ปัญหาเฉพาะหน้า วางแผนให้รอด" meta={`${sitDone}/${THEMES.length} สถานการณ์`} accent="#ffd84d" />
       <ModeCard href="/sprint" emoji="⚡" title="Speed Math" th="คิดเลขในใจ 60 วินาที" meta={`Best ${games.sprint?.bestScore ?? 0}`} accent="#3ddc97" />
     </div>
   );

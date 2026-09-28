@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import { BackHeader, ClientOnly } from "@/components/ui";
+import { ConceptCard } from "@/games/robot/ConceptCard";
 import { RobotGame } from "@/games/robot/RobotGame";
-import { ROBOT_LEVELS } from "@/games/robot/levels";
+import { ROBOT_LEVELS, chapterOf } from "@/games/robot/levels";
 
 export const dynamicParams = false;
 
@@ -14,13 +15,17 @@ export default async function RobotLevelPage({ params }: PageProps<"/robot/[leve
   const i = ROBOT_LEVELS.findIndex((l) => l.id === id);
   if (i === -1) notFound();
   const level = ROBOT_LEVELS[i];
+  const chapter = chapterOf(id)!;
+  const n = chapter.levels.indexOf(level) + 1;
   return (
     <>
       <BackHeader
-        title={`${String(i + 1).padStart(2, "0")} · ${level.title}`}
-        sub={level.titleEn}
+        title={`${chapter.emoji} ${level.title}`}
+        sub={`${chapter.titleEn} ${n}/${chapter.levels.length} · ${level.titleEn}`}
         href="/robot"
       />
+      {/* Open the concept on each chapter's first level */}
+      <ConceptCard chapter={chapter} open={n === 1} />
       <ClientOnly>
         <RobotGame key={level.id} level={level} nextId={ROBOT_LEVELS[i + 1]?.id} />
       </ClientOnly>

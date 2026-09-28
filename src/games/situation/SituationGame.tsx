@@ -1,9 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { HintButton, ResultModal, Toast, useSession } from "@/components/game";
+import { SeedBar } from "@/components/ui";
+import { randomSeed } from "@/lib/rng";
+import { codeToSeed, readParams, seedToCode, writeParams } from "@/lib/seedUrl";
 import { useProgress } from "@/lib/store";
-import type { BudgetScenario, Scenario, ScheduleScenario } from "./data";
+import type { BudgetScenario, ScheduleScenario, Theme } from "./data";
+import { generateScenario } from "./generate";
 import { bestBudget, bestSchedule, evalBudget, simulate } from "./solver";
 
 type Finish = { score: number; best: number; stars: number; xp: number; unit: string };
@@ -33,7 +37,7 @@ function HintList({ hints, shown, onMore, startedAt }: { hints: string[]; shown:
   );
 }
 
-function Budget({ sc }: { sc: BudgetScenario }) {
+function Budget({ sc, onNew }: { sc: BudgetScenario; onNew: () => void }) {
   const best = useMemo(() => bestBudget(sc), [sc]);
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [msg, setMsg] = useState<string | null>(null);
@@ -131,12 +135,12 @@ function Budget({ sc }: { sc: BudgetScenario }) {
         ✅ ตัดสินใจแล้ว!
       </button>
       <HintList hints={hintText} shown={hints} startedAt={session.startedAt} onMore={() => { setHints(hints + 1); session.takeHint(); }} />
-      <FinishModal done={done} onRetry={() => setDone(null)} />
+      <FinishModal done={done} onRetry={() => setDone(null)} onNew={onNew} />
     </>
   );
 }
 
-function Schedule({ sc }: { sc: ScheduleScenario }) {
+function Schedule({ sc, onNew }: { sc: ScheduleScenario; onNew: () => void }) {
   const best = useMemo(() => bestSchedule(sc), [sc]);
   const [order, setOrder] = useState<string[]>([]);
   const [hints, setHints] = useState(0);
@@ -244,12 +248,22 @@ function Schedule({ sc }: { sc: ScheduleScenario }) {
         ✅ ใช้แผนนี้!
       </button>
       <HintList hints={hintText} shown={hints} startedAt={session.startedAt} onMore={() => { setHints(hints + 1); session.takeHint(); }} />
-      <FinishModal done={done} onRetry={() => setDone(null)} lowerIsBetter />
+      <FinishModal done={done} onRetry={() => setDone(null)} onNew={onNew} lowerIsBetter />
     </>
   );
 }
 
-function FinishModal({ done, onRetry, lowerIsBetter }: { done: Finish | null; onRetry: () => void; lowerIsBetter?: boolean }) {
+function FinishModal({
+  done,
+  onRetry,
+  onNew,
+  lowerIsBetter,
+}: {
+  done: Finish | null;
+  onRetry: () => void;
+  onNew: () => void;
+  lowerIsBetter?: boolean;
+}) {
   const perfect = done && done.score === done.best;
   return (
     <ResultModal
@@ -265,6 +279,9 @@ function FinishModal({ done, onRetry, lowerIsBetter }: { done: Finish | null; on
       retryLabel={perfect ? "ดูอีกที" : "ลองหาวิธีที่ดีกว่า"}
       backHref="/situation"
     >
+      <button className="btn btn-cyan mt-4 w-full" onClick={onNew}>
+        🎲 โจทย์ใหม่ (ธีมเดิม)
+      </button>
       {!perfect && (
         <p className="mt-3 text-sm text-muted">
           ยังมีแผนที่{lowerIsBetter ? "เร็วกว่า" : "ดีกว่า"}นี้อยู่ ไม่บอกหรอกว่าอะไร 😏
@@ -274,11 +291,21 @@ function FinishModal({ done, onRetry, lowerIsBetter }: { done: Finish | null; on
   );
 }
 
-export function SituationGame({ sc }: { sc: Scenario }) {
+export function SituationGame({ th }: { th: Theme }) {
+  const [seed, setSeed] = useState(() => codeToSeed(readParams().get("s")) ?? randomSeed());
+  const sc = useMemo(() => generateScenario(th, seed), [th, seed]);
+  useEffect(() => writeParams({ s: seedToCode(seed) }), [seed]);
+  const next = () => {
+    setSeed(randomSeed());
+    window.scrollTo({ top: 0 });
+  };
   return (
     <>
+      <div className="mb-3">
+        <SeedBar code={seedToCode(seed)} title={`Brain Dojo · ${th.title}`} onNew={next} />
+      </div>
       <p className="card speedlines mb-4 p-4 text-sm leading-relaxed">{sc.story}</p>
-      {sc.kind === "budget" ? <Budget sc={sc} /> : <Schedule sc={sc} />}
+      {sc.kind === "budget" ? <Budget key={seed} sc={sc} onNew={next} /> : <Schedule key={seed} sc={sc} onNew={next} />}
     </>
   );
 }

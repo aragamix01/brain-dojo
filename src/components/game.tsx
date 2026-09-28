@@ -64,6 +64,7 @@ export function ResultModal({
   onRetry,
   retryLabel = "เล่นอีก",
   nextHref,
+  onNext,
   nextLabel = "ด่านต่อไป →",
   backHref,
   children,
@@ -76,6 +77,7 @@ export function ResultModal({
   onRetry?: () => void;
   retryLabel?: string;
   nextHref?: string;
+  onNext?: () => void;
   nextLabel?: string;
   backHref: string;
   children?: React.ReactNode;
@@ -106,8 +108,13 @@ export function ResultModal({
               {nextLabel}
             </Link>
           )}
+          {onNext && (
+            <button className="btn btn-primary" onClick={onNext}>
+              {nextLabel}
+            </button>
+          )}
           {onRetry && (
-            <button className={`btn ${nextHref ? "btn-ghost" : "btn-primary"}`} onClick={onRetry}>
+            <button className={`btn ${nextHref || onNext ? "btn-ghost" : "btn-primary"}`} onClick={onRetry}>
               {retryLabel}
             </button>
           )}
