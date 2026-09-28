@@ -1,36 +1,34 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Brain Dojo 🧠
 
-## Getting Started
+เว็บฝึกสมองสำหรับวัยรุ่น: แก้โจทย์ ฝึกคิดแบบ algorithm และแก้ปัญหาเฉพาะหน้า
+ไม่มีเฉลย มีแต่คำใบ้ทีละขั้น (ปลดล็อกหลังคิดเองครบ 30 วินาที) ข้อมูลทั้งหมดเก็บใน `localStorage` ไม่ใช้ database และไม่มี backend
 
-First, run the development server:
+## โหมด
+
+| โหมด | รายละเอียด |
+| --- | --- |
+| 🤖 Robot Code | เขียนโปรแกรมแบบ Robozzle: คำสั่ง เดิน/หมุน, ฟังก์ชัน F1–F3, recursion, เงื่อนไขสี — 10 ด่าน |
+| 🧩 Logic Lab | Lights Out, Water Jugs, Nonogram, Tower of Hanoi — สุ่มโจทย์ใหม่ทุกครั้ง |
+| 🎯 Situations | เลือกของภายใต้งบ (knapsack) และจัดลำดับงาน (scheduling) — ระบบคำนวณคำตอบที่ดีที่สุดไว้เทียบ แต่ไม่โชว์เฉลย |
+| ⚡ Speed Math | คิดเลขในใจ 60 วินาที ความยากเพิ่มขึ้นตามจำนวนข้อที่ตอบถูก |
+| 📅 Daily Quest | 3 ด่านต่อวัน ใช้วันที่เป็น seed ทุกคนเลยได้โจทย์เดียวกัน กดแชร์ผลไปแข่งกันได้ |
+
+หน้า Progress ใช้สร้างโค้ด `BD1.…` สำหรับส่งผลให้คนอื่นดู หรือย้ายข้อมูลไปเครื่องใหม่
+
+## Dev
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev      # http://localhost:3000
+npm run check    # ตรวจว่าทุกด่าน Robot แก้ได้จริง + ทดสอบ generator/solver
+npm run build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Deploy (Vercel)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+push ขึ้น GitHub แล้ว import repo ใน Vercel ได้เลย ไม่ต้องตั้ง env var
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## เพิ่มเนื้อหา
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- ด่าน Robot: `src/games/robot/levels.ts` ต้องใส่ `solution` ด้วย แล้วรัน `npm run check` ให้ผ่าน
+- สถานการณ์: `src/games/situation/data.ts` (ประเภท `budget` หรือ `schedule`)
