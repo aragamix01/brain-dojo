@@ -76,17 +76,17 @@ function Budget({ sc, cfg }: { sc: BudgetScenario; cfg: Cfg }) {
 
   return (
     <>
-      <div className="sticky top-0 z-20 -mx-4 mb-3 bg-ink/90 px-4 py-2 backdrop-blur">
+      <div className="sticky top-0 z-20 -mx-4 mb-3 bg-paper/90 px-4 py-2 backdrop-blur">
         <div className="flex justify-between text-sm">
           <span className={over ? "text-bad" : ""}>
             {e.cost.toLocaleString()} / {sc.limit.toLocaleString()} {sc.unit}
             {sc.maxItems ? ` · ${picked.size}/${sc.maxItems} ชิ้น` : ""}
           </span>
           <span>
-            {sc.valueLabel} <b className="font-display text-yellow">{e.value}</b>
+            {sc.valueLabel} <b className="font-display text-gold">{e.value}</b>
           </span>
         </div>
-        <div className="mt-1 h-2 overflow-hidden rounded-full bg-white/10">
+        <div className="mt-1 h-2 overflow-hidden rounded-full bg-ink/10">
           <div
             className={`h-full rounded-full transition-all ${over ? "bg-bad" : "bg-cyan"}`}
             style={{ width: `${Math.min(100, (e.cost / sc.limit) * 100)}%` }}
@@ -110,7 +110,7 @@ function Budget({ sc, cfg }: { sc: BudgetScenario; cfg: Cfg }) {
               key={it.id}
               onClick={() => toggle(it.id)}
               className={`rounded-2xl border p-3 text-left transition active:scale-95 ${
-                on ? "border-pink bg-pink/15" : "border-white/10 bg-white/5"
+                on ? "border-pink bg-pink/15" : "border-ink/15 bg-ink/5"
               }`}
             >
               <div className="flex items-start justify-between">
@@ -120,7 +120,7 @@ function Budget({ sc, cfg }: { sc: BudgetScenario; cfg: Cfg }) {
                 </span>
               </div>
               <p className="mt-1 text-sm leading-tight">{it.name}</p>
-              <p className={`mt-1 text-xs ${dead ? "text-bad line-through" : "text-yellow"}`}>
+              <p className={`mt-1 text-xs ${dead ? "text-bad line-through" : "text-gold"}`}>
                 +{it.value} {sc.valueLabel}
               </p>
               {it.requires && (
@@ -183,7 +183,7 @@ function Schedule({ sc, cfg }: { sc: ScheduleScenario; cfg: Cfg }) {
           <button
             key={t.id}
             onClick={() => setOrder([...order, t.id])}
-            className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-left text-sm active:scale-95"
+            className="rounded-xl border border-ink/15 bg-ink/5 px-3 py-2 text-left text-sm active:scale-95"
           >
             <span className="mr-1">{t.emoji}</span>
             {t.name}
@@ -219,7 +219,7 @@ function Schedule({ sc, cfg }: { sc: ScheduleScenario; cfg: Cfg }) {
               >
                 {t.emoji} {t.name}
               </button>
-              <div className="relative h-6 flex-1 rounded bg-white/5">
+              <div className="relative h-6 flex-1 rounded bg-ink/5">
                 {slot && (
                   <>
                     <div
@@ -240,7 +240,7 @@ function Schedule({ sc, cfg }: { sc: ScheduleScenario; cfg: Cfg }) {
         })}
         {order.length > 0 && (
           <p className="pt-2 text-right text-sm">
-            เสร็จทั้งหมดใน <b className="font-display text-lg text-yellow">{sim.error ? "—" : sim.total}</b> นาที
+            เสร็จทั้งหมดใน <b className="font-display text-lg text-gold">{sim.error ? "—" : sim.total}</b> นาที
           </p>
         )}
       </div>

@@ -7,7 +7,7 @@ export function ConceptCard({ chapter, open }: { chapter: Chapter; open?: boolea
         {chapter.emoji} Concept: {chapter.title} <span className="text-muted">/ {chapter.titleEn}</span>
       </summary>
       <p className="mt-2 text-muted">{chapter.concept}</p>
-      <pre className="mt-2 overflow-x-auto rounded-xl bg-black/40 p-3 font-mono text-xs leading-relaxed text-cyan">
+      <pre className="mt-2 overflow-x-auto rounded-xl bg-ink/5 p-3 font-mono text-xs leading-relaxed text-cyan">
         {chapter.code}
       </pre>
     </details>

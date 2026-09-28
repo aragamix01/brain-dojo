@@ -96,7 +96,7 @@ export function ResultModal({
         )}
         <dl className="mt-4 grid grid-cols-2 gap-2 text-left text-sm">
           {stats.map(([k, v]) => (
-            <div key={k} className="rounded-xl bg-white/5 px-3 py-2">
+            <div key={k} className="rounded-xl bg-ink/5 px-3 py-2">
               <dt className="text-xs text-muted">{k}</dt>
               <dd className="font-display text-lg">{v}</dd>
             </div>
@@ -133,6 +133,6 @@ export function Toast({ msg, tone = "bad" }: { msg: string | null; tone?: "bad" 
   if (!msg) return null;
   const color = tone === "bad" ? "border-bad text-bad" : tone === "good" ? "border-good text-good" : "border-cyan text-cyan";
   return (
-    <div className={`animate-pop mt-3 rounded-xl border bg-ink/80 px-3 py-2 text-center text-sm ${color}`}>{msg}</div>
+    <div className={`animate-pop mt-3 rounded-xl border bg-white px-3 py-2 text-center text-sm ${color}`}>{msg}</div>
   );
 }

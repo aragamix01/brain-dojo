@@ -93,8 +93,8 @@ export function JugsGame({
               <button
                 onClick={() => tapJug(i)}
                 aria-label={`เหยือก ${cap} ลิตร มีน้ำ ${state[i]} ลิตร`}
-                className={`relative w-16 overflow-hidden rounded-b-2xl rounded-t-md border-2 bg-white/5 transition ${
-                  sel === i ? "-translate-y-2 border-cyan shadow-[0_0_20px_rgba(65,232,255,0.6)]" : "border-white/25"
+                className={`relative w-16 overflow-hidden rounded-b-2xl rounded-t-md border-2 bg-ink/5 transition ${
+                  sel === i ? "-translate-y-2 border-cyan shadow-[3px_3px_0_#1E2A3A]" : "border-ink/30"
                 } ${shake === i ? "animate-shake border-bad" : ""}`}
                 style={{ height: h }}
               >
@@ -105,7 +105,7 @@ export function JugsGame({
                 {Array.from({ length: cap - 1 }, (_, k) => (
                   <div
                     key={k}
-                    className="absolute left-0 w-2 border-t border-white/30"
+                    className="absolute left-0 w-2 border-t border-ink/30"
                     style={{ bottom: `${((k + 1) / cap) * 100}%` }}
                   />
                 ))}

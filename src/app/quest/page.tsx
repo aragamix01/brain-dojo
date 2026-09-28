@@ -1,31 +1,25 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { BackHeader, ClientOnly } from "@/components/ui";
 import { ChestModal } from "@/games/quest/ChestModal";
+import { ISLAND_ART, SeaSprite, ShipMarker } from "@/games/quest/SeaArt";
+import { WorldMap } from "@/games/quest/WorldMap";
 import { ISLANDS, QUEST_NODES, type Island } from "@/games/quest/data";
 import { chestId, nodeInfo, questView, type QuestView } from "@/games/quest/progress";
 import { useProgress } from "@/lib/store";
 
 const ROW = 96;
-const DECOR: Record<string, string[]> = {
-  beach: ["🌴", "🐚", "🦀", "⛵", "🌊"],
-  jungle: ["🌿", "🐒", "🦜", "🍃", "🐍"],
-  lagoon: ["🐙", "🐠", "🌀", "🐬", "🪸"],
-  volcano: ["🔥", "🪨", "🌋", "☄️", "🦎"],
-  dunes: ["🌵", "🐪", "☀️", "🦂", "🏺"],
-  castle: ["🕯️", "🦇", "⚔️", "🗝️", "🕸️"],
-};
 
 /** Winding trail: x in %, y in px. */
 const xAt = (i: number, isl: number) => 50 + 30 * Math.sin(i * 0.95 + isl * 1.3);
 
 function Stars({ n }: { n: number }) {
   return (
-    <span className="text-[11px] leading-none tracking-tighter">
+    <span className="mt-0.5 rounded-full bg-white/80 px-1 text-[12px] leading-none tracking-tighter">
       {[0, 1, 2].map((i) => (
-        <span key={i} className={i < n ? "text-yellow" : "text-white/20"}>
+        <span key={i} className={i < n ? "text-yellow [text-shadow:1px_1px_0_#1e2a3a]" : "text-ink/25"}>
           ★
         </span>
       ))}
@@ -54,54 +48,77 @@ function IslandMap({
   // extra room below the chest so its label never touches the rounded edge
   const height = points.length * ROW + 64;
   const opened = !!chests[chestId(island)];
-  const decor = DECOR[island.id] ?? [];
+  const art = ISLAND_ART[island.id] ?? ISLAND_ART.beach;
 
   return (
-    <section
-      className="relative mb-6 overflow-hidden rounded-[1.5rem] border border-white/10"
-      style={{ background: `linear-gradient(180deg, ${island.color}22, transparent 40%), #16123a` }}
-    >
-      <div className="relative z-10 p-4">
+    <section id={`island-${island.id}`} className="panel sea relative mb-7 scroll-mt-4 overflow-hidden">
+      <div className="relative z-10 border-b-[3px] border-ink bg-sand p-4">
         <div className="flex items-center gap-3">
-          <span className="text-4xl">{island.emoji}</span>
-          <div className="flex-1">
-            <p className="font-display text-xs tracking-widest" style={{ color: island.color }}>
+          <span
+            className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[45%_55%_40%_60%] border-[3px] border-ink text-3xl shadow-[0_4px_0_#1e2a3a]"
+            style={{ background: island.color }}
+          >
+            {island.emoji}
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="font-comic text-sm tracking-[2px] text-[#b3261e]">
               ISLAND {idx + 1} · {island.lesson.toUpperCase()}
             </p>
-            <p className="font-display text-xl leading-tight">{island.name}</p>
-            <p className="text-xs text-muted">{island.nameEn}</p>
+            <p className="font-display text-xl font-extrabold leading-tight">{island.name}</p>
+            <p className="font-display text-xs font-medium text-wood">{island.nameEn}</p>
           </div>
-          <div className="text-right text-xs">
-            <p className="font-display text-base text-yellow">★ {info.stars}</p>
-            <p className="text-muted">/ {info.max}</p>
+          <div className="rounded-full border-[2.5px] border-ink bg-yellow px-3 py-1 text-center shadow-[2px_2px_0_#1e2a3a]">
+            <p className="font-display text-sm font-extrabold leading-tight">
+              ★ {info.stars}
+              <span className="text-xs font-medium">/{info.max}</span>
+            </p>
           </div>
         </div>
-        {reached && <p className="mt-2 text-sm text-fg/80">{island.story}</p>}
+        {reached && <p className="mt-2 text-sm leading-relaxed">{island.story}</p>}
       </div>
 
-      <div className={`relative ${reached ? "" : "opacity-35 grayscale"}`} style={{ height }}>
+      <div className={`relative ${reached ? "" : "opacity-50 grayscale"}`} style={{ height }}>
         <svg className="absolute inset-0 h-full w-full" viewBox={`0 0 100 ${height}`} preserveAspectRatio="none">
           <path
-            d={points.map((x, i) => `${i ? "L" : "M"} ${x} ${i * ROW + ROW / 2}`).join(" ")}
+            d={points
+              .map((x, i) => {
+                const y = i * ROW + ROW / 2;
+                // smooth S-curves with vertical tangents at every stage
+                return i ? `C ${points[i - 1]} ${y - ROW / 2}, ${x} ${y - ROW / 2}, ${x} ${y}` : `M ${x} ${y}`;
+              })
+              .join(" ")}
             fill="none"
-            stroke={island.color}
-            strokeOpacity="0.55"
+            stroke="#1e2a3a"
             strokeWidth="4"
-            strokeDasharray="2 10"
+            strokeDasharray="2 12"
             strokeLinecap="round"
             vectorEffect="non-scaling-stroke"
           />
         </svg>
 
-        {points.map((x, i) => (
-          <span
-            key={`d${i}`}
-            className="pointer-events-none absolute text-xl opacity-60"
-            style={{ left: `${x > 50 ? 10 : 84}%`, top: i * ROW + ROW / 2 - 12 }}
-          >
-            {decor[(i + idx) % decor.length]}
-          </span>
-        ))}
+        {points.map((x, i) => {
+          const right = x <= 50;
+          const side = (pad: string) => ({ left: right ? "auto" : pad, right: right ? pad : "auto" });
+          // a big creature only where the trail swings far enough away to leave room
+          const roomy = Math.abs(x - 50) > 16;
+          if (roomy && (i === 1 || i === 6))
+            return (
+              <SeaSprite
+                key={`d${i}`}
+                kind={i === 1 ? art.hero : art.small[idx % art.small.length] === "gulls" ? "wave" : art.hero}
+                className={`pointer-events-none absolute w-28 ${art.hero === "kraken" && i === 1 ? "" : "animate-bob"}`}
+                style={{ ...side("1%"), top: i * ROW + ROW / 2 - 52 }}
+              />
+            );
+          return (
+            <SeaSprite
+              key={`d${i}`}
+              kind={art.small[(i + idx) % art.small.length]}
+              className="pointer-events-none absolute w-14"
+              style={{ ...side("4%"), top: i * ROW + ROW / 2 - 18 }}
+            />
+          );
+        })}
 
         {island.nodes.map((n, i) => {
           const g = firstGlobal + i;
@@ -109,36 +126,42 @@ function IslandMap({
           const isCurrent = g === view.current;
           const locked = g > view.current;
           const meta = nodeInfo(n);
-          const size = n.boss ? 76 : 60;
+          const size = n.boss ? 88 : 70;
           const body = (
             <>
               <span
-                className={`flex items-center justify-center rounded-full border-4 text-2xl shadow-lg transition ${
-                  isCurrent ? "hint-ring scale-110" : ""
+                className={`flex items-center justify-center border-[3px] border-ink text-2xl transition ${
+                  isCurrent ? "scale-110 shadow-[0_5px_0_#1e2a3a,0_0_0_8px_rgba(255,201,60,0.75)]" : "shadow-[0_5px_0_#1e2a3a]"
                 }`}
                 style={{
                   width: size,
-                  height: size,
-                  background: locked ? "#2a2550" : stars ? island.color : "#241d55",
-                  borderColor: locked ? "#3a3470" : isCurrent ? "#fff" : island.color,
+                  height: size * 0.72,
+                  borderRadius: ["50% 50% 45% 55%", "55% 45% 50% 50%", "45% 55% 40% 60%", "50% 50% 55% 45%"][i % 4],
+                  background: locked
+                    ? `color-mix(in srgb, ${island.color} 28%, #f2e3b3)`
+                    : n.boss
+                      ? "#b9a6ff"
+                      : stars
+                        ? island.color
+                        : `color-mix(in srgb, ${island.color} 55%, #fff)`,
                   fontSize: n.boss ? 34 : 26,
                 }}
               >
                 {locked ? "🔒" : n.boss ? "👹" : meta.emoji}
               </span>
-              <span className="mt-1 max-w-28 truncate rounded-full bg-ink/80 px-2 py-0.5 text-[11px] leading-tight">
+              <span
+                className={`mt-1.5 max-w-28 truncate rounded-lg border-2 border-ink px-2 py-0.5 font-display text-[11px] font-bold leading-tight ${
+                  n.boss ? "bg-[#b3261e] text-white" : "bg-white"
+                }`}
+              >
                 {n.boss && "BOSS · "}
                 {meta.title}
               </span>
               {stars > 0 && <Stars n={stars} />}
-              {isCurrent && (
-                <span className="absolute -top-6 animate-bounce rounded-full bg-pink px-2 py-0.5 font-display text-[10px] text-white">
-                  ▶ YOU
-                </span>
-              )}
+              {isCurrent && <ShipMarker className="animate-bob absolute -right-11 top-1 h-12 w-12" />}
             </>
           );
-          const style = { left: `${points[i]}%`, top: i * ROW + ROW / 2 - size / 2 };
+          const style = { left: `${points[i]}%`, top: i * ROW + ROW / 2 - size * 0.36 };
           return locked ? (
             <div key={n.id} className="absolute flex -translate-x-1/2 flex-col items-center" style={style}>
               {body}
@@ -164,18 +187,17 @@ function IslandMap({
           aria-label="หีบสมบัติ"
         >
           <span
-            className={`flex h-20 w-20 items-center justify-center rounded-3xl border-4 text-5xl ${
-              info.canOpen && !opened ? "animate-bounce shadow-[0_0_30px_rgba(255,216,77,0.8)]" : ""
+            className={`flex h-20 w-20 items-center justify-center rounded-3xl border-[3px] border-ink text-5xl shadow-[0_5px_0_#1e2a3a] ${
+              info.canOpen && !opened ? "animate-bounce" : ""
             }`}
             style={{
-              borderColor: info.canOpen ? "#ffd84d" : "#3a3470",
-              background: info.canOpen ? "#ffd84d33" : "#2a2550",
+              background: info.canOpen ? "#ffc93c" : "#e3e7ee",
               filter: info.canOpen ? "none" : "grayscale(1)",
             }}
           >
             {opened ? "🎉" : "🎁"}
           </span>
-          <span className="mt-1 rounded-full bg-ink/80 px-2 py-0.5 text-[11px]">
+          <span className="mt-1.5 rounded-lg border-2 border-ink bg-white px-2 py-0.5 font-display text-[11px] font-bold">
             {opened
               ? "เปิดแล้ว · แตะดูโค้ด"
               : info.canOpen
@@ -187,7 +209,7 @@ function IslandMap({
         </button>
       </div>
       {info.complete && !info.canOpen && (
-        <p className="px-4 pb-4 text-center text-xs text-yellow">
+        <p className="relative mx-4 mb-4 rounded-xl border-2 border-ink bg-white px-3 py-2 text-center font-display text-xs font-bold text-[#b3261e]">
           ดาวยังไม่พอเปิดหีบ — กลับไปเล่นด่านที่ได้ดาวน้อยอีกรอบ (ใช้คำใบ้น้อยลง / ทำให้ถึง par)
         </p>
       )}
@@ -204,28 +226,27 @@ function QuestMap() {
   const [chest, setChest] = useState<number | null>(null);
   const done = QUEST_NODES.filter((n) => view.stars[n.id] > 0).length;
 
-  useEffect(() => {
-    currentRef.current?.scrollIntoView({ block: "center" });
-  }, []);
 
   return (
     <>
-      <div className="card mb-5 p-4">
+      <div className="card mb-6 p-4">
         <div className="flex justify-between text-sm">
           <span>
-            ผ่านแล้ว <b className="text-yellow">{done}</b> / {QUEST_NODES.length} ด่าน
+            ผ่านแล้ว <b className="font-display text-base">{done}</b> / {QUEST_NODES.length} ด่าน
           </span>
           <span className="text-muted">
             🎁 {ISLANDS.filter((isl) => chests[chestId(isl)]).length} / {ISLANDS.length}
           </span>
         </div>
-        <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/10">
+        <div className="mt-2 h-3.5 overflow-hidden rounded-full border-[2.5px] border-ink bg-[#e8f6fd]">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-good via-yellow to-pink"
+            className="h-full bg-ocean"
             style={{ width: `${(done / QUEST_NODES.length) * 100}%` }}
           />
         </div>
       </div>
+
+      <WorldMap view={view} />
 
       {ISLANDS.map((isl, i) => (
         <IslandMap
@@ -242,7 +263,7 @@ function QuestMap() {
       ))}
 
       {view.current >= QUEST_NODES.length && (
-        <p className="card p-6 text-center font-display text-xl text-yellow">🏆 พิชิตสมบัติของกัปตันครบทุกเกาะแล้ว!</p>
+        <p className="card bg-yellow p-6 text-center font-display text-xl font-extrabold">🏆 พิชิตสมบัติของกัปตันครบทุกเกาะแล้ว!</p>
       )}
 
       <p className="mt-6 text-center">
@@ -259,7 +280,7 @@ function QuestMap() {
 export default function QuestPage() {
   return (
     <>
-      <BackHeader title="🗺️ Treasure Quest" sub="ตามแผนที่ไปหาสมบัติของกัปตัน" />
+      <BackHeader title="TREASURE MAP" sub="แผนที่ล่าสมบัติของกัปตัน" comic />
       <ClientOnly>
         <QuestMap />
       </ClientOnly>

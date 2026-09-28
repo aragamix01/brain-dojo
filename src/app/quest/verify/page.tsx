@@ -27,7 +27,7 @@ function Verify() {
             setChecked(null);
           }}
           placeholder="ชื่อหลาน"
-          className="w-full rounded-lg bg-black/30 px-3 py-2 outline-none focus:ring-2 focus:ring-pink"
+          className="w-full rounded-lg bg-ink/5 px-3 py-2 outline-none focus:ring-2 focus:ring-pink"
         />
         <input
           value={code}
@@ -36,7 +36,7 @@ function Verify() {
             setChecked(null);
           }}
           placeholder="โค้ด เช่น C1-AB12"
-          className="w-full rounded-lg bg-black/30 px-3 py-2 font-mono uppercase outline-none focus:ring-2 focus:ring-pink"
+          className="w-full rounded-lg bg-ink/5 px-3 py-2 font-mono uppercase outline-none focus:ring-2 focus:ring-pink"
         />
         <button className="btn btn-primary w-full" disabled={!name.trim() || !code.trim()} onClick={() => setChecked(verifyClaim(name, code))}>
           ตรวจโค้ด
@@ -52,7 +52,7 @@ function Verify() {
               {name} เปิดหีบ {checked.island.emoji} {checked.island.name} ได้จริง
             </p>
             {delivered[normCode] ? (
-              <p className="mt-3 text-sm text-yellow">
+              <p className="mt-3 text-sm text-gold">
                 ⚠️ มอบรางวัลหีบนี้ไปแล้วเมื่อ {new Date(delivered[normCode]).toLocaleString("th-TH")}
               </p>
             ) : (

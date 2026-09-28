@@ -59,10 +59,10 @@ export function HanoiGame({ disks, session, onSolved }: { disks: number; session
               onClick={() => tapPeg(p)}
               aria-label={`เสา ${p + 1}`}
               className={`relative flex h-64 flex-col-reverse items-center rounded-2xl border pb-2 transition ${
-                sel === p ? "border-cyan bg-cyan/10" : "border-white/10 bg-white/5"
+                sel === p ? "border-cyan bg-cyan/10" : "border-ink/15 bg-ink/5"
               } ${isHint ? "hint-ring" : ""}`}
             >
-              <div className="absolute bottom-2 top-6 w-1.5 rounded-full bg-white/20" />
+              <div className="absolute bottom-2 top-6 w-1.5 rounded-full bg-ink/20" />
               {stack.map((d, k) => (
                 <div
                   key={d}

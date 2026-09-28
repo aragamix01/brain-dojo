@@ -42,7 +42,7 @@ function ShareBox({ date, r }: { date: string; r: DailyResult }) {
   return (
     <div className="card speedlines p-5 text-center">
       <p className="font-display text-3xl text-pink glow-text">Daily Clear!</p>
-      <pre className="mt-4 whitespace-pre-wrap rounded-xl bg-black/30 p-3 text-left font-sans text-sm">{text}</pre>
+      <pre className="mt-4 whitespace-pre-wrap rounded-xl bg-ink/5 p-3 text-left font-sans text-sm">{text}</pre>
       <button className="btn btn-primary mt-4 w-full" onClick={share}>
         {copied ? "คัดลอกแล้ว ✔" : "📤 ส่งผลไปท้าน้า"}
       </button>
@@ -66,7 +66,7 @@ function DailyRun({ date }: { date: string }) {
         <p className="font-display text-xl">ภารกิจวันนี้ 3 ด่าน</p>
         <ol className="mt-3 space-y-2">
           {STAGES.map((s, i) => (
-            <li key={s} className="flex items-center gap-3 rounded-xl bg-white/5 px-3 py-2">
+            <li key={s} className="flex items-center gap-3 rounded-xl bg-ink/5 px-3 py-2">
               <span className="font-display text-pink">{i + 1}</span>
               {s}
             </li>
@@ -91,7 +91,7 @@ function DailyRun({ date }: { date: string }) {
     <>
       <div className="mb-4 flex gap-1.5">
         {STAGES.map((s, i) => (
-          <div key={s} className={`h-1.5 flex-1 rounded-full ${i <= stage ? "bg-pink" : "bg-white/10"}`} />
+          <div key={s} className={`h-1.5 flex-1 rounded-full ${i <= stage ? "bg-pink" : "bg-ink/10"}`} />
         ))}
       </div>
       <p className="mb-3 font-display text-lg">

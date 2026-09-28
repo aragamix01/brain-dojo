@@ -1,10 +1,10 @@
 export const RANKS = [
-  { name: "E", title: "Rookie", minXp: 0, color: "#a9a3c9" },
-  { name: "D", title: "Apprentice", minXp: 200, color: "#3ddc97" },
-  { name: "C", title: "Solver", minXp: 600, color: "#41e8ff" },
-  { name: "B", title: "Tactician", minXp: 1500, color: "#4d7cff" },
-  { name: "A", title: "Mastermind", minXp: 3500, color: "#ff5fcf" },
-  { name: "S", title: "Legend", minXp: 7000, color: "#ffd84d" },
+  { name: "E", title: "Rookie", minXp: 0, color: "#c9ced6" },
+  { name: "D", title: "Apprentice", minXp: 200, color: "#6ee0a8" },
+  { name: "C", title: "Solver", minXp: 600, color: "#5cc8f5" },
+  { name: "B", title: "Tactician", minXp: 1500, color: "#8e7cff" },
+  { name: "A", title: "Mastermind", minXp: 3500, color: "#ff7a9a" },
+  { name: "S", title: "Legend", minXp: 7000, color: "#ffc93c" },
 ] as const;
 
 export function rankFor(xp: number) {

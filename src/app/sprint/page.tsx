@@ -34,7 +34,7 @@ export default function SprintPage() {
           </ul>
           <ClientOnly>
             <p className="mt-4 text-sm">
-              Best: <b className="text-yellow">{best}</b>
+              Best: <b className="text-gold">{best}</b>
             </p>
           </ClientOnly>
           <button className="btn btn-primary mt-5 w-full text-lg" onClick={() => setRun(randomSeed())}>

@@ -98,7 +98,7 @@ export function NonogramGame({
               key={c}
               className={`flex flex-col items-center justify-end pb-1 font-mono text-[11px] leading-[1.15] ${
                 status.cols[c] ? "text-good/60" : "text-fg"
-              } ${c % 5 === 4 && c !== n - 1 ? "border-r border-white/20" : ""}`}
+              } ${c % 5 === 4 && c !== n - 1 ? "border-r border-ink/20" : ""}`}
             >
               {clue.map((v, k) => (
                 <span key={k}>{v}</span>
@@ -122,7 +122,7 @@ export function NonogramGame({
             ))}
           </div>
           <div
-            className="grid aspect-square touch-none overflow-hidden rounded-lg border border-white/25"
+            className="grid aspect-square touch-none overflow-hidden rounded-lg border border-ink/30"
             style={{ gridTemplateColumns: `repeat(${n}, 1fr)` }}
             onPointerMove={(e) => {
               if (!drag.current) return;
@@ -147,10 +147,10 @@ export function NonogramGame({
                     drag.current = { v, start: i, base: cellsRef.current };
                     dragTo(i);
                   }}
-                  className={`flex items-center justify-center border-white/10 text-muted transition-colors ${
-                    col % 5 === 4 && col !== n - 1 ? "border-r-white/30" : ""
-                  } ${r % 5 === 4 && r !== n - 1 ? "border-b-white/30" : ""} border-b border-r ${
-                    c === 1 ? "bg-pink" : "bg-white/[0.03]"
+                  className={`flex items-center justify-center border-ink/15 text-muted transition-colors ${
+                    col % 5 === 4 && col !== n - 1 ? "border-r-ink/40" : ""
+                  } ${r % 5 === 4 && r !== n - 1 ? "border-b-ink/40" : ""} border-b border-r ${
+                    c === 1 ? "bg-pink" : "bg-white"
                   } ${flash === i ? "hint-ring" : ""}`}
                 >
                   {c === 2 && <span className="pointer-events-none text-xs">✕</span>}
@@ -162,7 +162,7 @@ export function NonogramGame({
       </div>
 
       <div className="mt-4 flex items-center justify-center gap-2">
-        <div className="flex rounded-xl bg-white/5 p-1">
+        <div className="flex rounded-xl bg-ink/5 p-1">
           <button
             onClick={() => setMode("fill")}
             className={`rounded-lg px-4 py-2 font-display text-sm ${mode === "fill" ? "bg-pink text-white" : "text-muted"}`}

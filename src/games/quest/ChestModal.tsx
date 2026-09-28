@@ -35,7 +35,7 @@ export function ChestModal({ island, index, onClose }: { island: Island; index: 
         onClick={(e) => e.stopPropagation()}
       >
         <p className="animate-bounce text-7xl">🎁</p>
-        <p className="mt-2 font-display text-2xl text-yellow">เปิดหีบสมบัติสำเร็จ!</p>
+        <p className="mt-2 font-display text-2xl text-gold">เปิดหีบสมบัติสำเร็จ!</p>
         <p className="text-sm text-muted">
           {island.emoji} {island.name} · {island.nameEn}
         </p>
@@ -44,7 +44,7 @@ export function ChestModal({ island, index, onClose }: { island: Island; index: 
         {code ? (
           <>
             <p className="mt-4 text-xs text-muted">โค้ดทวงรางวัล (ให้น้าตรวจ)</p>
-            <p className="mt-1 rounded-xl bg-black/40 py-3 font-mono text-3xl tracking-widest text-cyan">{code}</p>
+            <p className="mt-1 rounded-xl bg-ink/5 py-3 font-mono text-3xl tracking-widest text-cyan">{code}</p>
             <p className="mt-1 text-[11px] text-muted">ผูกกับชื่อ &quot;{name}&quot;</p>
             {delivered[code] ? (
               <p className="mt-3 text-good">✔ รับรางวัลแล้ว</p>
@@ -61,7 +61,7 @@ export function ChestModal({ island, index, onClose }: { island: Island; index: 
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               placeholder="ชื่อเล่น"
-              className="mt-2 w-full rounded-lg bg-black/30 px-3 py-2 outline-none focus:ring-2 focus:ring-pink"
+              className="mt-2 w-full rounded-lg bg-ink/5 px-3 py-2 outline-none focus:ring-2 focus:ring-pink"
             />
             <button className="btn btn-primary mt-2 w-full" disabled={!draft.trim()} onClick={() => setName(draft)}>
               รับโค้ด

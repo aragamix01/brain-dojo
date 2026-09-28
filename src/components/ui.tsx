@@ -9,20 +9,37 @@ export function BackHeader({
   sub,
   href = "/",
   right,
+  comic,
 }: {
   title: string;
   sub?: string;
   href?: string;
   right?: React.ReactNode;
+  /** Bangers comic-style title (use for short English titles). */
+  comic?: boolean;
 }) {
   return (
     <header className="mb-4 flex items-center gap-3">
-      <Link href={href} aria-label="กลับ" className="btn btn-ghost !min-h-10 !px-3 text-lg">
-        ←
+      <Link
+        href={href}
+        aria-label="กลับ"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] border-[2.5px] border-ink bg-white shadow-[3px_3px_0_#1e2a3a] active:translate-y-0.5 active:shadow-[1px_1px_0_#1e2a3a]"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1e2a3a" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M15 5l-7 7 7 7" />
+        </svg>
       </Link>
       <div className="min-w-0 flex-1">
-        <h1 className="truncate font-display text-xl font-semibold leading-tight">{title}</h1>
-        {sub && <p className="truncate text-xs text-muted">{sub}</p>}
+        <h1
+          className={
+            comic
+              ? "comic-title truncate py-0.5 text-[28px] text-yellow"
+              : "truncate font-display text-xl font-extrabold leading-tight"
+          }
+        >
+          {title}
+        </h1>
+        {sub && <p className="truncate font-display text-xs font-bold text-muted">{sub}</p>}
       </div>
       {right}
     </header>
@@ -33,7 +50,7 @@ export function Stars({ n, max = 3, size = "text-base" }: { n: number; max?: num
   return (
     <span className={`${size} tracking-tight`} aria-label={`${n} ดาว`}>
       {Array.from({ length: max }, (_, i) => (
-        <span key={i} className={i < n ? "text-yellow" : "text-white/15"}>
+        <span key={i} className={i < n ? "text-yellow [text-shadow:1px_1px_0_#1E2A3A]" : "text-ink/15"}>
           ★
         </span>
       ))}
@@ -43,7 +60,7 @@ export function Stars({ n, max = 3, size = "text-base" }: { n: number; max?: num
 
 export function Pill({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full bg-white/8 px-2.5 py-1 text-xs ${className}`}>
+    <span className={`inline-flex items-center gap-1 rounded-full bg-ink/5 px-2.5 py-1 text-xs ${className}`}>
       {children}
     </span>
   );
@@ -59,13 +76,13 @@ export function Tabs<T extends string | number>({
   onChange: (v: T) => void;
 }) {
   return (
-    <div className="flex gap-1 rounded-xl bg-white/5 p-1">
+    <div className="flex gap-1 rounded-2xl border-[2.5px] border-ink bg-white p-1 shadow-[3px_3px_0_#1e2a3a]">
       {options.map((o) => (
         <button
           key={String(o.value)}
           onClick={() => onChange(o.value)}
-          className={`flex-1 rounded-lg px-2 py-1.5 font-display text-sm transition ${
-            o.value === value ? "bg-pink text-white shadow" : "text-muted"
+          className={`flex-1 rounded-xl border-2 px-2 py-1.5 font-display text-sm font-bold transition ${
+            o.value === value ? "border-ink bg-yellow text-ink" : "border-transparent text-muted"
           }`}
         >
           {o.label}
@@ -80,7 +97,7 @@ export function SeedBar({ code, title, onNew }: { code: string; title: string; o
   const [copied, setCopied] = useState(false);
   return (
     <div className="flex items-center gap-2">
-      <span className="rounded-lg bg-white/5 px-2 py-1 font-mono text-xs text-muted" title="รหัสโจทย์">
+      <span className="rounded-lg bg-ink/5 px-2 py-1 font-mono text-xs text-muted" title="รหัสโจทย์">
         #{code}
       </span>
       <div className="flex-1" />

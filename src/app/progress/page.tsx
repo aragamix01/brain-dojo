@@ -26,7 +26,7 @@ function Summary({ data, exportedAt }: { data: ProgressData; exportedAt?: number
     <div className="space-y-3">
       <div className="card p-4">
         <div className="flex items-center gap-3">
-          <span className="font-display text-4xl" style={{ color: rank.color }}>
+          <span className="flex h-14 w-14 items-center justify-center rounded-xl border-[2.5px] border-ink font-comic text-4xl text-white [-webkit-text-stroke:1.5px_#1e2a3a] [text-shadow:2px_2px_0_#1e2a3a]" style={{ background: rank.color }}>
             {rank.name}
           </span>
           <div className="flex-1">
@@ -43,7 +43,7 @@ function Summary({ data, exportedAt }: { data: ProgressData; exportedAt?: number
             ["📅 daily", dailyCount],
             ["💡 hints", data.hintsUsed],
           ].map(([k, v]) => (
-            <div key={k} className="rounded-xl bg-white/5 py-2">
+            <div key={k} className="rounded-xl bg-ink/5 py-2">
               <p className="font-display text-lg">{v}</p>
               <p className="text-muted">{k}</p>
             </div>
@@ -63,7 +63,7 @@ function Summary({ data, exportedAt }: { data: ProgressData; exportedAt?: number
               <div
                 key={d}
                 title={r ? `${d} · ${formatTime(r.timeMs)}` : d}
-                className={`h-6 flex-1 rounded ${r ? "bg-pink" : "bg-white/8"}`}
+                className={`h-6 flex-1 rounded ${r ? "bg-pink" : "bg-ink/5"}`}
               />
             );
           })}
@@ -74,7 +74,7 @@ function Summary({ data, exportedAt }: { data: ProgressData; exportedAt?: number
         <p className="mb-2 font-display">🤖 Robot Code</p>
         <div className="grid grid-cols-8 gap-1">
           {ROBOT_LEVELS.map((l, i) => (
-            <div key={l.id} className="rounded-lg bg-white/5 py-1 text-center">
+            <div key={l.id} className="rounded-lg bg-ink/5 py-1 text-center">
               <p className="text-[10px] text-muted">{i + 1}</p>
               <Stars n={g[`robot:${l.id}`]?.bestStars ?? 0} size="text-[10px]" />
             </div>
@@ -85,7 +85,7 @@ function Summary({ data, exportedAt }: { data: ProgressData; exportedAt?: number
         {LOGIC_GAMES.map((lg) => {
           const s = g[`logic:${lg.id}`];
           return (
-            <div key={lg.id} className="flex justify-between border-b border-white/5 py-1">
+            <div key={lg.id} className="flex justify-between border-b border-ink/10 py-1">
               <span>
                 {lg.emoji} {lg.title}
               </span>
@@ -98,14 +98,14 @@ function Summary({ data, exportedAt }: { data: ProgressData; exportedAt?: number
 
         <p className="mb-2 mt-4 font-display">🎯 Situations</p>
         {THEMES.map((sc) => (
-          <div key={sc.id} className="flex justify-between border-b border-white/5 py-1">
+          <div key={sc.id} className="flex justify-between border-b border-ink/10 py-1">
             <span>{sc.title}</span>
             <Stars n={g[`situation:${sc.id}`]?.bestStars ?? 0} size="text-sm" />
           </div>
         ))}
 
         <p className="mt-4 font-display">
-          ⚡ Speed Math best: <span className="text-yellow">{g.sprint?.bestScore ?? 0}</span>
+          ⚡ Speed Math best: <span className="text-gold">{g.sprint?.bestScore ?? 0}</span>
         </p>
       </div>
     </div>
@@ -138,7 +138,7 @@ function ExportBox() {
       </p>
       {code ? (
         <>
-          <textarea readOnly value={code} className="mt-3 h-24 w-full rounded-xl bg-black/30 p-2 font-mono text-[10px]" />
+          <textarea readOnly value={code} className="mt-3 h-24 w-full rounded-xl bg-ink/5 p-2 font-mono text-[10px]" />
           <button className="btn btn-cyan mt-2 w-full" onClick={copy}>
             {copied ? "คัดลอกแล้ว ✔" : "📋 คัดลอก / แชร์"}
           </button>
@@ -175,7 +175,7 @@ function ImportBox() {
         value={text}
         onChange={(e) => setText(e.target.value)}
         placeholder="วางโค้ด BD1.… ที่นี่"
-        className="mt-3 h-20 w-full rounded-xl bg-black/30 p-2 font-mono text-[10px]"
+        className="mt-3 h-20 w-full rounded-xl bg-ink/5 p-2 font-mono text-[10px]"
       />
       <button className="btn btn-ghost mt-2 w-full" onClick={read} disabled={!text.trim()}>
         เปิดดู
@@ -216,7 +216,7 @@ function Mine() {
           value={p.name}
           onChange={(e) => setName(e.target.value)}
           placeholder="ใส่ชื่อ (โชว์ตอนแชร์ผล)"
-          className="flex-1 rounded-lg bg-black/30 px-3 py-2 outline-none focus:ring-2 focus:ring-pink"
+          className="flex-1 rounded-lg bg-ink/5 px-3 py-2 outline-none focus:ring-2 focus:ring-pink"
         />
       </label>
       <Summary data={p} />

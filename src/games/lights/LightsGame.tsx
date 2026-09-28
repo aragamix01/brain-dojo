@@ -73,7 +73,7 @@ export function LightsGame({
     <div>
       <div className="mb-3 flex items-center justify-between text-sm">
         <span>
-          💡 เหลือ <b className="text-yellow">{lit}</b> ดวง
+          💡 เหลือ <b className="text-gold">{lit}</b> ดวง
         </span>
         <span className="text-muted">
           Moves <b className="text-fg">{moves}</b> · Par {puzzle.par}
@@ -97,9 +97,9 @@ export function LightsGame({
               onPointerUp={(e) => e.pointerType !== "mouse" && setPreview(null)}
               className={`relative rounded-xl transition-all duration-150 active:scale-90 ${
                 on
-                  ? "bg-yellow shadow-[0_0_18px_rgba(255,216,77,0.75)]"
-                  : "border border-white/10 bg-white/5"
-              } ${inPreview ? "outline-2 outline-offset-1 outline-white/60 outline-dashed" : ""} ${
+                  ? "border-[2.5px] border-ink bg-yellow shadow-[0_4px_0_#1e2a3a]"
+                  : "border-[2.5px] border-ink/40 bg-white"
+              } ${inPreview ? "outline-2 outline-offset-1 outline-ink/60 outline-dashed" : ""} ${
                 hintCell === i ? "hint-ring" : ""
               }`}
             >

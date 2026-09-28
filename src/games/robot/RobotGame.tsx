@@ -163,7 +163,7 @@ export function RobotGame({
                   style={{ background: TILE[t], opacity: 0.85 }}
                 >
                   {run.stars.includes(i) && (
-                    <span className="animate-pop text-[min(5vw,22px)] leading-none text-yellow drop-shadow-[0_0_6px_rgba(0,0,0,0.6)]">
+                    <span className="animate-pop text-[min(5vw,22px)] leading-none text-yellow [text-shadow:1px_1px_0_#1E2A3A]">
                       ★
                     </span>
                   )}
@@ -188,7 +188,7 @@ export function RobotGame({
             className="h-[78%] w-[78%] drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]"
             style={{ transform: `rotate(${run.angle}deg)`, transition: `transform ${DELAY[speed]}ms` }}
           >
-            <path d="M20 3 L35 33 L20 26 L5 33 Z" fill="#fff" stroke="#0d0b1f" strokeWidth="3" strokeLinejoin="round" />
+            <path d="M20 3 L35 33 L20 26 L5 33 Z" fill="#fff" stroke="#1E2A3A" strokeWidth="3" strokeLinejoin="round" />
           </svg>
         </div>
       </div>
@@ -250,13 +250,13 @@ export function RobotGame({
                     className={`flex h-11 w-11 items-center justify-center rounded-lg border-2 font-display text-lg transition ${
                       isExec
                         ? run.skipped
-                          ? "border-white/60"
+                          ? "border-ink/60"
                           : "scale-110 border-yellow"
                         : isSel
                           ? "border-cyan"
-                          : "border-white/15"
+                          : "border-ink/20"
                     }`}
-                    style={{ background: c?.cond ? TILE[c.cond] : "rgba(255,255,255,0.06)" }}
+                    style={{ background: c?.cond ? TILE[c.cond] : "rgba(30,42,58,0.06)" }}
                   >
                     {c ? <CmdIcon cmd={c} /> : ""}
                   </button>
@@ -297,7 +297,7 @@ export function RobotGame({
               onClick={() => pickColor(c)}
               aria-label={c ? `เงื่อนไขสี ${c}` : "ไม่มีเงื่อนไข"}
               className={`h-9 w-9 rounded-lg border-2 text-xs ${brush === c ? "border-white" : "border-transparent"}`}
-              style={{ background: c ? TILE[c] : "rgba(255,255,255,0.1)" }}
+              style={{ background: c ? TILE[c] : "rgba(30,42,58,0.1)" }}
             >
               {c ? "" : "any"}
             </button>

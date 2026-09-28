@@ -83,7 +83,7 @@ export function SprintGame({
   return (
     <div className="select-none">
       <div className="mb-3 flex items-center gap-3">
-        <div className="h-3 flex-1 overflow-hidden rounded-full bg-white/10">
+        <div className="h-3 flex-1 overflow-hidden rounded-full bg-ink/10">
           <div
             className={`h-full rounded-full transition-[width] duration-100 ${pct < 0.2 ? "bg-bad" : "bg-cyan"}`}
             style={{ width: `${pct * 100}%` }}
@@ -93,7 +93,7 @@ export function SprintGame({
       </div>
       <div className="flex justify-between text-sm text-muted">
         <span>
-          Score <b className="font-display text-lg text-yellow">{stats.score}</b>
+          Score <b className="font-display text-lg text-gold">{stats.score}</b>
         </span>
         <span>Lv.{q.level + 1}</span>
       </div>
