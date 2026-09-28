@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { Nova } from "@/components/Nova";
 import { ClientOnly } from "@/components/ui";
-import { ROBOT_LEVELS } from "@/games/robot/levels";
-import { THEMES } from "@/games/situation/data";
+import { QUEST_NODES } from "@/games/quest/data";
+import { chestId, nodeInfo, questView } from "@/games/quest/progress";
 import { dayKey } from "@/lib/date";
 import { rankFor } from "@/lib/rank";
 import { liveStreak, useHydrated, useProgress } from "@/lib/store";
@@ -45,49 +45,47 @@ function Header() {
   );
 }
 
-function ModeCard({
-  href,
-  emoji,
-  title,
-  th,
-  meta,
-  accent,
-}: {
-  href: string;
-  emoji: string;
-  title: string;
-  th: string;
-  meta: React.ReactNode;
-  accent: string;
-}) {
+function QuestCard() {
+  const games = useProgress((s) => s.games);
+  const chests = useProgress((s) => s.chests);
+  const view = questView(games);
+  const node = QUEST_NODES[view.current];
+  const done = QUEST_NODES.filter((n) => view.stars[n.id] > 0).length;
+  const openable = view.islands.filter((i) => i.canOpen && !chests[chestId(i.island)]).length;
+  const info = node && nodeInfo(node);
   return (
     <Link
-      href={href}
-      className="card group relative overflow-hidden p-4 transition active:scale-[0.97]"
-      style={{ boxShadow: `inset 0 -3px 0 ${accent}` }}
+      href="/quest"
+      className="relative block overflow-hidden rounded-[1.25rem] bg-gradient-to-br from-yellow via-[#ff8a4d] to-pink p-[2px] active:scale-[0.98]"
     >
-      <p className="text-3xl transition group-hover:scale-110">{emoji}</p>
-      <p className="mt-2 font-display text-base leading-tight">{title}</p>
-      <p className="text-xs text-muted">{th}</p>
-      <p className="mt-2 text-xs" style={{ color: accent }}>
-        {meta}
-      </p>
+      <div className="rounded-[calc(1.25rem-2px)] bg-ink/80 p-4">
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="font-display text-xs tracking-widest text-yellow">TREASURE QUEST</p>
+            <p className="mt-1 font-display text-2xl">🗺️ ล่าสมบัติ</p>
+          </div>
+          <span className="text-4xl">{node ? node.island.emoji : "🏆"}</span>
+        </div>
+        {node && info ? (
+          <p className="mt-1 text-sm text-fg/80">
+            {node.island.name} · ด่านต่อไป: {node.boss ? "👹 " : info.emoji + " "}
+            {info.title}
+          </p>
+        ) : (
+          <p className="mt-1 text-sm text-yellow">พิชิตครบทุกเกาะแล้ว!</p>
+        )}
+        <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
+          <div className="h-full rounded-full bg-gradient-to-r from-yellow to-pink" style={{ width: `${(done / QUEST_NODES.length) * 100}%` }} />
+        </div>
+        <p className="mt-1 text-[11px] text-muted">
+          {done}/{QUEST_NODES.length} ด่าน
+        </p>
+        {openable > 0 && (
+          <p className="mt-2 animate-pulse font-display text-sm text-yellow">🎁 มีหีบสมบัติรอเปิดอยู่ {openable} ใบ!</p>
+        )}
+        <span className="btn btn-primary mt-3 !min-h-10 text-sm">{done ? "ออกเดินทางต่อ →" : "เริ่มผจญภัย →"}</span>
+      </div>
     </Link>
-  );
-}
-
-function Modes() {
-  const games = useProgress((s) => s.games);
-  const robotDone = ROBOT_LEVELS.filter((l) => games[`robot:${l.id}`]).length;
-  const sitDone = THEMES.filter((s) => games[`situation:${s.id}`]).length;
-  const logicWins = ["lights", "jugs", "nonogram", "hanoi"].reduce((a, g) => a + (games[`logic:${g}`]?.wins ?? 0), 0);
-  return (
-    <div className="grid grid-cols-2 gap-3">
-      <ModeCard href="/robot" emoji="🤖" title="Robot Code" th="เขียนโปรแกรมพาหุ่นเก็บดาว" meta={`${robotDone}/${ROBOT_LEVELS.length} ด่าน`} accent="#ff5fcf" />
-      <ModeCard href="/logic" emoji="🧩" title="Logic Lab" th="ปริศนาตรรกะ สุ่มไม่ซ้ำ" meta={`ชนะแล้ว ${logicWins} ครั้ง`} accent="#41e8ff" />
-      <ModeCard href="/situation" emoji="🎯" title="Situations" th="ปัญหาเฉพาะหน้า วางแผนให้รอด" meta={`${sitDone}/${THEMES.length} สถานการณ์`} accent="#ffd84d" />
-      <ModeCard href="/sprint" emoji="⚡" title="Speed Math" th="คิดเลขในใจ 60 วินาที" meta={`Best ${games.sprint?.bestScore ?? 0}`} accent="#3ddc97" />
-    </div>
   );
 }
 
@@ -124,15 +122,21 @@ export default function Home() {
       <ClientOnly fallback={<div className="card h-[108px]" />}>
         <Header />
       </ClientOnly>
-      <ClientOnly fallback={<div className="h-[170px] rounded-[1.25rem] bg-white/5" />}>
-        <DailyCard />
-        <div className="mt-4">
+      <ClientOnly fallback={<div className="h-[420px] rounded-[1.25rem] bg-white/5" />}>
+        <div className="space-y-4">
+          <QuestCard />
+          <DailyCard />
           <Nova />
         </div>
       </ClientOnly>
-      <ClientOnly fallback={<div className="h-80" />}>
-        <Modes />
-      </ClientOnly>
+      <Link href="/play" className="card flex items-center gap-3 p-4 active:scale-[0.98]">
+        <span className="text-3xl">🎮</span>
+        <div className="flex-1">
+          <p className="font-display">Free Play · ฝึกอิสระ</p>
+          <p className="text-xs text-muted">เล่นเกมแยก ด่านสุ่ม และท้าเพื่อนด้วยลิงก์</p>
+        </div>
+        <span className="text-muted">→</span>
+      </Link>
       <p className="pt-2 text-center text-xs text-muted">ไม่มีเฉลย · ไม่มี AI · มีแต่สมองเรา 🧠</p>
     </div>
   );

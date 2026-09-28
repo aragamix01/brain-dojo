@@ -12,12 +12,15 @@ import { bestBudget, bestSchedule, evalBudget, simulate } from "./solver";
 
 type Finish = { score: number; best: number; stars: number; xp: number; unit: string };
 
-function useFinish(id: string) {
+/** Where results are saved and where "back" goes — free play and Quest differ. */
+type Cfg = { recordKey: string; backHref: string; onNew?: () => void };
+
+function useFinish(key: string) {
   const recordWin = useProgress((s) => s.recordWin);
-  const prevStars = useProgress((s) => s.games[`situation:${id}`]?.bestStars ?? 0);
+  const prevStars = useProgress((s) => s.games[key]?.bestStars ?? 0);
   return (stars: number) =>
     // XP only when the result beats your previous best, so resubmitting doesn't farm points.
-    stars > prevStars ? recordWin(`situation:${id}`, { stars, xpBase: 25 }) : 0;
+    stars > prevStars ? recordWin(key, { stars, xpBase: 25 }) : 0;
 }
 
 function HintList({ hints, shown, onMore, startedAt }: { hints: string[]; shown: number; onMore: () => void; startedAt: number }) {
@@ -37,14 +40,14 @@ function HintList({ hints, shown, onMore, startedAt }: { hints: string[]; shown:
   );
 }
 
-function Budget({ sc, onNew }: { sc: BudgetScenario; onNew: () => void }) {
+function Budget({ sc, cfg }: { sc: BudgetScenario; cfg: Cfg }) {
   const best = useMemo(() => bestBudget(sc), [sc]);
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [msg, setMsg] = useState<string | null>(null);
   const [hints, setHints] = useState(0);
   const [done, setDone] = useState<Finish | null>(null);
   const session = useSession();
-  const finish = useFinish(sc.id);
+  const finish = useFinish(cfg.recordKey);
   const e = evalBudget(sc, picked);
   const over = e.cost > sc.limit;
   const byId = new Map(sc.items.map((i) => [i.id, i]));
@@ -135,18 +138,18 @@ function Budget({ sc, onNew }: { sc: BudgetScenario; onNew: () => void }) {
         ✅ ตัดสินใจแล้ว!
       </button>
       <HintList hints={hintText} shown={hints} startedAt={session.startedAt} onMore={() => { setHints(hints + 1); session.takeHint(); }} />
-      <FinishModal done={done} onRetry={() => setDone(null)} onNew={onNew} />
+      <FinishModal done={done} onRetry={() => setDone(null)} cfg={cfg} />
     </>
   );
 }
 
-function Schedule({ sc, onNew }: { sc: ScheduleScenario; onNew: () => void }) {
+function Schedule({ sc, cfg }: { sc: ScheduleScenario; cfg: Cfg }) {
   const best = useMemo(() => bestSchedule(sc), [sc]);
   const [order, setOrder] = useState<string[]>([]);
   const [hints, setHints] = useState(0);
   const [done, setDone] = useState<Finish | null>(null);
   const session = useSession();
-  const finish = useFinish(sc.id);
+  const finish = useFinish(cfg.recordKey);
   const byId = new Map(sc.tasks.map((t) => [t.id, t]));
   const sim = simulate(sc.tasks, order);
   const pool = sc.tasks.filter((t) => !order.includes(t.id));
@@ -248,7 +251,7 @@ function Schedule({ sc, onNew }: { sc: ScheduleScenario; onNew: () => void }) {
         ✅ ใช้แผนนี้!
       </button>
       <HintList hints={hintText} shown={hints} startedAt={session.startedAt} onMore={() => { setHints(hints + 1); session.takeHint(); }} />
-      <FinishModal done={done} onRetry={() => setDone(null)} onNew={onNew} lowerIsBetter />
+      <FinishModal done={done} onRetry={() => setDone(null)} cfg={cfg} lowerIsBetter />
     </>
   );
 }
@@ -256,12 +259,12 @@ function Schedule({ sc, onNew }: { sc: ScheduleScenario; onNew: () => void }) {
 function FinishModal({
   done,
   onRetry,
-  onNew,
+  cfg,
   lowerIsBetter,
 }: {
   done: Finish | null;
   onRetry: () => void;
-  onNew: () => void;
+  cfg: Cfg;
   lowerIsBetter?: boolean;
 }) {
   const perfect = done && done.score === done.best;
@@ -277,11 +280,13 @@ function FinishModal({
       ]}
       onRetry={onRetry}
       retryLabel={perfect ? "ดูอีกที" : "ลองหาวิธีที่ดีกว่า"}
-      backHref="/situation"
+      backHref={cfg.backHref}
     >
-      <button className="btn btn-cyan mt-4 w-full" onClick={onNew}>
-        🎲 โจทย์ใหม่ (ธีมเดิม)
-      </button>
+      {cfg.onNew && (
+        <button className="btn btn-cyan mt-4 w-full" onClick={cfg.onNew}>
+          🎲 โจทย์ใหม่ (ธีมเดิม)
+        </button>
+      )}
       {!perfect && (
         <p className="mt-3 text-sm text-muted">
           ยังมีแผนที่{lowerIsBetter ? "เร็วกว่า" : "ดีกว่า"}นี้อยู่ ไม่บอกหรอกว่าอะไร 😏
@@ -291,9 +296,19 @@ function FinishModal({
   );
 }
 
+function Scenario({ th, seed, cfg }: { th: Theme; seed: number; cfg: Cfg }) {
+  const sc = useMemo(() => generateScenario(th, seed), [th, seed]);
+  return (
+    <>
+      <p className="card speedlines mb-4 p-4 text-sm leading-relaxed">{sc.story}</p>
+      {sc.kind === "budget" ? <Budget key={seed} sc={sc} cfg={cfg} /> : <Schedule key={seed} sc={sc} cfg={cfg} />}
+    </>
+  );
+}
+
+/** Free play: seed lives in the URL and can be rerolled. */
 export function SituationGame({ th }: { th: Theme }) {
   const [seed, setSeed] = useState(() => codeToSeed(readParams().get("s")) ?? randomSeed());
-  const sc = useMemo(() => generateScenario(th, seed), [th, seed]);
   useEffect(() => writeParams({ s: seedToCode(seed) }), [seed]);
   const next = () => {
     setSeed(randomSeed());
@@ -304,8 +319,12 @@ export function SituationGame({ th }: { th: Theme }) {
       <div className="mb-3">
         <SeedBar code={seedToCode(seed)} title={`Brain Dojo · ${th.title}`} onNew={next} />
       </div>
-      <p className="card speedlines mb-4 p-4 text-sm leading-relaxed">{sc.story}</p>
-      {sc.kind === "budget" ? <Budget key={seed} sc={sc} onNew={next} /> : <Schedule key={seed} sc={sc} onNew={next} />}
+      <Scenario th={th} seed={seed} cfg={{ recordKey: `situation:${th.id}`, backHref: "/situation", onNew: next }} />
     </>
   );
+}
+
+/** Quest: one fixed puzzle per map node. */
+export function FixedSituation({ th, seed, recordKey, backHref }: { th: Theme; seed: number; recordKey: string; backHref: string }) {
+  return <Scenario th={th} seed={seed} cfg={{ recordKey, backHref }} />;
 }

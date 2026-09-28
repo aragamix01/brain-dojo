@@ -67,6 +67,7 @@ export function ResultModal({
   onNext,
   nextLabel = "ด่านต่อไป →",
   backHref,
+  backLabel = "กลับเมนู",
   children,
 }: {
   open: boolean;
@@ -80,6 +81,7 @@ export function ResultModal({
   onNext?: () => void;
   nextLabel?: string;
   backHref: string;
+  backLabel?: string;
   children?: React.ReactNode;
 }) {
   if (!open) return null;
@@ -119,7 +121,7 @@ export function ResultModal({
             </button>
           )}
           <Link href={backHref} className="btn btn-ghost">
-            กลับเมนู
+            {backLabel}
           </Link>
         </div>
       </div>

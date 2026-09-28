@@ -30,6 +30,10 @@ export type ProgressData = {
   /** keyed like "logic:lights", "robot:r03", "situation:camp", "sprint" */
   games: Record<string, GameStat>;
   daily: Record<string, DailyResult>;
+  /** quest chest id → time opened */
+  chests: Record<string, number>;
+  /** claim codes the uncle marked as paid out on this device */
+  delivered: Record<string, number>;
 };
 
 type Actions = {
@@ -40,6 +44,8 @@ type Actions = {
   ) => number;
   recordDaily: (date: string, r: DailyResult) => number;
   addHint: () => void;
+  openChest: (id: string) => void;
+  markDelivered: (code: string) => void;
   importData: (d: ProgressData) => void;
   reset: () => void;
 };
@@ -53,6 +59,8 @@ export const emptyProgress = (): ProgressData => ({
   hintsUsed: 0,
   games: {},
   daily: {},
+  chests: {},
+  delivered: {},
 });
 
 function touchStreak(s: ProgressData): Pick<ProgressData, "streak" | "bestStreak" | "lastActive"> {
@@ -95,6 +103,8 @@ export const useProgress = create<ProgressData & Actions>()(
         return xp;
       },
       addHint: () => set((s) => ({ hintsUsed: s.hintsUsed + 1 })),
+      openChest: (id) => set((s) => (s.chests[id] ? s : { chests: { ...s.chests, [id]: Date.now() } })),
+      markDelivered: (code) => set((s) => ({ delivered: { ...s.delivered, [code]: Date.now() } })),
       importData: (d) => set({ ...emptyProgress(), ...d }),
       reset: () => set(emptyProgress()),
     }),
@@ -116,6 +126,8 @@ function pickData(s: ProgressData): ProgressData {
     hintsUsed: s.hintsUsed,
     games: s.games,
     daily: s.daily,
+    chests: s.chests,
+    delivered: s.delivered,
   };
 }
 

@@ -12,6 +12,10 @@ import { makeQuestion } from "../src/games/sprint/logic";
 import { THEMES } from "../src/games/situation/data";
 import { generateScenario } from "../src/games/situation/generate";
 import { bestBudget, bestSchedule } from "../src/games/situation/solver";
+import { QUEST_NODES } from "../src/games/quest/data";
+import { claimCode, nodeSeed, verifyClaim } from "../src/games/quest/progress";
+import { theme } from "../src/games/situation/data";
+import { robotLevel } from "../src/games/robot/levels";
 
 let failures = 0;
 function check(name: string, fn: () => string | void) {
@@ -119,6 +123,27 @@ for (const th of THEMES) {
     return `best ${Math.min(...bests)}–${Math.max(...bests)}, ${((Date.now() - t0) / 50).toFixed(0)}ms/puzzle`;
   });
 }
+
+check("quest map", () => {
+  const ids = QUEST_NODES.map((n) => n.id);
+  assert.equal(new Set(ids).size, ids.length, "duplicate node id");
+  const robots = QUEST_NODES.flatMap((n) => (n.kind === "robot" ? [n.level] : []));
+  for (const id of robots) assert.ok(robotLevel(id), `unknown robot level ${id}`);
+  const missing = ROBOT_LEVELS.filter((l) => !robots.includes(l.id)).map((l) => l.id);
+  assert.deepEqual(missing, [], "robot levels missing from the quest");
+  for (const n of QUEST_NODES) {
+    if (n.kind === "situation") assert.ok(theme(n.theme), `unknown theme ${n.theme}`);
+    if (n.kind === "lights") generateLights(rngFrom(nodeSeed(n)), n.size);
+    if (n.kind === "jugs") {
+      const p = generateJugs(rngFrom(nodeSeed(n)), n.variant);
+      if (n.maxPar) assert.ok(p.par <= n.maxPar, `${n.id} par ${p.par}`);
+    }
+  }
+  const code = claimCode("Tetus", 2);
+  assert.ok(verifyClaim(" tetus ", code).ok, "claim code round trip");
+  assert.ok(!verifyClaim("someone", code).ok, "claim code accepts wrong name");
+  return `${QUEST_NODES.length} nodes`;
+});
 
 if (failures) {
   console.log(`\n${failures} check(s) failed`);

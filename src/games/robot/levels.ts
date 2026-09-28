@@ -477,3 +477,5 @@ export const CHAPTERS: Chapter[] = [
 export const ROBOT_LEVELS: RobotLevel[] = CHAPTERS.flatMap((c) => c.levels);
 
 export const chapterOf = (levelId: string) => CHAPTERS.find((c) => c.levels.some((l) => l.id === levelId));
+
+export const robotLevel = (id: string) => ROBOT_LEVELS.find((l) => l.id === id);

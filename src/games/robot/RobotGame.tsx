@@ -41,11 +41,19 @@ export function RobotGame({
   nextId,
   onNext,
   recordKey = `robot:${level.id}`,
+  backHref = "/robot",
+  backLabel,
+  nextHref = nextId ? `/robot/${nextId}` : undefined,
+  nextLabel,
 }: {
   level: RobotLevel;
   nextId?: string;
   onNext?: () => void;
   recordKey?: string;
+  backHref?: string;
+  backLabel?: string;
+  nextHref?: string;
+  nextLabel?: string;
 }) {
   const board = useMemo(() => parseBoard(level.board), [level]);
   const [program, setProgram] = useState<Program>(() => emptyProgram(level));
@@ -331,10 +339,11 @@ export function RobotGame({
         ]}
         onRetry={() => setResult(null)}
         retryLabel="ดูโปรแกรมอีกที"
-        nextHref={nextId ? `/robot/${nextId}` : undefined}
+        nextHref={nextHref}
         onNext={onNext}
-        nextLabel={onNext ? "🎲 ด่านสุ่มถัดไป" : undefined}
-        backHref="/robot"
+        nextLabel={nextLabel ?? (onNext ? "🎲 ด่านสุ่มถัดไป" : undefined)}
+        backHref={backHref}
+        backLabel={backLabel}
       />
     </div>
   );

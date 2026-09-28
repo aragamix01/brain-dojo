@@ -82,7 +82,7 @@ function RandomLab() {
 export default function RobotList() {
   return (
     <>
-      <BackHeader title="🤖 Robot Code" sub="เรียนพื้นฐานการเขียนโปรแกรม ทีละหมวด" />
+      <BackHeader title="🤖 Robot Code" sub="เรียนพื้นฐานการเขียนโปรแกรม ทีละหมวด" href="/play" />
       <p className="mb-4 text-sm text-muted">
         {ROBOT_LEVELS.length} ด่าน {CHAPTERS.length} หมวด ไล่จากง่ายไปยาก ผ่านด่านก่อนหน้าเพื่อปลดล็อกด่านถัดไป
       </p>

@@ -9,7 +9,7 @@ export default function LogicList() {
   const games = useProgress((s) => s.games);
   return (
     <>
-      <BackHeader title="🧩 Logic Lab" sub="ปริศนาตรรกะ — สุ่มโจทย์ใหม่ทุกครั้ง ไม่มีเฉลยให้ค้น" />
+      <BackHeader title="🧩 Logic Lab" sub="ปริศนาตรรกะ — สุ่มโจทย์ใหม่ทุกครั้ง ไม่มีเฉลยให้ค้น" href="/play" />
       <div className="space-y-3">
         {LOGIC_GAMES.map((g) => {
           const stat = games[`logic:${g.id}`];

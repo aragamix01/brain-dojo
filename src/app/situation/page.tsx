@@ -9,7 +9,7 @@ export default function SituationList() {
   const games = useProgress((s) => s.games);
   return (
     <>
-      <BackHeader title="🎯 Situations" sub="ปัญหาเฉพาะหน้า — สุ่มโจทย์ใหม่ได้ไม่รู้จบ" />
+      <BackHeader title="🎯 Situations" sub="ปัญหาเฉพาะหน้า — สุ่มโจทย์ใหม่ได้ไม่รู้จบ" href="/play" />
       <div className="space-y-3">
         {THEMES.map((sc) => (
           <Link key={sc.id} href={`/situation/${sc.id}`} className="card flex items-center gap-3 p-4 active:scale-[0.98]">

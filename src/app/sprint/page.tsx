@@ -22,7 +22,7 @@ export default function SprintPage() {
 
   return (
     <>
-      <BackHeader title="⚡ Speed Math" sub="คิดเลขในใจ 60 วินาที" />
+      <BackHeader title="⚡ Speed Math" sub="คิดเลขในใจ 60 วินาที" href="/play" />
       {run === null ? (
         <div className="card speedlines p-6 text-center">
           <p className="text-5xl">⚡</p>
@@ -57,7 +57,7 @@ export default function SprintPage() {
           setResult(null);
           setRun(randomSeed());
         }}
-        backHref="/"
+        backHref="/play"
       />
     </>
   );
