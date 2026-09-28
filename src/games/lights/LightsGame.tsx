@@ -39,6 +39,9 @@ export function LightsGame({
   const lit = grid.filter(Boolean).length;
   const previewSet = preview === null ? null : plus(preview, n);
   const upperClear = grid.slice(0, n * (n - 1)).every((v) => !v);
+  // Chase guide: point at the row to work in, never at the cells to press.
+  const litRow = Array.from({ length: n - 1 }, (_, r) => r).find((r) => grid.slice(r * n, r * n + n).some(Boolean));
+  const workRow = chase && litRow !== undefined ? litRow + 1 : null;
 
   const tap = (i: number) => {
     if (done) return;
@@ -85,7 +88,7 @@ export function LightsGame({
         onPointerLeave={() => setPreview(null)}
       >
         {grid.map((on, i) => {
-          const chaseMark = chase && i >= n && grid[i - n];
+          const inWorkRow = workRow !== null && Math.floor(i / n) === workRow;
           const inPreview = previewSet?.has(i);
           return (
             <button
@@ -99,16 +102,12 @@ export function LightsGame({
                 on
                   ? "border-[2.5px] border-ink bg-yellow shadow-[0_4px_0_#1e2a3a]"
                   : "border-[2.5px] border-ink/40 bg-white"
-              } ${inPreview ? "outline-2 outline-offset-1 outline-ink/60 outline-dashed" : ""} ${
+              } ${inWorkRow ? "outline-[3px] outline-offset-2 outline-ocean outline-dashed" : ""} ${
+                inPreview ? "outline-2 outline-offset-1 outline-ink/60 outline-dashed" : ""
+              } ${
                 hintCell === i ? "hint-ring" : ""
               }`}
-            >
-              {chaseMark && (
-                <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-lg text-cyan">
-                  ↓
-                </span>
-              )}
-            </button>
+            />
           );
         })}
       </div>
@@ -117,7 +116,9 @@ export function LightsGame({
         <p className="mt-3 text-center text-xs text-cyan">
           {upperClear && lit
             ? "แถวบนเคลียร์หมดแล้ว! เหลือแถวล่าง — ลองหาว่าต้องกดแถวบนสุดช่องไหน แล้วไล่ลงมาใหม่"
-            : "↓ = ไฟข้างบนยังเปิดอยู่ กดช่องนี้เพื่อดับมัน ทำทีละแถวจากบนลงล่าง"}
+            : workRow !== null
+              ? `เป้าหมาย: ดับไฟแถว ${workRow} ให้หมด โดยกดได้แค่ในแถว ${workRow + 1} (แถวที่มีกรอบ) — ช่องไหนล่ะ?`
+              : null}
         </p>
       )}
       <Toast msg={hintMsg} tone="info" />

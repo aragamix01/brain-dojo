@@ -8,6 +8,7 @@ import { chestId, nodeInfo, questView } from "@/games/quest/progress";
 import { dayKey } from "@/lib/date";
 import { rankFor } from "@/lib/rank";
 import { liveStreak, useHydrated, useProgress } from "@/lib/store";
+import { RedDot, useDailyDot } from "@/components/RedDot";
 
 function Logo() {
   return (
@@ -89,9 +90,11 @@ function QuestCard() {
   const done = QUEST_NODES.filter((n) => view.stars[n.id] > 0).length;
   const openable = view.islands.filter((i) => i.canOpen && !chests[chestId(i.island)]).length;
   const info = node && nodeInfo(node);
+  const dot = useDailyDot("quest", openable > 0);
   return (
-    <Link href="/quest" className="panel block overflow-hidden bg-white active:translate-y-0.5">
-      <div className="flex items-center justify-between border-b-[3px] border-ink bg-yellow px-4 py-3">
+    <Link href="/quest" onClick={dot.clear} className="panel relative block bg-white active:translate-y-0.5">
+      <RedDot show={dot.show} className="-right-2 -top-2" />
+      <div className="flex items-center justify-between rounded-t-[1rem] border-b-[3px] border-ink bg-yellow px-4 py-3">
         <div>
           <p className="font-comic text-[15px] tracking-[2px] text-[#b3261e]">TREASURE QUEST</p>
           <p className="font-display text-[26px] font-extrabold leading-tight">ล่าสมบัติ</p>
@@ -149,8 +152,11 @@ function QuestCard() {
 
 function DailyCard() {
   const done = useProgress((s) => s.daily[dayKey()]);
+  // The daily dot stays until today's run is finished, not just tapped.
+  const hydrated = useHydrated();
   return (
-    <Link href="/daily" className="panel relative flex items-center gap-3.5 overflow-hidden bg-[#6f5cf0] p-4 text-white active:translate-y-0.5">
+    <Link href="/daily" className="panel relative flex items-center gap-3.5 bg-[#6f5cf0] p-4 text-white active:translate-y-0.5">
+      <RedDot show={hydrated && !done} className="-right-2 -top-2" />
       <div className="flex flex-1 flex-col gap-1">
         <p className="font-comic text-sm tracking-[2px] text-[#ffe27a]">DAILY VOYAGE · {dayKey()}</p>
         <p className="font-display text-[22px] font-extrabold leading-tight">{done ? "เคลียร์แล้ววันนี้ ✔" : "ภารกิจประจำวัน"}</p>
@@ -170,6 +176,36 @@ function DailyCard() {
   );
 }
 
+/** Log book: stats, share codes and backups. Looks like a real button, with a daily dot. */
+function ProgressButton() {
+  const dot = useDailyDot("progress");
+  return (
+    <Link
+      href="/progress"
+      onClick={dot.clear}
+      className="relative flex h-11 items-center gap-1.5 rounded-[14px] border-[2.5px] border-ink bg-yellow pl-2 pr-3 shadow-[3px_3px_0_#1e2a3a] transition active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0_#1e2a3a]"
+    >
+      <RedDot show={dot.show} />
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1e2a3a" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="9" fill="#fff" />
+        <path d="M12 3v3M12 18v3M3 12h3M18 12h3" />
+        <path d="M14.5 9.5l-4 1-1 4 4-1z" fill="#ff5a5f" />
+      </svg>
+      <span className="font-display text-sm font-extrabold">ผลงาน</span>
+    </Link>
+  );
+}
+
+function FreePlayLink({ children }: { children: React.ReactNode }) {
+  const dot = useDailyDot("play");
+  return (
+    <Link href="/play" onClick={dot.clear} className="card relative flex items-center gap-3 p-3.5 active:translate-y-0.5">
+      <RedDot show={dot.show} className="-right-2 -top-2" />
+      {children}
+    </Link>
+  );
+}
+
 export default function Home() {
   return (
     <div className="space-y-5">
@@ -177,17 +213,7 @@ export default function Home() {
         <div className="sunburst flex flex-col gap-3.5 bg-sky px-4 pb-8 pt-[max(1.25rem,env(safe-area-inset-top))]">
           <div className="flex items-center justify-between">
             <Logo />
-            <Link
-              href="/progress"
-              aria-label="Progress"
-              className="flex h-11 w-11 items-center justify-center rounded-[14px] border-[2.5px] border-ink bg-white shadow-[3px_3px_0_#1e2a3a]"
-            >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1e2a3a" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="9" />
-                <path d="M12 3v3M12 18v3M3 12h3M18 12h3" />
-                <path d="M14.5 9.5l-4 1-1 4 4-1z" fill="#ff5a5f" />
-              </svg>
-            </Link>
+            <ProgressButton />
           </div>
           <ClientOnly fallback={<div className="h-[170px]" />}>
             <Wanted />
@@ -206,7 +232,7 @@ export default function Home() {
         </div>
       </ClientOnly>
 
-      <Link href="/play" className="card flex items-center gap-3 p-3.5 active:translate-y-0.5">
+      <FreePlayLink>
         <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] border-[2.5px] border-ink bg-lagoon">
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#1e2a3a" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M14.5 3.5l6 6-9 9H5.5v-6z" fill="#fff" />
@@ -218,7 +244,7 @@ export default function Home() {
           <p className="text-[13px] text-muted">เล่นเกมแยก ด่านสุ่ม ท้าเพื่อนด้วยลิงก์</p>
         </div>
         <span className="text-xl font-bold">›</span>
-      </Link>
+      </FreePlayLink>
       <p className="pt-1 text-center font-display text-xs font-medium text-wood">ไม่มีเฉลย · ไม่มี AI · มีแต่สมองลูกเรือ</p>
     </div>
   );
