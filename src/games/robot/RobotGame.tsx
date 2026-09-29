@@ -41,6 +41,7 @@ export function RobotGame({
   nextId,
   onNext,
   recordKey = `robot:${level.id}`,
+  onWin,
   backHref = "/robot",
   backLabel,
   nextHref = nextId ? `/robot/${nextId}` : undefined,
@@ -50,6 +51,8 @@ export function RobotGame({
   nextId?: string;
   onNext?: () => void;
   recordKey?: string;
+  /** Hand the win to the caller (Daily) instead of saving stats and showing the result modal. */
+  onWin?: (r: { stars: number; steps: number }) => void;
   backHref?: string;
   backLabel?: string;
   nextHref?: string;
@@ -89,6 +92,7 @@ export function RobotGame({
     setPlaying(false);
     if (next.status === "won") {
       const stars = Math.max(1, 3 - session.hints);
+      if (onWin) return onWin({ stars, steps: next.steps });
       const ms = elapsedSince(session.startedAt);
       const xp = recordWin(recordKey, { stars, timeMs: ms, xpBase: 20 });
       setTimeout(() => setResult({ stars, xp, ms }), 500);

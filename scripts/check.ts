@@ -13,6 +13,8 @@ import { THEMES } from "../src/games/situation/data";
 import { generateScenario } from "../src/games/situation/generate";
 import { bestBudget, bestSchedule } from "../src/games/situation/solver";
 import { QUEST_NODES } from "../src/games/quest/data";
+import { dailyPlan } from "../src/games/daily/plan";
+import { generateNonogram as genNono } from "../src/games/nonogram/logic";
 import { claimCode, nodeSeed, verifyClaim } from "../src/games/quest/progress";
 import { theme } from "../src/games/situation/data";
 import { robotLevel } from "../src/games/robot/levels";
@@ -146,6 +148,29 @@ check("quest map", () => {
   assert.ok(verifyClaim(" tetus ", code).ok, "claim code round trip");
   assert.ok(!verifyClaim("someone", code).ok, "claim code accepts wrong name");
   return `${QUEST_NODES.length} nodes`;
+});
+
+check("daily plan (365 days)", () => {
+  const counts: Record<string, number> = {};
+  const d = new Date(2026, 0, 1);
+  for (let i = 0; i < 365; i++, d.setDate(d.getDate() + 1)) {
+    const key = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+    const plan = dailyPlan(key);
+    assert.equal(new Set(plan.map((s) => s.kind)).size, 3, `${key} repeats a game`);
+    assert.deepEqual(dailyPlan(key), plan, "plan is not deterministic");
+    for (const st of plan) {
+      counts[st.kind] = (counts[st.kind] ?? 0) + 1;
+      if (st.kind === "lights") generateLights(rngFrom(st.seed), st.size);
+      if (st.kind === "jugs") generateJugs(rngFrom(st.seed), st.variant);
+      if (st.kind === "nonogram") genNono(rngFrom(st.seed), st.size);
+      if (st.kind === "robot") {
+        const lv = generateRobotLevel(st.tier, st.seed);
+        assert.equal(runToEnd(lv, parseProgram(lv.solution, lv.funcs)).status, "won");
+      }
+      if (st.kind === "situation") assert.ok(theme(st.theme));
+    }
+  }
+  return Object.entries(counts).map(([k, v]) => `${k} ${v}`).join(", ");
 });
 
 if (failures) {

@@ -12,12 +12,17 @@ export type GameStat = {
   bestScore: number | null;
 };
 
+export type DailyStage = { kind: string; label: string; stars: number; detail: string };
+
 export type DailyResult = {
   timeMs: number;
-  sprintScore: number;
   hints: number;
-  lightsMoves: number;
-  jugsMoves: number;
+  /** games picked for that day and how each went */
+  stages?: DailyStage[];
+  // Old fixed-format days (Speed Math → Lights → Jugs) saved these instead of `stages`.
+  sprintScore?: number;
+  lightsMoves?: number;
+  jugsMoves?: number;
 };
 
 export type ProgressData = {
@@ -102,7 +107,7 @@ export const useProgress = create<ProgressData & Actions>()(
       recordDaily: (date, r) => {
         const s = get();
         if (s.daily[date]) return 0;
-        const xp = 60 + r.sprintScore * 2;
+        const xp = 40 + (r.stages ?? []).reduce((a, st) => a + st.stars * 10, 0);
         set({ ...touchStreak(s), xp: s.xp + xp, daily: { ...s.daily, [date]: r } });
         return xp;
       },

@@ -13,7 +13,13 @@ import { bestBudget, bestSchedule, evalBudget, simulate } from "./solver";
 type Finish = { score: number; best: number; stars: number; xp: number; unit: string };
 
 /** Where results are saved and where "back" goes — free play and Quest differ. */
-type Cfg = { recordKey: string; backHref: string; onNew?: () => void };
+type Cfg = {
+  recordKey: string;
+  backHref: string;
+  onNew?: () => void;
+  /** Daily: report the result to the caller instead of saving stats and showing the modal. */
+  onFinish?: (r: { stars: number; detail: string }) => void;
+};
 
 function useFinish(key: string) {
   const recordWin = useProgress((s) => s.recordWin);
@@ -64,6 +70,7 @@ function Budget({ sc, cfg }: { sc: BudgetScenario; cfg: Cfg }) {
     if (e.problems.length) return setMsg(e.problems.join(" · "));
     const ratio = e.value / best;
     const stars = Math.max(1, (ratio >= 1 ? 3 : ratio >= 0.85 ? 2 : 1) - Math.max(0, hints - 1));
+    if (cfg.onFinish) return cfg.onFinish({ stars, detail: `${e.value} ${sc.valueLabel}` });
     const xp = finish(stars);
     setDone({ score: e.value, best, stars, xp, unit: sc.valueLabel });
   };
@@ -166,6 +173,7 @@ function Schedule({ sc, cfg }: { sc: ScheduleScenario; cfg: Cfg }) {
   const submit = () => {
     const ratio = best / sim.total;
     const stars = Math.max(1, (ratio >= 1 ? 3 : ratio >= 0.87 ? 2 : 1) - Math.max(0, hints - 1));
+    if (cfg.onFinish) return cfg.onFinish({ stars, detail: `${sim.total} นาที` });
     setDone({ score: sim.total, best, stars, xp: finish(stars), unit: "นาที" });
   };
 
@@ -327,4 +335,17 @@ export function SituationGame({ th }: { th: Theme }) {
 /** Quest: one fixed puzzle per map node. */
 export function FixedSituation({ th, seed, recordKey, backHref }: { th: Theme; seed: number; recordKey: string; backHref: string }) {
   return <Scenario th={th} seed={seed} cfg={{ recordKey, backHref }} />;
+}
+
+/** Daily: one fixed puzzle whose result goes back to the Daily run. */
+export function DailySituation({
+  th,
+  seed,
+  onFinish,
+}: {
+  th: Theme;
+  seed: number;
+  onFinish: (r: { stars: number; detail: string }) => void;
+}) {
+  return <Scenario th={th} seed={seed} cfg={{ recordKey: "", backHref: "/", onFinish }} />;
 }
