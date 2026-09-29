@@ -17,7 +17,7 @@ function Verify() {
     <div className="space-y-4">
       <div className="card space-y-3 p-4">
         <p className="text-sm text-muted">
-          หลานเปิดหีบสมบัติแล้วจะได้โค้ดแบบ <span className="font-mono text-cyan">C1-AB12</span> ใส่ชื่อ (ตามที่หลานตั้งในแอป)
+          ผู้เล่นเปิดหีบสมบัติแล้วจะได้โค้ดแบบ <span className="font-mono text-cyan">C1-AB12</span> ใส่ชื่อ (ตามที่ผู้เล่นตั้งในแอป)
           กับโค้ดเพื่อตรวจว่าของจริง
         </p>
         <input
@@ -26,7 +26,7 @@ function Verify() {
             setName(e.target.value);
             setChecked(null);
           }}
-          placeholder="ชื่อหลาน"
+          placeholder="ชื่อผู้เล่น"
           className="w-full rounded-lg bg-ink/5 px-3 py-2 outline-none focus:ring-2 focus:ring-pink"
         />
         <input
@@ -65,11 +65,11 @@ function Verify() {
           <div className="card animate-shake p-5 text-center">
             <p className="text-5xl">❌</p>
             <p className="mt-2 font-display text-xl text-bad">โค้ดไม่ถูกต้อง</p>
-            <p className="text-sm text-muted">เช็กชื่อให้ตรงกับที่หลานตั้งในแอป (ตัวพิมพ์เล็ก/ใหญ่ไม่มีผล)</p>
+            <p className="text-sm text-muted">เช็กชื่อให้ตรงกับที่ผู้เล่นตั้งในแอป (ตัวพิมพ์เล็ก/ใหญ่ไม่มีผล)</p>
           </div>
         ))}
       <p className="text-center text-xs text-muted">
-        การบันทึกว่ามอบแล้วเก็บในเครื่องที่ใช้ตรวจ ถ้าตรวจบนมือถือของหลาน หน้าหีบจะขึ้นว่ารับรางวัลแล้วด้วย
+        การบันทึกว่ามอบแล้วเก็บในเครื่องที่ใช้ตรวจ ถ้าตรวจบนมือถือของผู้เล่น หน้าหีบจะขึ้นว่ารับรางวัลแล้วด้วย
       </p>
     </div>
   );
@@ -78,7 +78,7 @@ function Verify() {
 export default function VerifyPage() {
   return (
     <>
-      <BackHeader title="👨 ตรวจโค้ดรางวัล" sub="สำหรับน้า" href="/quest" />
+      <BackHeader title="🔍 ตรวจโค้ดลับ" sub="เช็กว่าโค้ดจากหีบเป็นของจริง" href="/quest" />
       <ClientOnly>
         <Verify />
       </ClientOnly>

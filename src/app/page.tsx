@@ -191,7 +191,7 @@ function DailyCard() {
         </p>
         <p className="font-display text-[22px] font-extrabold leading-tight">{done ? "เคลียร์แล้ววันนี้ ✔" : "ภารกิจประจำวัน"}</p>
         <p className="text-[13px] leading-snug text-[#f3f0ff]">
-          {done ? "กลับมาใหม่พรุ่งนี้ หรือส่งผลไปท้าคนอื่น" : "3 ด่าน · ทุกคนได้โจทย์เดียวกัน · แข่งเวลากับน้าได้!"}
+          {done ? "กลับมาใหม่พรุ่งนี้ หรือส่งผลไปท้าคนอื่น" : "3 ด่าน · ทุกคนได้โจทย์เดียวกัน · แข่งเวลากับเพื่อนได้!"}
         </p>
         <span className="btn btn-gold mt-1.5 self-start text-[15px] font-extrabold">{done ? "ดูผล" : "เริ่มเลย"}</span>
       </div>

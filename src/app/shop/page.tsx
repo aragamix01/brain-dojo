@@ -104,7 +104,7 @@ function Shop() {
 
       <section>
         <h2 className="mb-1 font-display text-lg font-extrabold">🏷️ ฉายาบนใบประกาศจับ</h2>
-        <p className="mb-3 text-xs text-muted">โชว์ใต้ชื่อบนหน้าแรก และตอนแชร์ผลให้น้าดู</p>
+        <p className="mb-3 text-xs text-muted">โชว์ใต้ชื่อบนหน้าแรก และตอนแชร์ผลให้เพื่อนดู</p>
         <div className="space-y-2">
           {TITLES.map((t) => (
             <div key={t.id} className="card flex items-center gap-3 p-3">

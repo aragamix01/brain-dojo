@@ -293,7 +293,7 @@ function QuestMap() {
 
       <p className="mt-6 text-center">
         <Link href="/quest/verify" className="text-xs text-muted underline">
-          👨 สำหรับน้า: ตรวจโค้ดทวงรางวัล
+          🔍 ตรวจโค้ดลับ
         </Link>
       </p>
 

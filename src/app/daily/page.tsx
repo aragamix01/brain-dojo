@@ -22,6 +22,8 @@ import { starsFor } from "@/lib/rank";
 import { rngFrom } from "@/lib/rng";
 import { useHydrated, useProgress, type DailyResult, type DailyStage } from "@/lib/store";
 
+const SITE = "https://brain-dojo.yok016.dev";
+
 const starText = (n: number) => "★".repeat(n) + "☆".repeat(3 - n);
 
 function shareText(date: string, r: DailyResult, name: string) {
@@ -33,10 +35,16 @@ function shareText(date: string, r: DailyResult, name: string) {
         `💡 Lights Out: ${r.lightsMoves} moves`,
         `🫙 Water Jugs: ${r.jugsMoves} moves`,
       ];
+  const origin = typeof window === "undefined" ? SITE : window.location.origin;
   return [
+    name ? `⚔️ ${name} ชวนคุณมาประลองการแก้ปัญหา!` : "⚔️ มาประลองการแก้ปัญหากัน!",
+    "",
     `🧠 Brain Dojo · Daily ${date}${name ? ` · ${name}` : ""}`,
     ...lines,
     `⏱ ${formatTime(r.timeMs)} · 💡hint ${r.hints}`,
+    "",
+    "วันนี้ทุกคนได้โจทย์ชุดเดียวกัน — ทำได้ดีกว่าไหม? 🏴‍☠️",
+    `👉 ${origin}/daily`,
   ].join("\n");
 }
 
@@ -60,7 +68,7 @@ function ShareBox({ date, r }: { date: string; r: DailyResult }) {
       <p className="font-display text-3xl text-pink glow-text">Daily Clear!</p>
       <pre className="mt-4 whitespace-pre-wrap rounded-xl bg-ink/5 p-3 text-left font-sans text-sm">{text}</pre>
       <button className="btn btn-primary mt-4 w-full" onClick={share}>
-        {copied ? "คัดลอกแล้ว ✔" : "📤 ส่งผลไปท้าน้า"}
+        {copied ? "คัดลอกแล้ว ✔" : "📤 ส่งผลไปท้าเพื่อน"}
       </button>
       <p className="mt-3 text-xs text-muted">พรุ่งนี้สุ่มเกมชุดใหม่ · ทุกคนได้เกมและโจทย์ชุดเดียวกัน</p>
     </div>

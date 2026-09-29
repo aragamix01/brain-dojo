@@ -95,18 +95,18 @@ const STEPS: GuideStep[] = [
     ],
   },
   {
-    title: "ได้รางวัลจริง!",
-    nova: "เปิดหีบได้เมื่อไหร่ รีบไปทวงรางวัลจากน้าเลย!",
+    title: "โค้ดลับในหีบ 🔐",
+    nova: "ทุกหีบซ่อนโค้ดลับไว้ และโค้ดลับมีรางวัล… จะใช้ยังไง ต้องหาเอาเองนะ 😏",
     art: (
       <div className="text-center">
         <p className="inline-block rounded-xl border-[2.5px] border-ink bg-white px-4 py-2 font-mono text-2xl font-bold tracking-widest text-cyan shadow-[3px_3px_0_#1e2a3a]">
           C1-AB12
         </p>
-        <p className="mt-1.5 font-display text-xs font-bold text-ink">ตัวอย่างโค้ดทวงรางวัล</p>
+        <p className="mt-1.5 font-display text-xs font-bold text-ink">ตัวอย่างโค้ดลับ</p>
       </div>
     ),
     points: [
-      "เปิดหีบแล้วจะได้โค้ดลับที่ผูกกับชื่อเรา — ส่งให้น้า แล้วน้าจะตรวจว่าเปิดได้จริง",
+      "เปิดหีบเพื่อเผยโค้ดลับที่ผูกกับชื่อเรา — โค้ดลับมีรางวัล จงหาวิธีใช้!",
       "ทุกด่านที่ผ่านได้ XP ด้วย สะสมไว้เลื่อนยศ Rank E → S",
     ],
   },

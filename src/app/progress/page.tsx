@@ -133,7 +133,7 @@ function ExportBox() {
   };
   return (
     <div className="card p-4">
-      <p className="font-display">📤 ส่งผลให้น้า / Backup</p>
+      <p className="font-display">📤 ส่งผลให้เพื่อน / Backup</p>
       <p className="mt-1 text-xs text-muted">
         สร้างโค้ดแล้วส่งทาง LINE — อีกฝั่งวางโค้ดในหน้านี้เพื่อดูผลได้ และใช้ย้ายข้อมูลไปเครื่องใหม่ได้ด้วย
       </p>
