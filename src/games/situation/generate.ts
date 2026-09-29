@@ -74,7 +74,9 @@ function generateSchedule(rng: Rng, th: ScheduleTheme): ScheduleScenario {
   }
 }
 
-export function generateScenario(th: Theme, seed: number): Scenario {
+/** `pick` overrides how many items/tasks to draw (Daily uses smaller puzzles). */
+export function generateScenario(th: Theme, seed: number, pick?: [number, number]): Scenario {
   const rng = rngFrom(`${th.id}:${seed}`);
-  return th.kind === "budget" ? generateBudget(rng, th) : generateSchedule(rng, th);
+  const t = pick ? { ...th, pick } : th;
+  return t.kind === "budget" ? generateBudget(rng, t) : generateSchedule(rng, t);
 }

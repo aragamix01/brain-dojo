@@ -101,6 +101,7 @@ export function HanoiGame({ disks, session, onSolved }: { disks: number; session
         </button>
         <HintButton
           startedAt={session.startedAt}
+          used={session.hints}
           disabled={done}
           onHint={() => {
             setHint(nextMove(pos, disks, TARGET));

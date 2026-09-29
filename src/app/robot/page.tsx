@@ -65,7 +65,7 @@ function RandomLab() {
     <section className="mb-6">
       <h2 className="mb-2 font-display text-lg">🎲 Random Lab</h2>
       <p className="mb-3 text-xs text-muted">ด่านสุ่มไม่รู้จบ — ทุกด่านมีคำตอบแน่นอน ส่งลิงก์ท้าเพื่อนได้</p>
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 gap-2">
         {RANDOM_TIERS.map((t) => (
           <Link key={t.id} href={`/robot/random?t=${t.id}`} className="card p-3 active:scale-[0.97]">
             <p className="text-2xl">{t.emoji}</p>

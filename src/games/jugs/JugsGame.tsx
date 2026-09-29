@@ -148,7 +148,7 @@ export function JugsGame({
         >
           ⟲ เริ่มใหม่
         </button>
-        <HintButton startedAt={session.startedAt} onHint={showHint} disabled={done} />
+        <HintButton startedAt={session.startedAt} used={session.hints} onHint={showHint} disabled={done} />
       </div>
     </div>
   );

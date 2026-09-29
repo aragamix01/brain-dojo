@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useSession } from "@/components/game";
+import { CoinChip, useSession } from "@/components/game";
 import type { Session } from "@/components/PuzzleShell";
 import { BackHeader, ClientOnly } from "@/components/ui";
 import { DAILY_STAGES, dailyPlan, sprintDailyStars, type DailyStageWithSeed } from "@/games/daily/plan";
@@ -75,7 +75,7 @@ type StageProps<K extends DailyStageWithSeed["kind"]> = {
 };
 
 function LightsStage({ st, session, onDone }: StageProps<"lights">) {
-  const puzzle = useMemo(() => generateLights(rngFrom(st.seed), st.size), [st]);
+  const puzzle = useMemo(() => generateLights(rngFrom(st.seed), st.size, st.minPar), [st]);
   return (
     <LightsGame
       puzzle={puzzle}
@@ -108,7 +108,7 @@ function NonogramStage({ st, session, onDone }: StageProps<"nonogram">) {
 }
 
 function RobotStage({ st, onDone }: StageProps<"robot">) {
-  const level = useMemo(() => generateRobotLevel(st.tier, st.seed), [st]);
+  const level = useMemo(() => generateRobotLevel(st.tier, st.seed, st.opts), [st]);
   return <RobotGame level={level} onWin={({ stars, steps }) => onDone(stars, `${steps} steps`)} />;
 }
 
@@ -138,7 +138,7 @@ function StagePlayer({ st, session, onDone }: { st: DailyStageWithSeed; session:
         />
       );
     case "situation":
-      return <DailySituation th={theme(st.theme)!} seed={st.seed} onFinish={({ stars, detail }) => onDone(stars, detail)} />;
+      return <DailySituation th={theme(st.theme)!} seed={st.seed} pick={st.pick} onFinish={({ stars, detail }) => onDone(stars, detail)} />;
     case "robot":
       return <RobotStage st={st} session={session} onDone={onDone} />;
   }
@@ -229,7 +229,7 @@ function Daily() {
 export default function DailyPage() {
   return (
     <>
-      <BackHeader title="📅 Daily Quest" sub="ภารกิจประจำวัน · สุ่มเกมทุกวัน" />
+      <BackHeader title="📅 Daily Quest" sub="ภารกิจประจำวัน · สุ่มเกมทุกวัน" right={<CoinChip />} />
       <ClientOnly>
         <Daily />
       </ClientOnly>

@@ -323,6 +323,7 @@ export function RobotGame({
           <div className="flex justify-center">
             <HintButton
               startedAt={session.startedAt}
+              used={hintsShown}
               onHint={() => {
                 setHintsShown(hintsShown + 1);
                 session.takeHint();

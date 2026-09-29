@@ -39,7 +39,7 @@ function HintList({ hints, shown, onMore, startedAt }: { hints: string[]; shown:
       ))}
       {shown < hints.length && (
         <div className="flex justify-center">
-          <HintButton startedAt={startedAt} onHint={onMore} />
+          <HintButton startedAt={startedAt} used={shown} onHint={onMore} />
         </div>
       )}
     </div>
@@ -304,8 +304,8 @@ function FinishModal({
   );
 }
 
-function Scenario({ th, seed, cfg }: { th: Theme; seed: number; cfg: Cfg }) {
-  const sc = useMemo(() => generateScenario(th, seed), [th, seed]);
+function Scenario({ th, seed, cfg, pick }: { th: Theme; seed: number; cfg: Cfg; pick?: [number, number] }) {
+  const sc = useMemo(() => generateScenario(th, seed, pick), [th, seed, pick]);
   return (
     <>
       <p className="card speedlines mb-4 p-4 text-sm leading-relaxed">{sc.story}</p>
@@ -341,11 +341,13 @@ export function FixedSituation({ th, seed, recordKey, backHref }: { th: Theme; s
 export function DailySituation({
   th,
   seed,
+  pick,
   onFinish,
 }: {
   th: Theme;
   seed: number;
+  pick?: [number, number];
   onFinish: (r: { stars: number; detail: string }) => void;
 }) {
-  return <Scenario th={th} seed={seed} cfg={{ recordKey: "", backHref: "/", onFinish }} />;
+  return <Scenario th={th} seed={seed} pick={pick} cfg={{ recordKey: "", backHref: "/", onFinish }} />;
 }

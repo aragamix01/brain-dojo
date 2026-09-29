@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { CoinChip } from "@/components/game";
 import { BackHeader, ClientOnly, SeedBar, Tabs } from "@/components/ui";
 import { RobotGame } from "@/games/robot/RobotGame";
 import { RANDOM_TIERS, generateRobotLevel, type RandomTier } from "@/games/robot/generate";
@@ -9,7 +10,7 @@ import { codeToSeed, readParams, seedToCode, writeParams } from "@/lib/seedUrl";
 
 function RandomRobot() {
   const [tier, setTier] = useState<RandomTier>(
-    () => RANDOM_TIERS.find((t) => t.id === readParams().get("t"))?.id ?? "loop",
+    () => RANDOM_TIERS.find((t) => t.id === readParams().get("t"))?.id ?? "seq",
   );
   const [seed, setSeed] = useState(() => codeToSeed(readParams().get("s")) ?? randomSeed());
   const level = useMemo(() => generateRobotLevel(tier, seed), [tier, seed]);
@@ -41,7 +42,7 @@ function RandomRobot() {
 export default function RandomRobotPage() {
   return (
     <>
-      <BackHeader title="🎲 Random Lab" sub="ด่านสุ่มจาก seed — ทุกด่านแก้ได้แน่นอน" href="/robot" />
+      <BackHeader title="🎲 Random Lab" sub="ด่านสุ่มจาก seed — ทุกด่านแก้ได้แน่นอน" href="/robot" right={<CoinChip />} />
       <ClientOnly>
         <RandomRobot />
       </ClientOnly>

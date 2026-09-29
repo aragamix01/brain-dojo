@@ -5,6 +5,7 @@ import { BackHeader, ClientOnly, Stars } from "@/components/ui";
 import { LOGIC_GAMES } from "@/games/catalog";
 import { ROBOT_LEVELS } from "@/games/robot/levels";
 import { THEMES } from "@/games/situation/data";
+import { COINS } from "@/lib/coins";
 import { dayKey, formatTime } from "@/lib/date";
 import { rankFor } from "@/lib/rank";
 import { decodeProgress, encodeProgress, type Decoded } from "@/lib/share";
@@ -204,6 +205,38 @@ function ImportBox() {
   );
 }
 
+function Wallet() {
+  const coins = useProgress((s) => s.coins);
+  const log = useProgress((s) => s.coinLog);
+  return (
+    <div className="card p-4">
+      <div className="flex items-center justify-between">
+        <p className="font-display">🪙 เหรียญคำใบ้</p>
+        <p className="font-display text-lg font-extrabold">
+          {coins} <span className="text-xs font-medium text-muted">/ {COINS.cap}</span>
+        </p>
+      </div>
+      <p className="mt-1 text-xs text-muted">
+        ทุกด่านใช้คำใบ้ฟรีได้ {COINS.freePerPuzzle} ครั้ง ครั้งต่อไปใช้ 1 เหรียญ · หาเหรียญได้จาก 3★ บนแผนที่, ชนะบอส (+2),
+        เปิดหีบ (+3), เล่น Daily จบ, 3★ ในลานฝึกดาบ (วันละไม่เกิน {COINS.freePlayPerDay}) และเล่นต่อเนื่องทุก 7 วัน (+2)
+      </p>
+      {log.length > 0 && (
+        <ul className="mt-3 space-y-1 text-sm">
+          {log.slice(0, 8).map((e, i) => (
+            <li key={i} className="flex justify-between border-b border-ink/10 py-1">
+              <span>{e.reason}</span>
+              <span className={e.delta > 0 ? "font-bold text-good" : "font-bold text-bad"}>
+                {e.delta > 0 ? "+" : ""}
+                {e.delta}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function Mine() {
   const p = useProgress();
   const setName = useProgress((s) => s.setName);
@@ -220,6 +253,7 @@ function Mine() {
         />
       </label>
       <Summary data={p} />
+      <Wallet />
       <ExportBox />
       <ImportBox />
       <button

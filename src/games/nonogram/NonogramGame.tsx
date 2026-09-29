@@ -176,7 +176,7 @@ export function NonogramGame({
             ✕ กากบาท
           </button>
         </div>
-        <HintButton startedAt={session.startedAt} onHint={hint} disabled={done} />
+        <HintButton startedAt={session.startedAt} used={session.hints} onHint={hint} disabled={done} />
       </div>
       <div className="mt-2 text-center">
         <button

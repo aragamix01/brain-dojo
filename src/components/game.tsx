@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useCallback, useState } from "react";
 import { formatTime } from "@/lib/date";
+import { COINS } from "@/lib/coins";
 import { useProgress } from "@/lib/store";
+import { CoinSheet } from "./CoinSheet";
 import { Stars, useNow } from "./ui";
 
 /** Seconds of "think first" before a hint can be asked for. */
@@ -32,26 +34,61 @@ export function Timer({ startedAt, stoppedAt }: { startedAt: number; stoppedAt?:
   return <span className="font-mono tabular-nums">{formatTime((stoppedAt ?? now) - startedAt)}</span>;
 }
 
+/**
+ * Hint gate: locked for the first seconds, then a few free hints per puzzle,
+ * after which each hint costs one coin from the wallet.
+ */
 export function HintButton({
   startedAt,
+  used,
   onHint,
   disabled,
 }: {
   startedAt: number;
+  /** hints already taken on this puzzle */
+  used: number;
   onHint: () => void;
   disabled?: boolean;
 }) {
   const now = useNow(500);
+  const coins = useProgress((s) => s.coins);
+  const spendCoin = useProgress((s) => s.spendCoin);
   const wait = Math.max(0, THINK_FIRST_SEC - Math.floor((now - startedAt) / 1000));
+  const freeLeft = Math.max(0, COINS.freePerPuzzle - used);
+  const broke = freeLeft === 0 && coins <= 0;
+  const label =
+    wait > 0 ? `คิดก่อน ${wait}s` : broke ? "เหรียญหมด — คิดเองนะ 💪" : freeLeft ? `Hint · ฟรี ${freeLeft}` : "Hint · 🪙1";
   return (
     <button
       className="btn btn-ghost !min-h-10 text-sm"
-      onClick={onHint}
-      disabled={disabled || wait > 0}
-      title="ลองคิดเองก่อนนะ"
+      onClick={() => {
+        if (!freeLeft && !spendCoin("ใช้คำใบ้")) return;
+        onHint();
+      }}
+      disabled={disabled || wait > 0 || broke}
+      title={freeLeft ? "ใช้คำใบ้ฟรี (หักดาว)" : `ใช้ 1 เหรียญ (มี ${coins})`}
     >
-      💡 {wait > 0 ? `คิดก่อน ${wait}s` : "Hint"}
+      {broke ? "🔒" : "💡"} {label}
     </button>
+  );
+}
+
+/** Wallet chip: coins in hand; tap for today's remaining coins, how to earn more and tips. */
+export function CoinChip({ className = "" }: { className?: string }) {
+  const coins = useProgress((s) => s.coins);
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className={`inline-flex items-center gap-1 rounded-full border-[2.5px] border-ink bg-yellow px-2.5 py-0.5 font-display text-sm font-extrabold shadow-[2px_2px_0_#1e2a3a] active:translate-y-0.5 active:shadow-none ${className}`}
+        aria-label={`เหรียญคำใบ้ ${coins} เหรียญ — แตะเพื่อดูรายละเอียด`}
+      >
+        🪙 {coins}
+        <span className="text-[10px] font-bold opacity-70">ⓘ</span>
+      </button>
+      {open && <CoinSheet onClose={() => setOpen(false)} />}
+    </>
   );
 }
 

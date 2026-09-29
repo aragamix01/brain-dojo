@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { NovaFace } from "@/components/Nova";
+import { COINS } from "@/lib/coins";
 import { CHEST_RATIO, ISLANDS } from "./data";
 
 export const QUEST_GUIDE_ID = "quest-guide";
@@ -69,7 +70,8 @@ const STEPS: { title: string; nova: string; art: React.ReactNode; points: React.
     ),
     points: [
       "3 ดาว = ทำได้ภายในจำนวนครั้งที่กำหนด (par) และไม่ใช้คำใบ้",
-      "💡 คำใบ้ล็อกไว้ 30 วินาทีแรกให้คิดเองก่อน ใช้ได้แต่จะหักดาว",
+      `💡 คำใบ้ล็อก 30 วินาทีแรก · ฟรีด่านละ ${COINS.freePerPuzzle} ครั้ง ครั้งต่อไปใช้ 🪙 1 เหรียญ (ทุกครั้งหักดาว)`,
+      "🪙 ได้เหรียญจาก 3★ ครั้งแรกของแต่ละด่าน, ชนะบอส และเปิดหีบ — เก็บไว้ใช้ตอนติดจริงๆ",
       "กลับมาเล่นด่านเดิมซ้ำเพื่อเก็บดาวเพิ่มได้ทุกเมื่อ",
     ],
   },

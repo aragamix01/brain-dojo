@@ -149,7 +149,7 @@ export function LightsGame({
         >
           🧭 ท่าไล่ไฟ
         </button>
-        <HintButton startedAt={session.startedAt} onHint={hint} disabled={done} />
+        <HintButton startedAt={session.startedAt} used={session.hints} onHint={hint} disabled={done} />
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { CoinChip } from "@/components/game";
 import { BackHeader, ClientOnly } from "@/components/ui";
 import { QuestNodeGame } from "@/games/quest/QuestNodeGame";
 import { QUEST_NODES } from "@/games/quest/data";
@@ -50,6 +51,7 @@ export function QuestNodeView({ id }: { id: string }) {
         title={`${node.boss ? "👹 " : info.emoji + " "}${info.title}`}
         sub={`${node.island.emoji} ${node.island.name} · ด่าน ${pos}/${node.island.nodes.length}${node.boss ? " · BOSS" : ""}`}
         href="/quest"
+        right={<CoinChip />}
       />
       <ClientOnly>
         <Body id={id} />

@@ -40,6 +40,7 @@ export function ChestModal({ island, index, onClose }: { island: Island; index: 
           {island.emoji} {island.name} · {island.nameEn}
         </p>
         <p className="mt-4 font-display text-lg">ไปทวงรางวัลจากน้าได้เลย! 🏃‍♂️</p>
+        <p className="mt-1 text-sm font-bold text-gold">ในหีบมี 🪙 3 เหรียญคำใบ้ด้วย!</p>
 
         {code ? (
           <>

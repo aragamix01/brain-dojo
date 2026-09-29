@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { CoinChip } from "@/components/game";
 import { BackHeader, ClientOnly } from "@/components/ui";
 import { ConceptCard } from "@/games/robot/ConceptCard";
 import { RobotGame } from "@/games/robot/RobotGame";
@@ -23,6 +24,7 @@ export default async function RobotLevelPage({ params }: PageProps<"/robot/[leve
         title={`${chapter.emoji} ${level.title}`}
         sub={`${chapter.titleEn} ${n}/${chapter.levels.length} · ${level.titleEn}`}
         href="/robot"
+        right={<CoinChip />}
       />
       {/* Open the concept on each chapter's first level */}
       <ConceptCard chapter={chapter} open={n === 1} />

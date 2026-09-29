@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { Nova } from "@/components/Nova";
 import { ClientOnly } from "@/components/ui";
 import { QUEST_NODES } from "@/games/quest/data";
@@ -9,6 +10,9 @@ import { dayKey } from "@/lib/date";
 import { rankFor } from "@/lib/rank";
 import { liveStreak, useHydrated, useProgress } from "@/lib/store";
 import { RedDot, useDailyDot } from "@/components/RedDot";
+import { CoinChip } from "@/components/game";
+import { CoinSheet } from "@/components/CoinSheet";
+import { COINS, questBounty, todayRemaining } from "@/lib/coins";
 
 function Logo() {
   return (
@@ -176,6 +180,41 @@ function DailyCard() {
   );
 }
 
+/** Today's collectable coins + unclaimed map bounties — tap for the full coin sheet. */
+function BountyBanner() {
+  const rewarded = useProgress((s) => s.rewarded);
+  const coins = useProgress((s) => s.coins);
+  const games = useProgress((s) => s.games);
+  const [open, setOpen] = useState(false);
+  const t = todayRemaining(rewarded, dayKey());
+  const today = t.freePlay + (t.dailyFinish ? 1 : 0) + (t.dailyAllStars ? 1 : 0);
+  const reach = questView(games).current;
+  const onMap = QUEST_NODES.slice(0, reach + 1).reduce((a, n) => a + questBounty(rewarded, n.id, !!n.boss), 0);
+  const full = coins >= COINS.cap;
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="flex items-center gap-2.5 rounded-2xl border-[2.5px] border-ink bg-yellow px-3 py-2 text-left shadow-[3px_3px_0_#1e2a3a] active:translate-y-0.5"
+      >
+        <span className="animate-bounce text-2xl">🪙</span>
+        <span className="flex-1 font-display text-sm font-bold leading-snug">
+          {full ? (
+            "กระเป๋าเหรียญเต็มแล้ว! ใช้ตอนติดได้เลย"
+          ) : (
+            <>
+              วันนี้ยังมี <span className="text-base font-extrabold">🪙 {today}</span> รอเก็บ!
+              {onMap > 0 && <span className="block text-xs font-medium">+ บนแผนที่อีก {onMap} เหรียญ</span>}
+            </>
+          )}
+        </span>
+        <span className="text-lg font-bold">›</span>
+      </button>
+      {open && <CoinSheet onClose={() => setOpen(false)} />}
+    </>
+  );
+}
+
 /** Log book: stats, share codes and backups. Looks like a real button, with a daily dot. */
 function ProgressButton() {
   const dot = useDailyDot("progress");
@@ -217,7 +256,11 @@ export default function Home() {
           </div>
           <ClientOnly fallback={<div className="h-[170px]" />}>
             <Wanted />
-            <Streak />
+            <div className="flex items-center justify-between gap-2">
+              <Streak />
+              <CoinChip className="bg-white" />
+            </div>
+            <BountyBanner />
           </ClientOnly>
         </div>
         <div className="wave-edge -mt-3.5" />

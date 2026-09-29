@@ -9,6 +9,7 @@ import { ISLAND_ART, SeaSprite, ShipMarker } from "@/games/quest/SeaArt";
 import { WorldMap } from "@/games/quest/WorldMap";
 import { ISLANDS, QUEST_NODES, type Island } from "@/games/quest/data";
 import { chestId, nodeInfo, questView, type QuestView } from "@/games/quest/progress";
+import { questBounty } from "@/lib/coins";
 import { useHydrated, useProgress } from "@/lib/store";
 
 const ROW = 96;
@@ -28,6 +29,14 @@ function Stars({ n }: { n: number }) {
   );
 }
 
+function BountyBadge({ n }: { n: number }) {
+  return (
+    <span className="animate-bob absolute -left-3 -top-2 z-10 rounded-full border-2 border-ink bg-yellow px-1.5 py-0.5 font-display text-[11px] font-extrabold shadow-[1px_2px_0_#1e2a3a]">
+      +{n}🪙
+    </span>
+  );
+}
+
 function IslandMap({
   island,
   idx,
@@ -42,6 +51,7 @@ function IslandMap({
   onChest: () => void;
 }) {
   const chests = useProgress((s) => s.chests);
+  const rewarded = useProgress((s) => s.rewarded);
   const info = view.islands[idx];
   const firstGlobal = QUEST_NODES.findIndex((n) => n.id === island.nodes[0].id);
   const reached = firstGlobal <= view.current;
@@ -160,6 +170,9 @@ function IslandMap({
               </span>
               {stars > 0 && <Stars n={stars} />}
               {isCurrent && <ShipMarker className="animate-bob absolute -right-11 top-1 h-12 w-12" />}
+              {!locked && questBounty(rewarded, n.id, !!n.boss) > 0 && (
+                <BountyBadge n={questBounty(rewarded, n.id, !!n.boss)} />
+              )}
             </>
           );
           const style = { left: `${points[i]}%`, top: i * ROW + ROW / 2 - size * 0.36 };

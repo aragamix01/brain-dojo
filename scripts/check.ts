@@ -14,6 +14,7 @@ import { generateScenario } from "../src/games/situation/generate";
 import { bestBudget, bestSchedule } from "../src/games/situation/solver";
 import { QUEST_NODES } from "../src/games/quest/data";
 import { dailyPlan } from "../src/games/daily/plan";
+import { COINS, applyRewards, spend, winRewards } from "../src/lib/coins";
 import { generateNonogram as genNono } from "../src/games/nonogram/logic";
 import { claimCode, nodeSeed, verifyClaim } from "../src/games/quest/progress";
 import { theme } from "../src/games/situation/data";
@@ -160,17 +161,49 @@ check("daily plan (365 days)", () => {
     assert.deepEqual(dailyPlan(key), plan, "plan is not deterministic");
     for (const st of plan) {
       counts[st.kind] = (counts[st.kind] ?? 0) + 1;
-      if (st.kind === "lights") generateLights(rngFrom(st.seed), st.size);
-      if (st.kind === "jugs") generateJugs(rngFrom(st.seed), st.variant);
+      if (st.kind === "lights") {
+        const par = generateLights(rngFrom(st.seed), st.size, st.minPar).par;
+        assert.ok(par >= 6 && par <= 9, `${key} lights par ${par}`);
+      }
+      if (st.kind === "jugs") {
+        const par = generateJugs(rngFrom(st.seed), st.variant).par;
+        assert.ok(par >= 5 && par <= 8, `${key} jugs par ${par}`);
+      }
       if (st.kind === "nonogram") genNono(rngFrom(st.seed), st.size);
       if (st.kind === "robot") {
-        const lv = generateRobotLevel(st.tier, st.seed);
+        const lv = generateRobotLevel(st.tier, st.seed, st.opts);
+        assert.ok(lv.board.length <= 6 && lv.board[0].length <= 6, `${key} robot board too big`);
+        assert.ok(!/d/.test(lv.solution), `${key} robot needs a loop`);
         assert.equal(runToEnd(lv, parseProgram(lv.solution, lv.funcs)).status, "won");
       }
-      if (st.kind === "situation") assert.ok(theme(st.theme));
+      if (st.kind === "situation") {
+        const sc = generateScenario(theme(st.theme)!, st.seed, st.pick);
+        assert.ok((sc.kind === "budget" ? bestBudget(sc) : bestSchedule(sc)) > 0, `${key} situation`);
+      }
     }
   }
   return Object.entries(counts).map(([k, v]) => `${k} ${v}`).join(", ");
+});
+
+check("hint coins", () => {
+  const w0 = { coins: COINS.start, coinLog: [], rewarded: {} };
+  const r = { amount: 3, reason: "x", once: "a" };
+  const w1 = applyRewards(w0, [r, r]).wallet;
+  assert.equal(w1.coins, COINS.start + 3, "a once-key paid twice");
+  const full = applyRewards({ ...w0, coins: COINS.cap - 1 }, [{ ...r, once: "b" }]).wallet;
+  assert.equal(full.coins, COINS.cap, "wallet passed the cap");
+  assert.equal(spend({ ...w0, coins: 0 }, "hint"), null, "spent from an empty wallet");
+  let rewarded: Record<string, number> = {};
+  let paid = 0;
+  for (let i = 0; i < 10; i++) {
+    const rs = winRewards({ key: "logic:lights", stars: 3, firstWin: false, isBoss: false, today: "d", rewarded });
+    const res = applyRewards({ ...w0, coins: 0, rewarded }, rs);
+    paid += res.gained.reduce((a, g) => a + g.amount, 0);
+    rewarded = res.wallet.rewarded;
+  }
+  assert.equal(paid, COINS.freePlayPerDay, "free play daily cap");
+  const boss = winRewards({ key: "quest:b10", stars: 3, firstWin: true, isBoss: true, today: "d", rewarded: {} });
+  assert.equal(boss.reduce((a, g) => a + g.amount, 0), 3, "boss 3★ first win");
 });
 
 if (failures) {
