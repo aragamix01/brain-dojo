@@ -26,3 +26,16 @@ export function daysBetween(a: string, b: string): number {
   };
   return Math.round((at(b) - at(a)) / 86_400_000);
 }
+
+/** Day key `n` days after `key` (negative = before). */
+export function shiftDay(key: string, n: number): string {
+  const [y, m, dd] = key.split("-").map(Number);
+  return dayKey(new Date(y, m - 1, dd + n));
+}
+
+/** The seven day keys of the week containing `key`, Sunday first. */
+export function weekOf(key: string): string[] {
+  const [y, m, dd] = key.split("-").map(Number);
+  const sunday = -new Date(y, m - 1, dd).getDay();
+  return Array.from({ length: 7 }, (_, i) => shiftDay(key, sunday + i));
+}

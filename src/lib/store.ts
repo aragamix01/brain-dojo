@@ -16,7 +16,7 @@ import {
   type Reward,
 } from "./coins";
 import { BADGE_COINS, newlyEarned } from "./achievements";
-import { dayKey, daysBetween, yesterdayKey } from "./date";
+import { dayKey, daysBetween, shiftDay, yesterdayKey } from "./date";
 import { FREEZE, SKINS, TITLES } from "./shop";
 
 export type GameStat = {
@@ -67,7 +67,11 @@ export type ProgressData = {
   equipped: { skin?: string; title?: string };
   /** streak freezes in hand; each covers one missed day */
   freezes: number;
+  /** day key → how that day kept the streak alive */
+  activeDays: Record<string, DayMark>;
 };
+
+export type DayMark = "play" | "freeze";
 
 /** Not persisted: the latest pay-out / news, shown as a toast. */
 export type CoinToast = { id: number; text: string } | null;
@@ -116,6 +120,7 @@ export const emptyProgress = (): ProgressData => ({
   owned: {},
   equipped: {},
   freezes: 0,
+  activeDays: {},
 });
 
 /** Days skipped since the last activity (0 = played yesterday or today). */
@@ -127,15 +132,19 @@ function missedDays(lastActive: string | null, today: string): number {
 function touchStreak(s: ProgressData) {
   const today = dayKey();
   const freezes = s.freezes ?? 0;
-  if (s.lastActive === today) return { streak: s.streak, bestStreak: s.bestStreak, lastActive: today, freezes };
+  const activeDays = { ...(s.activeDays ?? {}), [today]: "play" as DayMark };
+  if (s.lastActive === today) return { streak: s.streak, bestStreak: s.bestStreak, lastActive: today, freezes, activeDays };
   const missed = missedDays(s.lastActive, today);
   const saved = missed > 0 && missed <= freezes;
+  // Frozen days show as blue flames on the weekly strip.
+  if (saved) for (let i = 1; i <= missed; i++) activeDays[shiftDay(today, -i)] = "freeze";
   const streak = missed === 0 || saved ? s.streak + 1 : 1;
   return {
     streak,
     bestStreak: Math.max(s.bestStreak, streak),
     lastActive: today,
     freezes: saved ? freezes - missed : freezes,
+    activeDays,
   };
 }
 
@@ -291,6 +300,7 @@ function pickData(s: ProgressData): ProgressData {
     owned: s.owned,
     equipped: s.equipped,
     freezes: s.freezes,
+    activeDays: s.activeDays,
   };
 }
 
@@ -310,4 +320,19 @@ export function useHydrated(): boolean {
     () => useProgress.persist.hasHydrated(),
     () => false,
   );
+}
+
+/**
+ * How a day kept the streak going. Days before daily tracking existed are inferred from
+ * finished Dailies and from the streak counting back from the last active day.
+ */
+export function dayMark(p: Pick<ProgressData, "activeDays" | "daily" | "lastActive" | "streak">, key: string): DayMark | null {
+  const recorded = p.activeDays?.[key];
+  if (recorded) return recorded;
+  if (p.daily[key]) return "play";
+  if (p.lastActive) {
+    const back = daysBetween(key, p.lastActive);
+    if (back >= 0 && back < p.streak) return "play";
+  }
+  return null;
 }

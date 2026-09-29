@@ -6,9 +6,9 @@ import { Nova } from "@/components/Nova";
 import { ClientOnly } from "@/components/ui";
 import { QUEST_NODES } from "@/games/quest/data";
 import { chestId, nodeInfo, questView } from "@/games/quest/progress";
-import { dayKey } from "@/lib/date";
+import { dayKey, weekOf } from "@/lib/date";
 import { rankFor } from "@/lib/rank";
-import { liveStreak, useHydrated, useProgress } from "@/lib/store";
+import { dayMark, liveStreak, useHydrated, useProgress } from "@/lib/store";
 import { RedDot, useDailyDot } from "@/components/RedDot";
 import { CoinChip } from "@/components/game";
 import { CoinSheet } from "@/components/CoinSheet";
@@ -85,12 +85,7 @@ function Streak() {
       <svg width="24" height="24" viewBox="0 0 24 24" fill={streak ? "#ff8a3d" : "#d6dbe3"} stroke="#1e2a3a" strokeWidth="2" strokeLinejoin="round" aria-hidden="true">
         <path d="M12 2c1 4 6 6 6 12a6 6 0 01-12 0c0-3 2-5 3-6 0 2 1 3 2 3 0-4-1-6 1-9z" />
       </svg>
-      <span className="font-display text-[15px] font-bold">{hydrated ? streak : "–"} วันติด</span>
-      {hydrated && (p.freezes ?? 0) > 0 && (
-        <span className="rounded-full border-2 border-ink bg-[#dff4ff] px-1.5 text-xs font-bold" title="น้ำแข็งกันไฟดับ">
-          🧊{p.freezes}
-        </span>
-      )}
+      <span className="whitespace-nowrap font-display text-[15px] font-bold">{hydrated ? streak : "–"} วันติด</span>
       <span className="text-xs text-muted">{streak ? "ออกเรือทุกวันไม่พลาด!" : "ออกเรือวันนี้เริ่มนับใหม่"}</span>
     </div>
   );
@@ -169,24 +164,84 @@ function DailyCard() {
   // The daily dot stays until today's run is finished, not just tapped.
   const hydrated = useHydrated();
   return (
-    <Link href="/daily" className="panel relative flex items-center gap-3.5 bg-[#6f5cf0] p-4 text-white active:translate-y-0.5">
+    <Link href="/daily" className="panel relative flex items-center gap-3 bg-[#6f5cf0] p-4 text-white active:translate-y-0.5">
       <RedDot show={hydrated && !done} className="-right-2 -top-2" />
       <div className="flex flex-1 flex-col gap-1">
-        <p className="font-comic text-sm tracking-[2px] text-[#ffe27a]">DAILY VOYAGE · {dayKey()}</p>
+        <p className="whitespace-nowrap font-comic text-sm tracking-[2px] text-[#ffe27a]">
+          DAILY VOYAGE · {dayKey().slice(8)}/{dayKey().slice(5, 7)}
+        </p>
         <p className="font-display text-[22px] font-extrabold leading-tight">{done ? "เคลียร์แล้ววันนี้ ✔" : "ภารกิจประจำวัน"}</p>
         <p className="text-[13px] leading-snug text-[#f3f0ff]">
           {done ? "กลับมาใหม่พรุ่งนี้ หรือส่งผลไปท้าคนอื่น" : "3 ด่าน · ทุกคนได้โจทย์เดียวกัน · แข่งเวลากับน้าได้!"}
         </p>
         <span className="btn btn-gold mt-1.5 self-start text-[15px] font-extrabold">{done ? "ดูผล" : "เริ่มเลย"}</span>
       </div>
-      <svg width="86" height="96" viewBox="0 0 86 96" fill="none" stroke="#1e2a3a" strokeWidth="2.5" strokeLinejoin="round" aria-hidden="true" className="animate-bob shrink-0">
-        <path d="M42 6v62" />
-        <path d="M44 10c18 4 28 16 30 32H44z" fill="#fff" />
-        <path d="M40 18C26 22 16 32 14 46h26z" fill="#ffe27a" />
-        <path d="M6 68h74l-10 18H16z" fill="#ff5a5f" />
-        <path d="M42 6l14 5-14 4" fill="#2ec4b6" />
-      </svg>
+      <div className="flex shrink-0 flex-col items-center gap-1.5">
+        <svg width="76" height="84" viewBox="0 0 86 96" fill="none" stroke="#1e2a3a" strokeWidth="2.5" strokeLinejoin="round" aria-hidden="true" className="animate-bob">
+          <path d="M42 6v62" />
+          <path d="M44 10c18 4 28 16 30 32H44z" fill="#fff" />
+          <path d="M40 18C26 22 16 32 14 46h26z" fill="#ffe27a" />
+          <path d="M6 68h74l-10 18H16z" fill="#ff5a5f" />
+          <path d="M42 6l14 5-14 4" fill="#2ec4b6" />
+        </svg>
+        <WeekFlames />
+      </div>
     </Link>
+  );
+}
+
+const WEEKDAYS = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
+
+/** One flame: lit orange when played, blue when a freeze covered it, faint when missed or still ahead. */
+function Flame({ kind }: { kind: "play" | "freeze" | "miss" | "future" }) {
+  const lit = kind === "play" || kind === "freeze";
+  const colors = {
+    play: { outer: "#ff8a3d", inner: "#ffd84d" },
+    freeze: { outer: "#5cc8f5", inner: "#e6f7ff" },
+    miss: { outer: "rgba(255,255,255,0.18)", inner: "transparent" },
+    future: { outer: "transparent", inner: "transparent" },
+  }[kind];
+  return (
+    <svg width="15" height="18" viewBox="0 0 24 28" className={lit ? "animate-flicker" : ""} aria-hidden="true">
+      <path
+        d="M12 1c1.4 5 8 7.6 8 15a8 8 0 01-16 0c0-4 2.6-6.6 4-8 0 2.6 1.4 4 2.6 4 0-5.4-1.3-8 1.4-11z"
+        fill={colors.outer}
+        stroke={kind === "future" ? "rgba(255,255,255,0.4)" : lit ? "#1e2a3a" : "none"}
+        strokeWidth="2.2"
+        strokeDasharray={kind === "future" ? "2 2" : undefined}
+        strokeLinejoin="round"
+      />
+      {lit && (
+        <path d="M12 12c.8 2.4 4 3.8 4 7.4a4 4 0 01-8 0c0-2.2 1.6-3.6 2.4-4.4.2 1.4.8 2 1.6 2 0-2.4-.8-3.4 0-5z" fill={colors.inner} />
+      )}
+    </svg>
+  );
+}
+
+/** This week, Sunday to Saturday: which days kept the streak burning. */
+function WeekFlames() {
+  const p = useProgress();
+  const today = dayKey();
+  const days = weekOf(today);
+  const lit = days.filter((d) => dayMark(p, d)).length;
+  return (
+    <div className="flex gap-[3px]" aria-label={`สัปดาห์นี้ติดไฟ ${lit} จาก 7 วัน · ติดต่อกัน ${liveStreak(p)} วัน`}>
+      {days.map((d, i) => {
+        const kind = dayMark(p, d) ?? (d >= today ? "future" : "miss");
+        return (
+          <div key={d} className="flex flex-col items-center">
+            <Flame kind={kind} />
+            <span
+              className={`mt-0.5 font-display text-[8px] font-bold leading-none ${
+                d === today ? "rounded-sm bg-yellow px-0.5 text-ink" : "text-[#d9d2ff]"
+              }`}
+            >
+              {WEEKDAYS[i]}
+            </span>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 

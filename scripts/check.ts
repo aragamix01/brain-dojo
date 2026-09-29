@@ -16,7 +16,8 @@ import { QUEST_NODES } from "../src/games/quest/data";
 import { dailyPlan } from "../src/games/daily/plan";
 import { COINS, applyRewards, spend, winRewards } from "../src/lib/coins";
 import { ACHIEVEMENTS, newlyEarned } from "../src/lib/achievements";
-import { daysBetween } from "../src/lib/date";
+import { daysBetween, weekOf } from "../src/lib/date";
+import { dayMark } from "../src/lib/store";
 import { generateNonogram as genNono } from "../src/games/nonogram/logic";
 import { claimCode, nodeSeed, verifyClaim } from "../src/games/quest/progress";
 import { theme } from "../src/games/situation/data";
@@ -213,10 +214,19 @@ check("hint coins", () => {
 check("streak days + badges", () => {
   assert.equal(daysBetween("2026-09-28", "2026-09-29"), 1);
   assert.equal(daysBetween("2026-02-27", "2026-03-02"), 3);
+  const week = weekOf("2026-10-01"); // a Thursday
+  assert.equal(week[0], "2026-09-27", "week should start on Sunday");
+  assert.equal(week[6], "2026-10-03");
+  const hist = { activeDays: { "2026-09-29": "freeze" as const }, daily: {}, lastActive: "2026-09-30", streak: 3 };
+  assert.deepEqual(
+    ["2026-09-27", "2026-09-28", "2026-09-29", "2026-09-30"].map((d) => dayMark(hist, d)),
+    [null, "play", "freeze", "play"],
+    "day marks (recorded freeze + streak backfill)",
+  );
   const blank = {
     name: "", xp: 0, streak: 0, bestStreak: 0, lastActive: null, hintsUsed: 0, games: {}, daily: {},
     chests: {}, delivered: {}, seen: {}, coins: 5, coinLog: [], rewarded: {}, badges: {}, owned: {},
-    equipped: {}, freezes: 0,
+    equipped: {}, freezes: 0, activeDays: {},
   };
   assert.deepEqual(newlyEarned(blank), [], "badges earned with no progress");
   const played = { ...blank, games: { "quest:b1": { wins: 1, bestStars: 3, bestTimeMs: 1, bestScore: null } }, bestStreak: 7 };
