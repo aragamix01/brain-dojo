@@ -8,6 +8,8 @@ export const COINS = {
   /** most coins Free Play can pay out per day */
   freePlayPerDay: 5,
   logSize: 40,
+  /** coins that don't fit in the wallet are sold for XP instead of vanishing */
+  overflowXp: 15,
 } as const;
 
 export type CoinEntry = { t: number; delta: number; reason: string };
@@ -21,30 +23,39 @@ export type Wallet = {
 
 export type Reward = { amount: number; reason: string; once: string };
 
-/** Apply rewards in order; each `once` key pays at most one time, and the wallet never passes the cap. */
-export function applyRewards(w: Wallet, rewards: Reward[], now = Date.now()): { wallet: Wallet; gained: Reward[] } {
+/**
+ * Apply rewards in order; each `once` key pays at most one time. The wallet never passes the cap —
+ * whatever doesn't fit is reported as `overflow` (the store turns it into XP).
+ */
+export function applyRewards(
+  w: Wallet,
+  rewards: Reward[],
+  now = Date.now(),
+): { wallet: Wallet; gained: Reward[]; overflow: number } {
   let { coins } = w;
   const coinLog = w.coinLog.slice();
   const rewarded = { ...w.rewarded };
   const gained: Reward[] = [];
+  let overflow = 0;
   for (const r of rewards) {
     if (rewarded[r.once]) continue;
     rewarded[r.once] = now;
-    const add = Math.min(r.amount, COINS.cap - coins);
+    const add = Math.max(0, Math.min(r.amount, COINS.cap - coins));
+    overflow += r.amount - add;
     if (add <= 0) continue;
     coins += add;
     coinLog.unshift({ t: now, delta: add, reason: r.reason });
     gained.push({ ...r, amount: add });
   }
-  return { wallet: { coins, coinLog: coinLog.slice(0, COINS.logSize), rewarded }, gained };
+  return { wallet: { coins, coinLog: coinLog.slice(0, COINS.logSize), rewarded }, gained, overflow };
 }
 
-export function spend(w: Wallet, reason: string, now = Date.now()): Wallet | null {
-  if (w.coins <= 0) return null;
+export function spend(w: Wallet, reason: string, amount = 1, now = Date.now()): Wallet | null {
+  if (w.coins < amount) return null;
   return {
     ...w,
-    coins: w.coins - 1,
-    coinLog: [{ t: now, delta: -1, reason }, ...w.coinLog].slice(0, COINS.logSize),
+    coins: w.coins - amount,
+    coinLog: [{ t: now, delta: -amount, reason }, ...w.coinLog].slice(0, COINS.logSize),
   };
 }
 

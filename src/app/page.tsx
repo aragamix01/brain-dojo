@@ -13,6 +13,9 @@ import { RedDot, useDailyDot } from "@/components/RedDot";
 import { CoinChip } from "@/components/game";
 import { CoinSheet } from "@/components/CoinSheet";
 import { COINS, questBounty, todayRemaining } from "@/lib/coins";
+import { ACHIEVEMENTS } from "@/lib/achievements";
+import { title } from "@/lib/shop";
+import { WHATS_NEW_ID, WhatsNew } from "@/components/WhatsNew";
 
 function Logo() {
   return (
@@ -54,7 +57,9 @@ function Wanted() {
         </div>
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
           <p className="truncate font-display text-[22px] font-extrabold leading-tight">{p.name || "ลูกเรือนิรนาม"}</p>
-          <p className="font-display text-[13px] font-medium text-wood">{rank.title}</p>
+          <p className="font-display text-[13px] font-medium text-wood">
+            {title(p.equipped?.title) ? `「${title(p.equipped?.title)!.name}」 · ${rank.title}` : rank.title}
+          </p>
           <div className="flex items-baseline gap-1.5 border-t-2 border-dashed border-[#b98a45] pt-1.5">
             <span className="font-display text-[11px] font-bold text-wood">ค่าหัว</span>
             <span className="font-comic text-[26px] leading-none tracking-wide">{p.xp.toLocaleString()} XP</span>
@@ -81,6 +86,11 @@ function Streak() {
         <path d="M12 2c1 4 6 6 6 12a6 6 0 01-12 0c0-3 2-5 3-6 0 2 1 3 2 3 0-4-1-6 1-9z" />
       </svg>
       <span className="font-display text-[15px] font-bold">{hydrated ? streak : "–"} วันติด</span>
+      {hydrated && (p.freezes ?? 0) > 0 && (
+        <span className="rounded-full border-2 border-ink bg-[#dff4ff] px-1.5 text-xs font-bold" title="น้ำแข็งกันไฟดับ">
+          🧊{p.freezes}
+        </span>
+      )}
       <span className="text-xs text-muted">{streak ? "ออกเรือทุกวันไม่พลาด!" : "ออกเรือวันนี้เริ่มนับใหม่"}</span>
     </div>
   );
@@ -215,6 +225,39 @@ function BountyBanner() {
   );
 }
 
+/** Announces new features once per batch (see WHATS_NEW_ID). */
+function HomeWhatsNew() {
+  const hydrated = useHydrated();
+  const seen = useProgress((s) => !!s.seen[WHATS_NEW_ID]);
+  const markSeen = useProgress((s) => s.markSeen);
+  if (!hydrated || seen) return null;
+  return <WhatsNew onClose={() => markSeen(WHATS_NEW_ID)} />;
+}
+
+/** Two side-by-side entries: the ship shop and the badge book. */
+function ShopBadgeCards() {
+  const badges = useProgress((s) => s.badges);
+  const shopDot = useDailyDot("shop");
+  const earned = ACHIEVEMENTS.filter((a) => badges[a.id]).length;
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      <Link href="/shop" onClick={shopDot.clear} className="card relative flex flex-col gap-1 p-3.5 active:translate-y-0.5">
+        <RedDot show={shopDot.show} className="-right-2 -top-2" />
+        <span className="text-3xl">🏪</span>
+        <span className="font-display text-[15px] font-bold leading-tight">ร้านค้าบนเรือ</span>
+        <span className="text-[12px] text-muted">สกินหุ่น · ฉายา · 🧊 กันไฟดับ</span>
+      </Link>
+      <Link href="/badges" className="card relative flex flex-col gap-1 p-3.5 active:translate-y-0.5">
+        <span className="text-3xl">🏅</span>
+        <span className="font-display text-[15px] font-bold leading-tight">สมุดตรา</span>
+        <span className="text-[12px] text-muted">
+          สะสมแล้ว {earned}/{ACHIEVEMENTS.length} ตรา
+        </span>
+      </Link>
+    </div>
+  );
+}
+
 /** Log book: stats, share codes and backups. Looks like a real button, with a daily dot. */
 function ProgressButton() {
   const dot = useDailyDot("progress");
@@ -275,6 +318,10 @@ export default function Home() {
         </div>
       </ClientOnly>
 
+      <ClientOnly fallback={<div className="h-[92px]" />}>
+        <ShopBadgeCards />
+        <HomeWhatsNew />
+      </ClientOnly>
       <FreePlayLink>
         <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] border-[2.5px] border-ink bg-lagoon">
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#1e2a3a" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

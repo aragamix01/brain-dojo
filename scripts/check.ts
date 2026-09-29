@@ -15,6 +15,8 @@ import { bestBudget, bestSchedule } from "../src/games/situation/solver";
 import { QUEST_NODES } from "../src/games/quest/data";
 import { dailyPlan } from "../src/games/daily/plan";
 import { COINS, applyRewards, spend, winRewards } from "../src/lib/coins";
+import { ACHIEVEMENTS, newlyEarned } from "../src/lib/achievements";
+import { daysBetween } from "../src/lib/date";
 import { generateNonogram as genNono } from "../src/games/nonogram/logic";
 import { claimCode, nodeSeed, verifyClaim } from "../src/games/quest/progress";
 import { theme } from "../src/games/situation/data";
@@ -190,8 +192,10 @@ check("hint coins", () => {
   const r = { amount: 3, reason: "x", once: "a" };
   const w1 = applyRewards(w0, [r, r]).wallet;
   assert.equal(w1.coins, COINS.start + 3, "a once-key paid twice");
-  const full = applyRewards({ ...w0, coins: COINS.cap - 1 }, [{ ...r, once: "b" }]).wallet;
-  assert.equal(full.coins, COINS.cap, "wallet passed the cap");
+  const nearFull = applyRewards({ ...w0, coins: COINS.cap - 1 }, [{ ...r, once: "b" }]);
+  assert.equal(nearFull.wallet.coins, COINS.cap, "wallet passed the cap");
+  assert.equal(nearFull.overflow, 2, "overflow not reported (it becomes XP)");
+  assert.equal(spend({ ...w0, coins: 2 }, "shop", 3), null, "bought something unaffordable");
   assert.equal(spend({ ...w0, coins: 0 }, "hint"), null, "spent from an empty wallet");
   let rewarded: Record<string, number> = {};
   let paid = 0;
@@ -204,6 +208,22 @@ check("hint coins", () => {
   assert.equal(paid, COINS.freePlayPerDay, "free play daily cap");
   const boss = winRewards({ key: "quest:b10", stars: 3, firstWin: true, isBoss: true, today: "d", rewarded: {} });
   assert.equal(boss.reduce((a, g) => a + g.amount, 0), 3, "boss 3★ first win");
+});
+
+check("streak days + badges", () => {
+  assert.equal(daysBetween("2026-09-28", "2026-09-29"), 1);
+  assert.equal(daysBetween("2026-02-27", "2026-03-02"), 3);
+  const blank = {
+    name: "", xp: 0, streak: 0, bestStreak: 0, lastActive: null, hintsUsed: 0, games: {}, daily: {},
+    chests: {}, delivered: {}, seen: {}, coins: 5, coinLog: [], rewarded: {}, badges: {}, owned: {},
+    equipped: {}, freezes: 0,
+  };
+  assert.deepEqual(newlyEarned(blank), [], "badges earned with no progress");
+  const played = { ...blank, games: { "quest:b1": { wins: 1, bestStars: 3, bestTimeMs: 1, bestScore: null } }, bestStreak: 7 };
+  const ids = newlyEarned(played).map((a) => a.id);
+  assert.ok(ids.includes("first-sail") && ids.includes("streak-7"), `got ${ids}`);
+  assert.equal(newlyEarned({ ...played, badges: { "first-sail": 1, "streak-7": 1 } }).length, 0, "badge awarded twice");
+  return `${ACHIEVEMENTS.length} badges`;
 });
 
 if (failures) {

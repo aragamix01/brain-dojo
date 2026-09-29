@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
+import { WhatsNew } from "./WhatsNew";
 import { COINS, todayRemaining } from "@/lib/coins";
 import { dayKey } from "@/lib/date";
 import { liveStreak, useProgress } from "@/lib/store";
@@ -29,6 +31,7 @@ function Row({ icon, label, value, done }: { icon: string; label: string; value:
 
 /** Wallet details: balance, what can still be earned today, where coins come from, and tips. */
 export function CoinSheet({ onClose }: { onClose: () => void }) {
+  const [guide, setGuide] = useState(false);
   const coins = useProgress((s) => s.coins);
   const rewarded = useProgress((s) => s.rewarded);
   const streak = useProgress((s) => liveStreak(s));
@@ -116,7 +119,14 @@ export function CoinSheet({ onClose }: { onClose: () => void }) {
           ))}
         </ul>
 
-        <div className="mt-5 flex gap-2">
+        <button
+          className="mt-4 w-full rounded-xl border-2 border-dashed border-ink/40 py-1.5 font-display text-sm font-bold text-ink/80"
+          onClick={() => setGuide(true)}
+        >
+          ❓ วิธีใช้เหรียญ · ร้านค้า · ตรา
+        </button>
+
+        <div className="mt-3 flex gap-2">
           <Link href="/quest" className="btn btn-gold flex-1 text-sm" onClick={onClose}>
             🗺️ ไปหาเหรียญ
           </Link>
@@ -125,6 +135,7 @@ export function CoinSheet({ onClose }: { onClose: () => void }) {
           </button>
         </div>
       </div>
+      {guide && <WhatsNew onClose={() => setGuide(false)} />}
     </div>
   );
 }

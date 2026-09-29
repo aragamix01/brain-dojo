@@ -17,3 +17,12 @@ export function formatTime(ms: number): string {
 }
 
 export const elapsedSince = (startedAt: number) => Date.now() - startedAt;
+
+/** Whole days from day key `a` to day key `b` (both "YYYY-MM-DD", local time). */
+export function daysBetween(a: string, b: string): number {
+  const at = (k: string) => {
+    const [y, m, dd] = k.split("-").map(Number);
+    return new Date(y, m - 1, dd).getTime();
+  };
+  return Math.round((at(b) - at(a)) / 86_400_000);
+}

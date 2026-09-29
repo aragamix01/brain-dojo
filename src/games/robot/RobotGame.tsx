@@ -17,6 +17,7 @@ import {
   type RobotLevel,
   type RunState,
 } from "./engine";
+import { RobotSprite } from "./RobotSprite";
 
 const TILE: Record<Color, string> = { r: "#ff4d6d", g: "#3ddc97", b: "#4d7cff" };
 const OP_ICON: Record<Exclude<Op, "C">, string> = { F: "↑", L: "↺", R: "↻" };
@@ -70,6 +71,7 @@ export function RobotGame({
   const [result, setResult] = useState<{ stars: number; xp: number; ms: number } | null>(null);
   const session = useSession();
   const recordWin = useProgress((s) => s.recordWin);
+  const skinId = useProgress((s) => s.equipped?.skin);
 
   const used = program.flat().filter(Boolean).length;
   const totalSlots = level.funcs.reduce((a, b) => a + b, 0);
@@ -187,13 +189,7 @@ export function RobotGame({
             opacity: fell ? 0.25 : 1,
           }}
         >
-          <svg
-            viewBox="0 0 40 40"
-            className="h-[78%] w-[78%] drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]"
-            style={{ transform: `rotate(${run.angle}deg)`, transition: `transform ${DELAY[speed]}ms` }}
-          >
-            <path d="M20 3 L35 33 L20 26 L5 33 Z" fill="#fff" stroke="#1E2A3A" strokeWidth="3" strokeLinejoin="round" />
-          </svg>
+          <RobotSprite skinId={skinId} angle={run.angle} transitionMs={DELAY[speed]} className="h-[78%] w-[78%]" />
         </div>
       </div>
 

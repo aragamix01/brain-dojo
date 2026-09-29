@@ -1,0 +1,146 @@
+"use client";
+
+import Link from "next/link";
+import { RobotSprite } from "@/games/robot/RobotSprite";
+import { ACHIEVEMENTS, BADGE_COINS } from "@/lib/achievements";
+import { COINS } from "@/lib/coins";
+import { FREEZE } from "@/lib/shop";
+import { GuideModal, type GuideStep } from "./GuideModal";
+
+/** Bump when a new batch of features should be announced again. */
+export const WHATS_NEW_ID = "whats-new-coins-shop";
+
+function Chip({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-xl border-[2.5px] border-ink bg-white px-2.5 py-1 font-display text-sm font-bold shadow-[2px_2px_0_#1e2a3a] ${className}`}
+    >
+      {children}
+    </span>
+  );
+}
+
+const Big = ({ children }: { children: React.ReactNode }) => (
+  <span className="flex h-14 w-14 items-center justify-center rounded-2xl border-[3px] border-ink bg-white text-3xl shadow-[0_4px_0_#1e2a3a]">
+    {children}
+  </span>
+);
+
+const STEPS: GuideStep[] = [
+  {
+    title: "มีของใหม่บนเรือ!",
+    nova: "ลูกเรือเก่งขึ้นเยอะเลย กัปตันเลยเพิ่มของใหม่ให้ — มาดูกันว่ามีอะไรบ้าง",
+    art: (
+      <div className="flex justify-center gap-3">
+        <Big>🪙</Big>
+        <Big>🏪</Big>
+        <Big>🧊</Big>
+        <Big>🏅</Big>
+      </div>
+    ),
+    points: [
+      "🪙 เหรียญคำใบ้ — คำใบ้ไม่ได้ฟรีไม่จำกัดแล้ว",
+      "🏪 ร้านค้าบนเรือ — เอาเหรียญไปแลกสกินหุ่นกับฉายา",
+      "🧊 น้ำแข็งกันไฟดับ — กันวันติดหายตอนพลาดไปวันหนึ่ง",
+      "🏅 สมุดตรา — สะสมตราจากความสำเร็จ",
+    ],
+  },
+  {
+    title: "เหรียญคำใบ้ 🪙",
+    nova: "คำใบ้ยังใช้ได้ แต่ต้องคิดก่อนใช้นะ — เหรียญมีจำกัด!",
+    art: (
+      <div className="flex flex-col items-center gap-2">
+        <Chip>💡 Hint · ฟรี 2</Chip>
+        <Chip className="bg-yellow">💡 Hint · 🪙1</Chip>
+        <Chip className="opacity-60">🔒 เหรียญหมด</Chip>
+      </div>
+    ),
+    points: [
+      `ทุกด่านใช้คำใบ้ฟรีได้ ${COINS.freePerPuzzle} ครั้ง ครั้งต่อไปใช้ 1 เหรียญ (ทุกคำใบ้ยังหักดาว)`,
+      `เก็บได้สูงสุด ${COINS.cap} เหรียญ — ที่เกินจะแปลงเป็น XP ให้ ไม่หายฟรี`,
+      "แตะช่อง 🪙 มุมขวาบน ดูว่าวันนี้ยังเก็บได้อีกกี่เหรียญ",
+    ],
+  },
+  {
+    title: "หาเหรียญได้จากไหน",
+    nova: "ยิ่งคิดเองเก่ง ยิ่งได้เหรียญเยอะ — ป้าย +1🪙 บนแผนที่คือเหรียญที่รอเก็บอยู่",
+    art: (
+      <div className="flex flex-wrap justify-center gap-1.5">
+        <Chip>🗺️ 3★ แผนที่ +1</Chip>
+        <Chip>👹 บอส +2</Chip>
+        <Chip>🎁 หีบ +3</Chip>
+        <Chip>⚔️ ลานฝึก 3★ +1</Chip>
+        <Chip>📅 Daily +1/+1</Chip>
+        <Chip>🔥 7 วัน +2</Chip>
+        <Chip>🏅 ตรา +{BADGE_COINS}</Chip>
+      </div>
+    ),
+    points: [
+      "3★ ครั้งแรกของแต่ละด่านบนแผนที่ ชนะบอส และเปิดหีบ",
+      `ลานฝึกดาบ: ชนะ 3★ ได้ 1 เหรียญ (วันละไม่เกิน ${COINS.freePlayPerDay})`,
+      "Daily: เล่นจบ +1 และได้ 3★ ทุกด่านอีก +1 · เล่นต่อเนื่องทุก 7 วัน +2",
+    ],
+  },
+  {
+    title: "ร้านค้า + น้ำแข็ง 🏪🧊",
+    nova: "ของในร้านใส่ให้เท่อย่างเดียว ไม่ช่วยให้ผ่านด่านนะ — ด่านยังต้องใช้สมองเหมือนเดิม!",
+    art: (
+      <div className="flex items-end justify-center gap-3">
+        {["gold", "pirate", "cat"].map((id) => (
+          <span key={id} className="flex h-14 w-14 items-center justify-center rounded-2xl border-[2.5px] border-ink bg-[#4d8dff]/80">
+            <RobotSprite skinId={id} angle={45} className="h-10 w-10" />
+          </span>
+        ))}
+        <Big>🧊</Big>
+      </div>
+    ),
+    points: [
+      "🤖 สกินหุ่น Robot — หุ่นในทุกด่านจะใส่ชุดที่เลือก",
+      "🏷️ ฉายา — โชว์บนใบประกาศจับหน้าแรก เช่น 「นักล่าบั๊ก」",
+      `🧊 น้ำแข็งกันไฟดับ ${FREEZE.price} เหรียญ ถือได้ ${FREEZE.max} อัน — พลาดวันไหน ระบบใช้ให้เอง วันติดไม่รีเซ็ต`,
+    ],
+  },
+  {
+    title: "สมุดตรา 🏅",
+    nova: `มีตราให้สะสม ${ACHIEVEMENTS.length} แบบ บางอันอาจได้ไปแล้วก็ได้ ไปเปิดดูเลย!`,
+    art: (
+      <div className="flex justify-center gap-2">
+        {ACHIEVEMENTS.slice(0, 5).map((a) => (
+          <span
+            key={a.id}
+            className="flex h-12 w-12 items-center justify-center rounded-full border-[3px] border-ink bg-yellow text-2xl shadow-[0_3px_0_#1e2a3a]"
+          >
+            {a.emoji}
+          </span>
+        ))}
+      </div>
+    ),
+    points: [
+      "ตราได้จากการผ่านแผนที่ เรียน Robot ครบหมวด เล่นต่อเนื่อง และทำคะแนนสูง",
+      `ได้ตราใหม่แต่ละอันรับ 🪙 ${BADGE_COINS} เหรียญ`,
+      "ตราที่ยังไม่ได้มีแถบบอกว่าเหลืออีกเท่าไหร่",
+    ],
+  },
+];
+
+export function WhatsNew({ onClose }: { onClose: () => void }) {
+  return (
+    <GuideModal
+      heading="WHAT'S NEW"
+      label="มีอะไรใหม่บนเรือ"
+      steps={STEPS}
+      finishLabel="เข้าใจแล้ว!"
+      onClose={onClose}
+      finalActions={
+        <>
+          <Link href="/shop" className="btn btn-gold flex-1 text-sm" onClick={onClose}>
+            🏪 ไปร้านค้า
+          </Link>
+          <Link href="/badges" className="btn btn-cyan flex-1 text-sm" onClick={onClose}>
+            🏅 ดูสมุดตรา
+          </Link>
+        </>
+      }
+    />
+  );
+}

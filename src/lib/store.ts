@@ -15,7 +15,9 @@ import {
   type CoinEntry,
   type Reward,
 } from "./coins";
-import { dayKey, yesterdayKey } from "./date";
+import { BADGE_COINS, newlyEarned } from "./achievements";
+import { dayKey, daysBetween, yesterdayKey } from "./date";
+import { FREEZE, SKINS, TITLES } from "./shop";
 
 export type GameStat = {
   wins: number;
@@ -58,10 +60,19 @@ export type ProgressData = {
   coinLog: CoinEntry[];
   /** one-time coin rewards already paid out */
   rewarded: Record<string, number>;
+  /** badge id → time earned */
+  badges: Record<string, number>;
+  /** shop item ids bought ("skin:gold", "title:planner") → time */
+  owned: Record<string, number>;
+  equipped: { skin?: string; title?: string };
+  /** streak freezes in hand; each covers one missed day */
+  freezes: number;
 };
 
-/** Not persisted: the latest coin pay-out, shown as a toast. */
+/** Not persisted: the latest pay-out / news, shown as a toast. */
 export type CoinToast = { id: number; text: string } | null;
+
+export type ShopKind = "skin" | "title";
 
 type Actions = {
   setName: (name: string) => void;
@@ -76,6 +87,12 @@ type Actions = {
   markSeen: (id: string) => void;
   /** Pay one coin for an extra hint; false when the wallet is empty. */
   spendCoin: (reason: string) => boolean;
+  /** Buy a cosmetic; false when already owned or too expensive. */
+  buyItem: (kind: ShopKind, id: string) => boolean;
+  equip: (kind: ShopKind, id: string) => void;
+  buyFreeze: () => boolean;
+  /** Award any badges the current progress has earned. */
+  checkBadges: () => void;
   importData: (d: ProgressData) => void;
   reset: () => void;
 };
@@ -95,32 +112,59 @@ export const emptyProgress = (): ProgressData => ({
   coins: COINS.start,
   coinLog: [],
   rewarded: {},
+  badges: {},
+  owned: {},
+  equipped: {},
+  freezes: 0,
 });
 
-function touchStreak(s: ProgressData): Pick<ProgressData, "streak" | "bestStreak" | "lastActive"> {
+/** Days skipped since the last activity (0 = played yesterday or today). */
+function missedDays(lastActive: string | null, today: string): number {
+  return lastActive ? Math.max(0, daysBetween(lastActive, today) - 1) : Infinity;
+}
+
+/** Record today's activity: extend the streak, spending freezes to cover skipped days if there are enough. */
+function touchStreak(s: ProgressData) {
   const today = dayKey();
-  if (s.lastActive === today) return s;
-  const streak = s.lastActive === yesterdayKey() ? s.streak + 1 : 1;
-  return { streak, bestStreak: Math.max(s.bestStreak, streak), lastActive: today };
+  const freezes = s.freezes ?? 0;
+  if (s.lastActive === today) return { streak: s.streak, bestStreak: s.bestStreak, lastActive: today, freezes };
+  const missed = missedDays(s.lastActive, today);
+  const saved = missed > 0 && missed <= freezes;
+  const streak = missed === 0 || saved ? s.streak + 1 : 1;
+  return {
+    streak,
+    bestStreak: Math.max(s.bestStreak, streak),
+    lastActive: today,
+    freezes: saved ? freezes - missed : freezes,
+  };
 }
 
 const bossIds = new Set(QUEST_NODES.filter((n) => n.boss).map((n) => n.id));
 
-/** Wallet changes for a batch of rewards, plus the toast announcing them. */
-function payout(s: ProgressData & { coinToast: CoinToast }, rewards: Reward[]) {
-  const { wallet, gained } = applyRewards(s, rewards);
-  const coinToast: CoinToast = gained.length
-    ? { id: Date.now(), text: gained.map((g) => `+${g.amount} 🪙 ${g.reason}`).join(" · ") }
-    : s.coinToast;
-  return { ...wallet, coinToast };
+type State = ProgressData & { coinToast: CoinToast };
+
+/** Pay rewards into the wallet; coins past the cap become XP. Returns state changes including the toast. */
+function payout(s: State, rewards: Reward[], notes: string[] = []) {
+  const { wallet, gained, overflow } = applyRewards(s, rewards);
+  const parts = [
+    ...gained.map((g) => `+${g.amount} 🪙 ${g.reason}`),
+    ...(overflow ? [`กระเป๋าเต็ม: ${overflow} 🪙 → +${overflow * COINS.overflowXp} XP`] : []),
+    ...notes,
+  ];
+  const coinToast: CoinToast = parts.length ? { id: Date.now(), text: parts.join(" · ") } : s.coinToast;
+  return { ...wallet, xp: s.xp + overflow * COINS.overflowXp, coinToast };
 }
 
-/** Streak update plus its every-7-days bonus. */
-function streakRewardsFor(s: ProgressData, next: ReturnType<typeof touchStreak>): Reward[] {
-  return next.lastActive !== s.lastActive ? streakRewards(next.streak, dayKey()) : [];
+/** Streak update for an activity, with its 7-day bonus and a note when a freeze was used. */
+function activity(s: State, rewards: Reward[]) {
+  const streak = touchStreak(s);
+  const used = (s.freezes ?? 0) - streak.freezes;
+  const bonus = streak.lastActive !== s.lastActive ? streakRewards(streak.streak, dayKey()) : [];
+  const pay = payout(s, [...rewards, ...bonus], used ? [`🧊 ใช้น้ำแข็ง ${used} อัน วันติดยังอยู่!`] : []);
+  return { ...streak, ...pay };
 }
 
-export const useProgress = create<ProgressData & Actions & { coinToast: CoinToast }>()(
+export const useProgress = create<State & Actions>()(
   persist(
     (set, get) => ({
       ...emptyProgress(),
@@ -130,9 +174,9 @@ export const useProgress = create<ProgressData & Actions & { coinToast: CoinToas
         const s = get();
         const prev = s.games[key] ?? { wins: 0, bestStars: 0, bestTimeMs: null, bestScore: null };
         const xp = (r.xpBase ?? 10) * r.stars;
-        const streak = touchStreak(s);
-        const rewards = [
-          ...winRewards({
+        const changes = activity(
+          s,
+          winRewards({
             key,
             stars: r.stars,
             firstWin: prev.wins === 0,
@@ -140,12 +184,10 @@ export const useProgress = create<ProgressData & Actions & { coinToast: CoinToas
             today: dayKey(),
             rewarded: s.rewarded,
           }),
-          ...streakRewardsFor(s, streak),
-        ];
+        );
         set({
-          ...streak,
-          ...payout(s, rewards),
-          xp: s.xp + xp,
+          ...changes,
+          xp: changes.xp + xp,
           games: {
             ...s.games,
             [key]: {
@@ -157,31 +199,66 @@ export const useProgress = create<ProgressData & Actions & { coinToast: CoinToas
             },
           },
         });
+        get().checkBadges();
         return xp;
       },
       recordDaily: (date, r) => {
         const s = get();
         if (s.daily[date]) return 0;
         const xp = 40 + (r.stages ?? []).reduce((a, st) => a + st.stars * 10, 0);
-        const streak = touchStreak(s);
         const allThree = !!r.stages?.length && r.stages.every((st) => st.stars === 3);
-        set({
-          ...streak,
-          ...payout(s, [...dailyRewards(date, allThree), ...streakRewardsFor(s, streak)]),
-          xp: s.xp + xp,
-          daily: { ...s.daily, [date]: r },
-        });
+        const changes = activity(s, dailyRewards(date, allThree));
+        set({ ...changes, xp: changes.xp + xp, daily: { ...s.daily, [date]: r } });
+        get().checkBadges();
         return xp;
       },
       addHint: () => set((s) => ({ hintsUsed: s.hintsUsed + 1 })),
-      openChest: (id) =>
-        set((s) => (s.chests[id] ? s : { chests: { ...s.chests, [id]: Date.now() }, ...payout(s, [chestReward(id)]) })),
+      openChest: (id) => {
+        const s = get();
+        if (s.chests[id]) return;
+        set({ chests: { ...s.chests, [id]: Date.now() }, ...payout(s, [chestReward(id)]) });
+        get().checkBadges();
+      },
       markDelivered: (code) => set((s) => ({ delivered: { ...s.delivered, [code]: Date.now() } })),
       markSeen: (id) => set((s) => ({ seen: { ...s.seen, [id]: Date.now() } })),
       spendCoin: (reason) => {
         const w = spend(get(), reason);
         if (w) set(w);
         return !!w;
+      },
+      buyItem: (kind, id) => {
+        const s = get();
+        const item = kind === "skin" ? SKINS.find((x) => x.id === id) : TITLES.find((x) => x.id === id);
+        const key = `${kind}:${id}`;
+        if (!item || s.owned[key]) return false;
+        const w = item.price ? spend(s, `ซื้อ${kind === "skin" ? "สกิน" : "ฉายา"} ${item.name}`, item.price) : s;
+        if (!w) return false;
+        set({ ...w, owned: { ...s.owned, [key]: Date.now() }, equipped: { ...s.equipped, [kind]: id } });
+        return true;
+      },
+      equip: (kind, id) => set((s) => ({ equipped: { ...s.equipped, [kind]: id } })),
+      buyFreeze: () => {
+        const s = get();
+        if ((s.freezes ?? 0) >= FREEZE.max) return false;
+        const w = spend(s, "ซื้อน้ำแข็งกันไฟดับ 🧊", FREEZE.price);
+        if (!w) return false;
+        set({ ...w, freezes: (s.freezes ?? 0) + 1 });
+        return true;
+      },
+      checkBadges: () => {
+        const s = get();
+        const fresh = newlyEarned(pickData(s));
+        if (!fresh.length) return;
+        const now = Date.now();
+        const badges = { ...s.badges };
+        for (const a of fresh) badges[a.id] = now;
+        const pay = payout(
+          s,
+          fresh.map((a) => ({ amount: BADGE_COINS, reason: `ตรา ${a.emoji} ${a.name}`, once: `badge:${a.id}` })),
+        );
+        // Keep the win's own toast in front so both pieces of news show together.
+        const prev = s.coinToast && now - s.coinToast.id < 1500 ? `${s.coinToast.text} · ` : "";
+        set({ ...pay, badges, coinToast: { id: now, text: `🏅 ตราใหม่! ${prev}${pay.coinToast?.text ?? ""}` } });
       },
       importData: (d) => set({ ...emptyProgress(), ...d }),
       reset: () => set(emptyProgress()),
@@ -210,6 +287,10 @@ function pickData(s: ProgressData): ProgressData {
     coins: s.coins,
     coinLog: s.coinLog,
     rewarded: s.rewarded,
+    badges: s.badges,
+    owned: s.owned,
+    equipped: s.equipped,
+    freezes: s.freezes,
   };
 }
 
@@ -217,9 +298,10 @@ export function snapshot(): ProgressData {
   return pickData(useProgress.getState());
 }
 
-/** Streak shown to the user: broken streaks read as 0 even before the next win. */
-export function liveStreak(s: Pick<ProgressData, "streak" | "lastActive">): number {
-  return s.lastActive === dayKey() || s.lastActive === yesterdayKey() ? s.streak : 0;
+/** Streak shown to the user: 0 once it is broken, unless enough freezes are waiting to cover the gap. */
+export function liveStreak(s: Pick<ProgressData, "streak" | "lastActive"> & { freezes?: number }): number {
+  if (s.lastActive === dayKey() || s.lastActive === yesterdayKey()) return s.streak;
+  return missedDays(s.lastActive, dayKey()) <= (s.freezes ?? 0) ? s.streak : 0;
 }
 
 export function useHydrated(): boolean {
