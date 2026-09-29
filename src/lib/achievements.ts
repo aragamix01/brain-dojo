@@ -104,14 +104,14 @@ export const ACHIEVEMENTS: Achievement[] = [
     id: "streak-7",
     emoji: "⚔️",
     name: "ลูกเรือไม่เคยขาด",
-    desc: "เล่นต่อเนื่อง 7 วัน",
+    desc: "เล่น Daily ติดกัน 7 วัน",
     progress: (p) => count(p.bestStreak, 7),
   },
   {
     id: "streak-30",
     emoji: "☄️",
     name: "ตำนาน 30 วัน",
-    desc: "เล่นต่อเนื่อง 30 วัน",
+    desc: "เล่น Daily ติดกัน 30 วัน",
     progress: (p) => count(p.bestStreak, 30),
   },
   {

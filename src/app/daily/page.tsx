@@ -167,7 +167,7 @@ function DailyRun({ date }: { date: string }) {
           ))}
         </ol>
         <p className="mt-3 text-sm text-muted">
-          จับเวลารวมทุกด่าน · เล่นได้ครั้งเดียวต่อวัน · ออกกลางคันต้องเริ่มใหม่
+          จับเวลารวมทุกด่าน · เล่นได้ครั้งเดียวต่อวัน · ออกกลางคันต้องเริ่มใหม่ · เล่นจบ = ⚔️ วันติด +1
         </p>
         <button
           className="btn btn-primary mt-5 w-full text-lg"

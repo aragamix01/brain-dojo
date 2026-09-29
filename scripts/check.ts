@@ -16,7 +16,7 @@ import { QUEST_NODES } from "../src/games/quest/data";
 import { dailyPlan } from "../src/games/daily/plan";
 import { COINS, applyRewards, spend, winRewards } from "../src/lib/coins";
 import { ACHIEVEMENTS, newlyEarned } from "../src/lib/achievements";
-import { daysBetween, weekOf } from "../src/lib/date";
+import { daysBetween, streakFromDailies, weekOf } from "../src/lib/date";
 import { generateNonogram as genNono } from "../src/games/nonogram/logic";
 import { claimCode, nodeSeed, verifyClaim } from "../src/games/quest/progress";
 import { theme } from "../src/games/situation/data";
@@ -216,6 +216,18 @@ check("streak days + badges", () => {
   const week = weekOf("2026-10-01"); // a Thursday
   assert.equal(week[0], "2026-09-27", "week should start on Sunday");
   assert.equal(week[6], "2026-10-03");
+  const none = () => false;
+  assert.deepEqual(
+    streakFromDailies(["2026-09-20", "2026-09-21", "2026-09-23", "2026-09-24", "2026-09-25"], none),
+    { streak: 3, bestStreak: 3, lastActive: "2026-09-25" },
+    "a skipped day breaks the streak",
+  );
+  assert.equal(
+    streakFromDailies(["2026-09-21", "2026-09-23"], (d) => d === "2026-09-22").streak,
+    2,
+    "a frozen day bridges the gap",
+  );
+  assert.deepEqual(streakFromDailies([], none), { streak: 0, bestStreak: 0, lastActive: null });
   const blank = {
     name: "", xp: 0, streak: 0, bestStreak: 0, lastActive: null, hintsUsed: 0, games: {}, daily: {},
     chests: {}, delivered: {}, seen: {}, coins: 5, coinLog: [], rewarded: {}, badges: {}, owned: {},

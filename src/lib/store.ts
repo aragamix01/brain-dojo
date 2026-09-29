@@ -16,7 +16,7 @@ import {
   type Reward,
 } from "./coins";
 import { BADGE_COINS, newlyEarned } from "./achievements";
-import { dayKey, daysBetween, shiftDay, yesterdayKey } from "./date";
+import { dayKey, daysBetween, shiftDay, streakFromDailies, yesterdayKey } from "./date";
 import { FREEZE, SKINS, TITLES } from "./shop";
 
 export type GameStat = {
@@ -97,6 +97,8 @@ type Actions = {
   buyFreeze: () => boolean;
   /** Award any badges the current progress has earned. */
   checkBadges: () => void;
+  /** One-time switch to Daily-based streaks: rebuild the streak from Daily history. */
+  migrateStreak: () => void;
   importData: (d: ProgressData) => void;
   reset: () => void;
 };
@@ -148,6 +150,8 @@ function touchStreak(s: ProgressData) {
   };
 }
 
+const STREAK_MIGRATION = "streak-daily-v1";
+
 const bossIds = new Set(QUEST_NODES.filter((n) => n.boss).map((n) => n.id));
 
 type State = ProgressData & { coinToast: CoinToast };
@@ -183,7 +187,8 @@ export const useProgress = create<State & Actions>()(
         const s = get();
         const prev = s.games[key] ?? { wins: 0, bestStars: 0, bestTimeMs: null, bestScore: null };
         const xp = (r.xpBase ?? 10) * r.stars;
-        const changes = activity(
+        // Wins pay coins and XP; only finishing the Daily moves the streak.
+        const changes = payout(
           s,
           winRewards({
             key,
@@ -268,6 +273,15 @@ export const useProgress = create<State & Actions>()(
         // Keep the win's own toast in front so both pieces of news show together.
         const prev = s.coinToast && now - s.coinToast.id < 1500 ? `${s.coinToast.text} · ` : "";
         set({ ...pay, badges, coinToast: { id: now, text: `🏅 ตราใหม่! ${prev}${pay.coinToast?.text ?? ""}` } });
+      },
+      migrateStreak: () => {
+        const s = get();
+        if (s.seen[STREAK_MIGRATION]) return;
+        const rebuilt = streakFromDailies(Object.keys(s.daily), (d) => s.activeDays?.[d] === "freeze");
+        const activeDays = { ...(s.activeDays ?? {}) };
+        // Non-Daily play no longer counts, so only Daily days stay marked as played.
+        for (const [d, m] of Object.entries(activeDays)) if (m === "play" && !s.daily[d]) delete activeDays[d];
+        set({ ...rebuilt, activeDays, seen: { ...s.seen, [STREAK_MIGRATION]: Date.now() } });
       },
       importData: (d) => set({ ...emptyProgress(), ...d }),
       reset: () => set(emptyProgress()),

@@ -103,7 +103,7 @@ export function CoinSheet({ onClose }: { onClose: () => void }) {
           <Row icon="🎁" label="เปิดหีบสมบัติ" value="+3" />
           <Row icon="⚔️" label={`3★ ในลานฝึกดาบ (วันละ ${COINS.freePlayPerDay})`} value="+1" />
           <Row icon="📅" label="Daily เล่นจบ / 3★ ทุกด่าน" value="+1 / +1" />
-          <Row icon="⚔️" label="เล่นต่อเนื่องครบทุก 7 วัน" value="+2" />
+          <Row icon="⚔️" label="เล่น Daily ติดกันครบทุก 7 วัน" value="+2" />
         </ul>
 
         <p className="mt-4 font-display font-bold">💡 คำแนะนำ</p>

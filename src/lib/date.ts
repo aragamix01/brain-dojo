@@ -39,3 +39,23 @@ export function weekOf(key: string): string[] {
   const sunday = -new Date(y, m - 1, dd).getDay();
   return Array.from({ length: 7 }, (_, i) => shiftDay(key, sunday + i));
 }
+
+/**
+ * Streak rebuilt from Daily history: consecutive Daily days, where a gap is bridged only if every
+ * skipped day was covered by a streak freeze. Frozen days bridge but don't add to the count.
+ */
+export function streakFromDailies(
+  dailyDays: string[],
+  frozen: (day: string) => boolean,
+): { streak: number; bestStreak: number; lastActive: string | null } {
+  const days = [...dailyDays].sort();
+  let run = 0;
+  let best = 0;
+  for (let i = 0; i < days.length; i++) {
+    const gap = i ? daysBetween(days[i - 1], days[i]) - 1 : 0;
+    const bridged = Array.from({ length: gap }, (_, k) => shiftDay(days[i - 1], k + 1)).every(frozen);
+    run = i && bridged ? run + 1 : 1;
+    best = Math.max(best, run);
+  }
+  return { streak: run, bestStreak: best, lastActive: days.at(-1) ?? null };
+}

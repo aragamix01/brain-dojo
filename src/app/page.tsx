@@ -105,7 +105,7 @@ function Streak() {
     <div className="flex items-center gap-2 self-start rounded-full border-[2.5px] border-ink bg-white py-1.5 pl-2 pr-3.5 shadow-[3px_3px_0_#1e2a3a]">
       <CrossedSwords active={streak > 0} />
       <span className="whitespace-nowrap font-display text-[15px] font-bold">{hydrated ? streak : "–"} วันติด</span>
-      <span className="text-xs text-muted">{streak ? "ออกเรือทุกวันไม่พลาด!" : "ออกเรือวันนี้เริ่มนับใหม่"}</span>
+      <span className="text-xs text-muted">{streak ? "เล่น Daily ทุกวันไม่พลาด!" : "เล่น Daily วันนี้เริ่มนับ"}</span>
     </div>
   );
 }

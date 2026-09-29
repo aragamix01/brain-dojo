@@ -218,7 +218,7 @@ function Wallet() {
       </div>
       <p className="mt-1 text-xs text-muted">
         ทุกด่านใช้คำใบ้ฟรีได้ {COINS.freePerPuzzle} ครั้ง ครั้งต่อไปใช้ 1 เหรียญ · หาเหรียญได้จาก 3★ บนแผนที่, ชนะบอส (+2),
-        เปิดหีบ (+3), เล่น Daily จบ, 3★ ในลานฝึกดาบ (วันละไม่เกิน {COINS.freePlayPerDay}) และเล่นต่อเนื่องทุก 7 วัน (+2)
+        เปิดหีบ (+3), เล่น Daily จบ, 3★ ในลานฝึกดาบ (วันละไม่เกิน {COINS.freePlayPerDay}) และเล่น Daily ติดกันทุก 7 วัน (+2)
       </p>
       {log.length > 0 && (
         <ul className="mt-3 space-y-1 text-sm">
