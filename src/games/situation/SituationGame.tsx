@@ -93,7 +93,7 @@ function Budget({ sc, cfg }: { sc: BudgetScenario; cfg: Cfg }) {
             {sc.valueLabel} <b className="font-display text-gold">{e.value}</b>
           </span>
         </div>
-        <div className="mt-1 h-2 overflow-hidden rounded-full bg-ink/10">
+        <div className="mt-1 h-3.5 overflow-hidden rounded-full border-[2.5px] border-ink bg-white">
           <div
             className={`h-full rounded-full transition-all ${over ? "bg-bad" : "bg-cyan"}`}
             style={{ width: `${Math.min(100, (e.cost / sc.limit) * 100)}%` }}
@@ -116,10 +116,16 @@ function Budget({ sc, cfg }: { sc: BudgetScenario; cfg: Cfg }) {
             <button
               key={it.id}
               onClick={() => toggle(it.id)}
-              className={`rounded-2xl border p-3 text-left transition active:scale-95 ${
-                on ? "border-pink bg-pink/15" : "border-ink/15 bg-ink/5"
+              aria-pressed={on}
+              className={`relative rounded-2xl border-[2.5px] border-ink p-3 text-left shadow-[3px_3px_0_#1e2a3a] transition active:translate-y-0.5 active:shadow-[1px_1px_0_#1e2a3a] ${
+                on ? "bg-[#ffe9a8]" : "bg-white"
               }`}
             >
+              {on && (
+                <span className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full border-[2.5px] border-ink bg-coral text-xs font-bold text-white">
+                  ✔
+                </span>
+              )}
               <div className="flex items-start justify-between">
                 <span className="text-2xl">{it.emoji}</span>
                 <span className="text-xs text-muted">
@@ -191,7 +197,7 @@ function Schedule({ sc, cfg }: { sc: ScheduleScenario; cfg: Cfg }) {
           <button
             key={t.id}
             onClick={() => setOrder([...order, t.id])}
-            className="rounded-xl border border-ink/15 bg-ink/5 px-3 py-2 text-left text-sm active:scale-95"
+            className="rounded-xl border-[2.5px] border-ink bg-white px-3 py-2 text-left text-sm shadow-[2px_2px_0_#1e2a3a] active:translate-y-0.5 active:shadow-none"
           >
             <span className="mr-1">{t.emoji}</span>
             {t.name}
@@ -227,7 +233,7 @@ function Schedule({ sc, cfg }: { sc: ScheduleScenario; cfg: Cfg }) {
               >
                 {t.emoji} {t.name}
               </button>
-              <div className="relative h-6 flex-1 rounded bg-ink/5">
+              <div className="relative h-6 flex-1 rounded border-2 border-ink/25 bg-white">
                 {slot && (
                   <>
                     <div

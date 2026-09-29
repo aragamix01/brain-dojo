@@ -58,8 +58,8 @@ export function HanoiGame({ disks, session, onSolved }: { disks: number; session
               key={p}
               onClick={() => tapPeg(p)}
               aria-label={`เสา ${p + 1}`}
-              className={`relative flex h-64 flex-col-reverse items-center rounded-2xl border pb-2 transition ${
-                sel === p ? "border-cyan bg-cyan/10" : "border-ink/15 bg-ink/5"
+              className={`relative flex h-64 flex-col-reverse items-center rounded-2xl border-[2.5px] pb-2 transition ${
+                sel === p ? "border-ink bg-[#dff4ff] shadow-[3px_3px_0_#1e2a3a]" : "border-ink/60 bg-white"
               } ${isHint ? "hint-ring" : ""}`}
             >
               <div className="absolute bottom-2 top-6 w-1.5 rounded-full bg-ink/20" />
