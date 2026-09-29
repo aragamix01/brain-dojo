@@ -17,7 +17,6 @@ import { dailyPlan } from "../src/games/daily/plan";
 import { COINS, applyRewards, spend, winRewards } from "../src/lib/coins";
 import { ACHIEVEMENTS, newlyEarned } from "../src/lib/achievements";
 import { daysBetween, weekOf } from "../src/lib/date";
-import { dayMark } from "../src/lib/store";
 import { generateNonogram as genNono } from "../src/games/nonogram/logic";
 import { claimCode, nodeSeed, verifyClaim } from "../src/games/quest/progress";
 import { theme } from "../src/games/situation/data";
@@ -217,12 +216,6 @@ check("streak days + badges", () => {
   const week = weekOf("2026-10-01"); // a Thursday
   assert.equal(week[0], "2026-09-27", "week should start on Sunday");
   assert.equal(week[6], "2026-10-03");
-  const hist = { activeDays: { "2026-09-29": "freeze" as const }, daily: {}, lastActive: "2026-09-30", streak: 3 };
-  assert.deepEqual(
-    ["2026-09-27", "2026-09-28", "2026-09-29", "2026-09-30"].map((d) => dayMark(hist, d)),
-    [null, "play", "freeze", "play"],
-    "day marks (recorded freeze + streak backfill)",
-  );
   const blank = {
     name: "", xp: 0, streak: 0, bestStreak: 0, lastActive: null, hintsUsed: 0, games: {}, daily: {},
     chests: {}, delivered: {}, seen: {}, coins: 5, coinLog: [], rewarded: {}, badges: {}, owned: {},

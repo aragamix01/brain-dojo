@@ -92,7 +92,7 @@ export function dailyRewards(date: string, allThreeStars: boolean): Reward[] {
 
 export function streakRewards(streak: number, today: string): Reward[] {
   return streak > 0 && streak % 7 === 0
-    ? [{ amount: 2, reason: `ต่อเนื่อง ${streak} วัน 🔥`, once: `streak:${today}` }]
+    ? [{ amount: 2, reason: `ออกเรือต่อเนื่อง ${streak} วัน ⚔️`, once: `streak:${today}` }]
     : [];
 }
 

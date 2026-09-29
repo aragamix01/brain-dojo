@@ -48,7 +48,7 @@ function Freeze() {
         <div className="flex-1">
           <p className="font-display text-lg font-extrabold">น้ำแข็งกันไฟดับ</p>
           <p className="text-xs leading-relaxed text-muted">
-            พลาดไปวันไหน ระบบใช้ให้อัตโนมัติ วันติด 🔥 {streak} วันจะไม่รีเซ็ต (1 อันกันได้ 1 วัน)
+            พลาดไปวันไหน ระบบใช้ให้อัตโนมัติ วันติด ⚔️ {streak} วันจะไม่รีเซ็ต (1 อันกันได้ 1 วัน)
           </p>
         </div>
       </div>

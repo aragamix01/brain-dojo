@@ -71,7 +71,7 @@ const STEPS: GuideStep[] = [
         <Chip>🎁 หีบ +3</Chip>
         <Chip>⚔️ ลานฝึก 3★ +1</Chip>
         <Chip>📅 Daily +1/+1</Chip>
-        <Chip>🔥 7 วัน +2</Chip>
+        <Chip>⚔️ 7 วันติด +2</Chip>
         <Chip>🏅 ตรา +{BADGE_COINS}</Chip>
       </div>
     ),

@@ -39,7 +39,7 @@ function Summary({ data, exportedAt }: { data: ProgressData; exportedAt?: number
         </div>
         <div className="mt-3 grid grid-cols-4 gap-2 text-center text-xs">
           {[
-            ["🔥 streak", liveStreak(data)],
+            ["⚔️ streak", liveStreak(data)],
             ["best", data.bestStreak],
             ["📅 daily", dailyCount],
             ["💡 hints", data.hintsUsed],

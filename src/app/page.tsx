@@ -8,7 +8,7 @@ import { QUEST_NODES } from "@/games/quest/data";
 import { chestId, nodeInfo, questView } from "@/games/quest/progress";
 import { dayKey, weekOf } from "@/lib/date";
 import { rankFor } from "@/lib/rank";
-import { dayMark, liveStreak, useHydrated, useProgress } from "@/lib/store";
+import { liveStreak, useHydrated, useProgress } from "@/lib/store";
 import { RedDot, useDailyDot } from "@/components/RedDot";
 import { CoinChip } from "@/components/game";
 import { CoinSheet } from "@/components/CoinSheet";
@@ -76,15 +76,34 @@ function Wanted() {
   );
 }
 
+/** Streak icon: two crossed cutlasses (grey when the streak has lapsed). */
+function CrossedSwords({ active }: { active: boolean }) {
+  const blade = active ? "#e8eef5" : "#d6dbe3";
+  const hilt = active ? "#ffc93c" : "#c3c9d2";
+  const sword = (flip: boolean) => (
+    <g transform={flip ? "matrix(-1 0 0 1 24 0)" : undefined}>
+      <path d="M3 2.5l1.8-.3 10.4 10.4-1.6 1.6L3.2 3.8z" fill={blade} />
+      <path d="M11.2 16.8l5.6-5.6" stroke={hilt} strokeWidth="3.4" />
+      <path d="M11.2 16.8l5.6-5.6" />
+      <path d="M15.6 15.6l3.6 3.6" strokeWidth="3" stroke="#6b4a1f" />
+      <circle cx="20.4" cy="20.4" r="1.6" fill={hilt} />
+    </g>
+  );
+  return (
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#1e2a3a" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {sword(false)}
+      {sword(true)}
+    </svg>
+  );
+}
+
 function Streak() {
   const p = useProgress();
   const hydrated = useHydrated();
   const streak = liveStreak(p);
   return (
     <div className="flex items-center gap-2 self-start rounded-full border-[2.5px] border-ink bg-white py-1.5 pl-2 pr-3.5 shadow-[3px_3px_0_#1e2a3a]">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill={streak ? "#ff8a3d" : "#d6dbe3"} stroke="#1e2a3a" strokeWidth="2" strokeLinejoin="round" aria-hidden="true">
-        <path d="M12 2c1 4 6 6 6 12a6 6 0 01-12 0c0-3 2-5 3-6 0 2 1 3 2 3 0-4-1-6 1-9z" />
-      </svg>
+      <CrossedSwords active={streak > 0} />
       <span className="whitespace-nowrap font-display text-[15px] font-bold">{hydrated ? streak : "–"} วันติด</span>
       <span className="text-xs text-muted">{streak ? "ออกเรือทุกวันไม่พลาด!" : "ออกเรือวันนี้เริ่มนับใหม่"}</span>
     </div>
@@ -198,7 +217,7 @@ function Flame({ kind }: { kind: "play" | "freeze" | "miss" | "future" }) {
   const colors = {
     play: { outer: "#ff8a3d", inner: "#ffd84d" },
     freeze: { outer: "#5cc8f5", inner: "#e6f7ff" },
-    miss: { outer: "rgba(255,255,255,0.18)", inner: "transparent" },
+    miss: { outer: "transparent", inner: "transparent" },
     future: { outer: "transparent", inner: "transparent" },
   }[kind];
   return (
@@ -206,7 +225,7 @@ function Flame({ kind }: { kind: "play" | "freeze" | "miss" | "future" }) {
       <path
         d="M12 1c1.4 5 8 7.6 8 15a8 8 0 01-16 0c0-4 2.6-6.6 4-8 0 2.6 1.4 4 2.6 4 0-5.4-1.3-8 1.4-11z"
         fill={colors.outer}
-        stroke={kind === "future" ? "rgba(255,255,255,0.4)" : lit ? "#1e2a3a" : "none"}
+        stroke={kind === "future" ? "rgba(255,255,255,0.4)" : kind === "miss" ? "#a9a1d9" : "#1e2a3a"}
         strokeWidth="2.2"
         strokeDasharray={kind === "future" ? "2 2" : undefined}
         strokeLinejoin="round"
@@ -223,11 +242,13 @@ function WeekFlames() {
   const p = useProgress();
   const today = dayKey();
   const days = weekOf(today);
-  const lit = days.filter((d) => dayMark(p, d)).length;
+  // Flames track Daily runs only; a streak freeze still paints its day blue.
+  const markOf = (d: string) => (p.daily[d] ? "play" : p.activeDays?.[d] === "freeze" ? "freeze" : null);
+  const lit = days.filter((d) => markOf(d)).length;
   return (
-    <div className="flex gap-[3px]" aria-label={`สัปดาห์นี้ติดไฟ ${lit} จาก 7 วัน · ติดต่อกัน ${liveStreak(p)} วัน`}>
+    <div className="flex gap-[3px]" aria-label={`สัปดาห์นี้เล่น Daily ${lit} จาก 7 วัน`}>
       {days.map((d, i) => {
-        const kind = dayMark(p, d) ?? (d >= today ? "future" : "miss");
+        const kind = markOf(d) ?? (d >= today ? "future" : "miss");
         return (
           <div key={d} className="flex flex-col items-center">
             <Flame kind={kind} />

@@ -321,18 +321,3 @@ export function useHydrated(): boolean {
     () => false,
   );
 }
-
-/**
- * How a day kept the streak going. Days before daily tracking existed are inferred from
- * finished Dailies and from the streak counting back from the last active day.
- */
-export function dayMark(p: Pick<ProgressData, "activeDays" | "daily" | "lastActive" | "streak">, key: string): DayMark | null {
-  const recorded = p.activeDays?.[key];
-  if (recorded) return recorded;
-  if (p.daily[key]) return "play";
-  if (p.lastActive) {
-    const back = daysBetween(key, p.lastActive);
-    if (back >= 0 && back < p.streak) return "play";
-  }
-  return null;
-}
