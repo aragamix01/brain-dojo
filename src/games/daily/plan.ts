@@ -2,7 +2,11 @@ import { hashString, pick, rngFrom, shuffle } from "@/lib/rng";
 import { generateJugs, type JugVariant } from "../jugs/logic";
 import { generateLights } from "../lights/logic";
 import type { RandomTier, RobotGenOpts } from "../robot/generate";
+import type { HarborLevel } from "../harbor/logic";
+import type { LockLevel } from "../lock/logic";
+import type { SeriesLevel } from "../series/logic";
 import { THEMES } from "../situation/data";
+import type { SudokuLevel } from "../sudoku/logic";
 
 type Range = [number, number];
 
@@ -16,6 +20,10 @@ export type DailyTuning = {
   robot: RobotGenOpts;
   /** Speed Math scores for 2★ and 3★ */
   sprint: { seconds: number; stars: Range };
+  lock: LockLevel;
+  harbor: HarborLevel;
+  sudoku: SudokuLevel;
+  series: SeriesLevel;
 };
 
 /** Daily levels 1–5; Lv2 is the original "medium" Daily. Every puzzle sits inside these bounds. */
@@ -30,6 +38,10 @@ export const DAILY_LEVELS: Record<number, { name: string; tuning: DailyTuning }>
       situation: { budgetPick: [7, 8], schedulePick: [4, 5] },
       robot: { moves: [4, 7], maxSize: 5 },
       sprint: { seconds: 45, stars: [10, 16] },
+      lock: "easy",
+      harbor: "easy",
+      sudoku: "mini",
+      series: "easy",
     },
   },
   2: {
@@ -42,6 +54,10 @@ export const DAILY_LEVELS: Record<number, { name: string; tuning: DailyTuning }>
       situation: { budgetPick: [8, 9], schedulePick: [5, 6] },
       robot: { moves: [6, 9], maxSize: 6 },
       sprint: { seconds: 45, stars: [12, 20] },
+      lock: "easy",
+      harbor: "easy",
+      sudoku: "normal",
+      series: "easy",
     },
   },
   3: {
@@ -54,6 +70,10 @@ export const DAILY_LEVELS: Record<number, { name: string; tuning: DailyTuning }>
       situation: { budgetPick: [9, 10], schedulePick: [6, 6] },
       robot: { moves: [8, 11], maxSize: 7 },
       sprint: { seconds: 45, stars: [14, 22] },
+      lock: "normal",
+      harbor: "normal",
+      sudoku: "normal",
+      series: "normal",
     },
   },
   4: {
@@ -66,6 +86,10 @@ export const DAILY_LEVELS: Record<number, { name: string; tuning: DailyTuning }>
       situation: { budgetPick: [10, 11], schedulePick: [6, 7] },
       robot: { moves: [10, 13], maxSize: 7 },
       sprint: { seconds: 45, stars: [16, 25] },
+      lock: "normal",
+      harbor: "normal",
+      sudoku: "hard",
+      series: "normal",
     },
   },
   5: {
@@ -78,6 +102,10 @@ export const DAILY_LEVELS: Record<number, { name: string; tuning: DailyTuning }>
       situation: { budgetPick: [11, 12], schedulePick: [7, 7] },
       robot: { moves: [12, 15], maxSize: 8 },
       sprint: { seconds: 45, stars: [18, 28] },
+      lock: "hard",
+      harbor: "hard",
+      sudoku: "hard",
+      series: "hard",
     },
   },
 };
@@ -130,11 +158,15 @@ export type DailyStagePlan =
   | { kind: "nonogram"; size: number }
   | { kind: "hanoi"; disks: number }
   | { kind: "situation"; theme: string; pick: [number, number] }
-  | { kind: "robot"; tier: RandomTier; opts: RobotGenOpts };
+  | { kind: "robot"; tier: RandomTier; opts: RobotGenOpts }
+  | { kind: "lock"; level: LockLevel }
+  | { kind: "harbor"; level: HarborLevel }
+  | { kind: "sudoku"; level: SudokuLevel }
+  | { kind: "series"; level: SeriesLevel };
 
 export type DailyStageWithSeed = DailyStagePlan & { seed: number; label: string; emoji: string };
 
-const KINDS = ["sprint", "lights", "jugs", "nonogram", "hanoi", "situation", "robot"] as const;
+const KINDS = ["sprint", "lights", "jugs", "nonogram", "hanoi", "situation", "robot", "lock", "harbor", "sudoku", "series"] as const;
 export const DAILY_STAGES = 3;
 
 /** First seed (from a date-stable sequence) whose puzzle par lands inside `range`. */
@@ -185,6 +217,14 @@ export function dailyPlan(date: string, level = 2): DailyStageWithSeed[] {
         }
         case "robot":
           return { kind, tier: "seq", opts: T.robot, seed, emoji: "🤖", label: "Robot Code · วางเส้นทาง" };
+        case "lock":
+          return { kind, level: T.lock, seed, emoji: "🔐", label: "ไขกุญแจหีบ" };
+        case "harbor":
+          return { kind, level: T.harbor, seed, emoji: "⛵", label: "พาเรือออกจากท่า" };
+        case "sudoku":
+          return { kind, level: T.sudoku, seed, emoji: "🗺️", label: T.sudoku === "mini" ? "ซูโดกุแผนที่ 4×4" : "ซูโดกุแผนที่ 6×6" };
+        case "series":
+          return { kind, level: T.series, seed, emoji: "🔢", label: "อนุกรมปริศนา" };
       }
     });
 }

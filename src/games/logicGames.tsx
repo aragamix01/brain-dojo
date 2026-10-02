@@ -9,7 +9,16 @@ import { generateJugs, type JugVariant } from "./jugs/logic";
 import { LightsGame } from "./lights/LightsGame";
 import { generateLights } from "./lights/logic";
 import type { LogicGameId } from "./catalog";
+import { HarborGame } from "./harbor/HarborGame";
+import type { HarborLevel } from "./harbor/logic";
+import { harborFromSeed } from "./harbor/puzzles";
+import { LockGame } from "./lock/LockGame";
+import { generateLock, type LockLevel } from "./lock/logic";
 import { NonogramGame } from "./nonogram/NonogramGame";
+import { SeriesGame } from "./series/SeriesGame";
+import { generateSeries, type SeriesLevel } from "./series/logic";
+import { SudokuGame } from "./sudoku/SudokuGame";
+import { generateSudoku, type SudokuLevel } from "./sudoku/logic";
 import { generateNonogram } from "./nonogram/logic";
 
 function Lights({ level, seed, session, onSolved }: PuzzleRenderArgs<number>) {
@@ -25,6 +34,26 @@ function Jugs({ level, seed, session, onSolved }: PuzzleRenderArgs<JugVariant>) 
 function Nonogram({ level, seed, session, onSolved }: PuzzleRenderArgs<number>) {
   const puzzle = useMemo(() => generateNonogram(rngFrom(seed), level), [seed, level]);
   return <NonogramGame puzzle={puzzle} session={session} onSolved={onSolved} />;
+}
+
+function Lock({ level, seed, session, onSolved }: PuzzleRenderArgs<LockLevel>) {
+  const puzzle = useMemo(() => generateLock(rngFrom(seed), level), [seed, level]);
+  return <LockGame puzzle={puzzle} session={session} onSolved={onSolved} />;
+}
+
+function Harbor({ level, seed, session, onSolved }: PuzzleRenderArgs<HarborLevel>) {
+  const puzzle = useMemo(() => harborFromSeed(seed, level), [seed, level]);
+  return <HarborGame puzzle={puzzle} session={session} onSolved={onSolved} />;
+}
+
+function Sudoku({ level, seed, session, onSolved }: PuzzleRenderArgs<SudokuLevel>) {
+  const puzzle = useMemo(() => generateSudoku(rngFrom(seed), level), [seed, level]);
+  return <SudokuGame puzzle={puzzle} session={session} onSolved={onSolved} />;
+}
+
+function Series({ level, seed, session, onSolved }: PuzzleRenderArgs<SeriesLevel>) {
+  const puzzle = useMemo(() => generateSeries(rngFrom(seed), level), [seed, level]);
+  return <SeriesGame puzzle={puzzle} session={session} onSolved={onSolved} />;
 }
 
 export function LogicGame({ id }: { id: LogicGameId }) {
@@ -119,6 +148,94 @@ export function LogicGame({ id }: { id: LogicGameId }) {
             </>
           }
           render={({ level, session, onSolved }) => <HanoiGame disks={level} session={session} onSolved={onSolved} />}
+        />
+      );
+    case "lock":
+      return (
+        <PuzzleShell<LockLevel>
+          gameKey="lock"
+          title="🔐 Treasure Lock"
+          sub="ไขรหัสอัญมณีของหีบสมบัติ"
+          levels={[
+            { value: "easy", label: "3 ช่อง" },
+            { value: "normal", label: "4 ช่อง" },
+            { value: "hard", label: "4 ช่อง ซ้ำได้" },
+          ]}
+          rules={
+            <>
+              <p>หีบล็อกด้วยรหัสอัญมณี เลือกอัญมณีใส่ทุกช่อง แล้วกด 🔑 ลองไข</p>
+              <p>● ดำ = อัญมณีถูก และอยู่ถูกที่ · ○ ขาว = มีอัญมณีนี้ในรหัส แต่อยู่ผิดที่</p>
+              <p>ไขได้ภายในจำนวนครั้ง (par) ได้ 3 ดาว</p>
+              <p className="text-cyan">Tip: แต่ละครั้งที่ลอง ตัดรหัสที่เป็นไปไม่ได้ทิ้ง — อย่าเดามั่ว ให้ทุกครั้งได้ข้อมูลใหม่</p>
+            </>
+          }
+          render={(a) => <Lock {...a} />}
+        />
+      );
+    case "harbor":
+      return (
+        <PuzzleShell<HarborLevel>
+          gameKey="harbor"
+          title="⛵ Harbor Escape"
+          sub="พาเรือโจรสลัดออกจากท่า"
+          levels={[
+            { value: "easy", label: "Easy" },
+            { value: "normal", label: "Normal" },
+            { value: "hard", label: "Hard" },
+          ]}
+          rules={
+            <>
+              <p>ลากเรือไปตามแนวยาวของมัน — แนวนอนเลื่อนซ้าย/ขวา แนวตั้งเลื่อนขึ้น/ลง ห้ามชนกัน</p>
+              <p>เป้าหมาย: พาเรือแดง 🏴‍☠️ ออกทางช่องด้านขวา</p>
+              <p>เลื่อนเรือ 1 ลำ ไกลแค่ไหนก็นับ 1 ครั้ง · ภายใน par ได้ 3 ดาว</p>
+              <p className="text-cyan">Tip: ถามตัวเองว่า &quot;ลำไหนขวางอยู่ แล้วอะไรขวางลำนั้นอีกที?&quot;</p>
+            </>
+          }
+          render={(a) => <Harbor {...a} />}
+        />
+      );
+    case "sudoku":
+      return (
+        <PuzzleShell<SudokuLevel>
+          gameKey="sudoku"
+          title="🗺️ Map Sudoku"
+          sub="เติมเลขให้ครบแผนที่"
+          xpBase={15}
+          levels={[
+            { value: "mini", label: "4×4" },
+            { value: "normal", label: "6×6" },
+            { value: "hard", label: "6×6 Hard" },
+          ]}
+          rules={
+            <>
+              <p>แตะช่อง แล้วเลือกเลข — ทุกแถว ทุกคอลัมน์ และทุกกล่องที่ขีดเส้นหนา ต้องมีเลขไม่ซ้ำกัน</p>
+              <p>เลขที่ชนกันจะเป็นสีแดง · ทุกโจทย์มีคำตอบเดียว</p>
+              <p>ไม่ใช้คำใบ้เลย ได้ 3 ดาว</p>
+              <p className="text-cyan">Tip: หาช่องที่ใส่ได้แค่เลขเดียวก่อน แล้วค่อยขยายต่อ</p>
+            </>
+          }
+          render={(a) => <Sudoku {...a} />}
+        />
+      );
+    case "series":
+      return (
+        <PuzzleShell<SeriesLevel>
+          gameKey="series"
+          title="🔢 Number Series"
+          sub="หาแพทเทิร์น เติมเลขถัดไป"
+          levels={[
+            { value: "easy", label: "Easy" },
+            { value: "normal", label: "Normal" },
+            { value: "hard", label: "Hard" },
+          ]}
+          rules={
+            <>
+              <p>มีอนุกรม 5 ข้อ ดูตัวเลขที่เรียงมา แล้วเติมตัวถัดไปใน ?</p>
+              <p>ตอบถูกทุกข้อในครั้งแรก (5 ครั้ง) ได้ 3 ดาว · ตอบผิดนับเพิ่ม</p>
+              <p className="text-cyan">Tip: ลองหาผลต่างระหว่างตัวที่ติดกัน ถ้ายังไม่เห็น ลองหาผลต่างของผลต่างอีกชั้น</p>
+            </>
+          }
+          render={(a) => <Series {...a} />}
         />
       );
   }

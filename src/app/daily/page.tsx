@@ -16,6 +16,14 @@ import {
 import { HuntBoard } from "@/games/daily/HuntBoard";
 import { isHuntDay } from "@/games/daily/hunt";
 import { HanoiGame } from "@/games/hanoi/HanoiGame";
+import { HarborGame } from "@/games/harbor/HarborGame";
+import { harborFromSeed } from "@/games/harbor/puzzles";
+import { LockGame } from "@/games/lock/LockGame";
+import { generateLock } from "@/games/lock/logic";
+import { SeriesGame } from "@/games/series/SeriesGame";
+import { generateSeries } from "@/games/series/logic";
+import { SudokuGame } from "@/games/sudoku/SudokuGame";
+import { generateSudoku } from "@/games/sudoku/logic";
 import { JugsGame } from "@/games/jugs/JugsGame";
 import { generateJugs } from "@/games/jugs/logic";
 import { LightsGame } from "@/games/lights/LightsGame";
@@ -163,7 +171,59 @@ function StagePlayer({ st, session, onDone }: { st: DailyStageWithSeed; session:
       return <DailySituation th={theme(st.theme)!} seed={st.seed} pick={st.pick} onFinish={({ stars, detail }) => onDone(stars, detail)} />;
     case "robot":
       return <RobotStage st={st} session={session} onDone={onDone} />;
+    case "lock":
+      return <LockStage st={st} session={session} onDone={onDone} />;
+    case "harbor":
+      return <HarborStage st={st} session={session} onDone={onDone} />;
+    case "sudoku":
+      return <SudokuStage st={st} session={session} onDone={onDone} />;
+    case "series":
+      return <SeriesStage st={st} session={session} onDone={onDone} />;
   }
+}
+
+function LockStage({ st, session, onDone }: StageProps<"lock">) {
+  const puzzle = useMemo(() => generateLock(rngFrom(st.seed), st.level), [st]);
+  return (
+    <LockGame
+      puzzle={puzzle}
+      session={session}
+      onSolved={({ moves }) => onDone(starsFor(moves, puzzle.par, session.hints), `${moves} tries`)}
+    />
+  );
+}
+
+function HarborStage({ st, session, onDone }: StageProps<"harbor">) {
+  const puzzle = useMemo(() => harborFromSeed(st.seed, st.level), [st]);
+  return (
+    <HarborGame
+      puzzle={puzzle}
+      session={session}
+      onSolved={({ moves }) => onDone(starsFor(moves, puzzle.par, session.hints), `${moves} moves`)}
+    />
+  );
+}
+
+function SudokuStage({ st, session, onDone }: StageProps<"sudoku">) {
+  const puzzle = useMemo(() => generateSudoku(rngFrom(st.seed), st.level), [st]);
+  return (
+    <SudokuGame
+      puzzle={puzzle}
+      session={session}
+      onSolved={() => onDone(Math.max(1, 3 - session.hints), `${puzzle.n}×${puzzle.n}`)}
+    />
+  );
+}
+
+function SeriesStage({ st, session, onDone }: StageProps<"series">) {
+  const puzzle = useMemo(() => generateSeries(rngFrom(st.seed), st.level), [st]);
+  return (
+    <SeriesGame
+      puzzle={puzzle}
+      session={session}
+      onSolved={({ moves }) => onDone(starsFor(moves, puzzle.items.length, session.hints), `${moves} tries`)}
+    />
+  );
 }
 
 /** Saturday's only hint that something's different — the level itself stays hidden. */

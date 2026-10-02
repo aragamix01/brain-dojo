@@ -33,6 +33,10 @@ export const KIND_NAMES: Record<string, string> = {
   hanoi: "🗼 ฮานอย",
   situation: "🎯 Situation",
   robot: "🤖 Robot",
+  lock: "🔐 ไขกุญแจหีบ",
+  harbor: "⛵ พาเรือออกจากท่า",
+  sudoku: "🗺️ ซูโดกุ",
+  series: "🔢 อนุกรม",
 };
 
 type KindStat = { kind: string; name: string; plays: number; stars: number; ms: number; timed: number };

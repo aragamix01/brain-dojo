@@ -31,6 +31,20 @@ import { generateNonogram as genNono } from "../src/games/nonogram/logic";
 import { claimCode, nodeSeed, verifyClaim } from "../src/games/quest/progress";
 import { theme } from "../src/games/situation/data";
 import { robotLevel } from "../src/games/robot/levels";
+import { GEMS, LOCK_LEVELS, allCodes, generateLock, score, stillPossible } from "../src/games/lock/logic";
+import { HARBOR_BANK } from "../src/games/harbor/bank";
+import {
+  HARBOR_LEVELS,
+  SIZE,
+  cellsOf,
+  decodeHarbor,
+  isSolved as harborSolved,
+  nextMove as harborNext,
+  type HarborLevel,
+} from "../src/games/harbor/logic";
+import { harborFromSeed } from "../src/games/harbor/puzzles";
+import { SUDOKU_LEVELS, clashes, generateSudoku } from "../src/games/sudoku/logic";
+import { SERIES_COUNT, generateSeries } from "../src/games/series/logic";
 import { bumpLog, weekCompare, weekReport } from "../src/lib/weekly";
 import { emptyProgress } from "../src/lib/store";
 import { decodeProgress, encodeProgress } from "../src/lib/share";
@@ -199,6 +213,10 @@ for (let level = MIN_LEVEL; level <= MAX_LEVEL; level++) {
           const sc = generateScenario(theme(st.theme)!, st.seed, st.pick);
           assert.ok((sc.kind === "budget" ? bestBudget(sc) : bestSchedule(sc)) > 0, `${key} situation`);
         }
+        if (st.kind === "lock") assert.equal(generateLock(rngFrom(st.seed), st.level).code.length, LOCK_LEVELS[st.level].pegs);
+        if (st.kind === "harbor") assert.ok(harborFromSeed(st.seed, st.level).par > 0);
+        if (st.kind === "sudoku") generateSudoku(rngFrom(st.seed), st.level);
+        if (st.kind === "series") assert.equal(generateSeries(rngFrom(st.seed), st.level).items.length, SERIES_COUNT);
       }
     }
     return Object.entries(counts).map(([k, v]) => `${k} ${v}`).join(", ");
@@ -221,6 +239,82 @@ check("daily level rule", () => {
   assert.ok(isBossDay("2026-10-03") && !isBossDay("2026-10-04"));
   assert.equal(sprintDailyStars(20, DAILY_LEVELS[2].tuning.sprint.stars), 3);
   assert.equal(sprintDailyStars(20, DAILY_LEVELS[4].tuning.sprint.stars), 2);
+});
+
+check("treasure lock", () => {
+  assert.deepEqual(score([0, 1, 2, 3], [0, 2, 1, 5]), { exact: 1, near: 2 });
+  assert.deepEqual(score([1, 1, 2, 2], [1, 2, 2, 2]), { exact: 3, near: 0 }, "repeats counted once");
+  assert.deepEqual(score([3, 3, 0, 1], [3, 0, 3, 3]), { exact: 1, near: 2 });
+  for (const level of Object.keys(LOCK_LEVELS) as (keyof typeof LOCK_LEVELS)[]) {
+    const cfg = LOCK_LEVELS[level];
+    assert.ok(cfg.colors <= GEMS.length);
+    for (let i = 0; i < 100; i++) {
+      const p = generateLock(rngFrom(`lock:${level}:${i}`), level);
+      assert.equal(p.code.length, cfg.pegs);
+      if (!cfg.repeats) assert.equal(new Set(p.code).size, cfg.pegs, "repeat in a no-repeat lock");
+      const guess = allCodes(cfg)[0];
+      const left = stillPossible(cfg, [{ guess, fb: score(p.code, guess) }]);
+      assert.ok(left.some((c) => c.join() === p.code.join()), "the code was ruled out");
+    }
+  }
+  return `${allCodes(LOCK_LEVELS.hard).length} hard codes`;
+});
+
+check("harbor bank", () => {
+  const sizes: string[] = [];
+  for (const level of Object.keys(HARBOR_LEVELS) as HarborLevel[]) {
+    const [lo, hi] = HARBOR_LEVELS[level].par;
+    const bank = HARBOR_BANK[level];
+    assert.ok(bank.length >= 100, `${level} bank too small`);
+    assert.equal(new Set(bank).size, bank.length, "duplicate harbor");
+    for (const code of bank) {
+      const p = decodeHarbor(code);
+      assert.ok(p.par >= lo && p.par <= hi, `${level} par ${p.par}`);
+      const cells = p.boats.flatMap((b, i) => cellsOf(b, p.start[i]));
+      assert.equal(new Set(cells).size, cells.length, "boats overlap");
+      assert.ok(cells.every((c) => c >= 0 && c < SIZE * SIZE), "boat off the board");
+    }
+    // Following the hints from the start reaches the exit in exactly par moves.
+    for (const code of bank.slice(0, 15)) {
+      const p = decodeHarbor(code);
+      let s = p.start;
+      let n = 0;
+      while (!harborSolved(s)) {
+        const m = harborNext(p.boats, s)!;
+        s = s.map((x, j) => (j === m.boat ? m.to : x));
+        n++;
+      }
+      assert.equal(n, p.par, "par is not the shortest way out");
+    }
+    sizes.push(`${level} ${bank.length}`);
+  }
+  assert.deepEqual(harborFromSeed(42, "hard"), harborFromSeed(42, "hard"), "same seed, same harbor");
+  return sizes.join(", ");
+});
+
+check("map sudoku", () => {
+  for (const level of Object.keys(SUDOKU_LEVELS) as (keyof typeof SUDOKU_LEVELS)[]) {
+    for (let i = 0; i < 60; i++) {
+      const p = generateSudoku(rngFrom(`sudoku:${level}:${i}`), level);
+      assert.equal(clashes(p.solution, p.n).size, 0, "solution breaks the rules");
+      assert.ok(p.solution.every((v) => v >= 1 && v <= p.n));
+      assert.ok(p.givens.every((v, k) => !v || v === p.solution[k]), "clue disagrees with the solution");
+      assert.ok(p.givens.filter(Boolean).length <= SUDOKU_LEVELS[level].givens + 3, "too many clues left");
+    }
+  }
+});
+
+check("number series", () => {
+  for (const level of ["easy", "normal", "hard"] as const) {
+    for (let i = 0; i < 200; i++) {
+      const p = generateSeries(rngFrom(`series:${level}:${i}`), level);
+      assert.equal(p.items.length, SERIES_COUNT);
+      for (const s of p.items) {
+        assert.ok(Number.isInteger(s.answer) && Math.abs(s.answer) <= 999, `answer ${s.answer}`);
+        assert.ok(s.terms.length >= 5 && s.terms.every(Number.isInteger));
+      }
+    }
+  }
 });
 
 check("hint coins", () => {
