@@ -16,6 +16,7 @@ import { COINS, questBounty, todayRemaining } from "@/lib/coins";
 import { ACHIEVEMENTS } from "@/lib/achievements";
 import { title } from "@/lib/shop";
 import { HUNT, huntTotal, isHuntDay } from "@/games/daily/hunt";
+import { DAILY_LEVELS, START_LEVEL, isBossDay, playLevel } from "@/games/daily/plan";
 import { WHATS_NEW_ID, WhatsNew } from "@/components/WhatsNew";
 
 function Logo() {
@@ -185,6 +186,8 @@ function DailyCard() {
   const hydrated = useHydrated();
   const hunt = isHuntDay(dayKey());
   const huntStars = useProgress((s) => huntTotal(s.hunt, dayKey()));
+  const level = useProgress((s) => s.dailyLevel ?? START_LEVEL);
+  const boss = !hunt && isBossDay(dayKey());
   return (
     <Link href="/daily" className="panel relative flex items-center gap-3 bg-[#6f5cf0] p-4 text-white active:translate-y-0.5">
       <RedDot show={hydrated && !done} className="-right-2 -top-2" />
@@ -192,13 +195,15 @@ function DailyCard() {
         <p className="whitespace-nowrap font-comic text-sm tracking-[2px] text-[#ffe27a]">
           DAILY VOYAGE · {dayKey().slice(8)}/{dayKey().slice(5, 7)}
         </p>
-        <p className="font-display text-[22px] font-extrabold leading-tight">{done ? "เคลียร์แล้ววันนี้ ✔" : hunt ? "⭐ วันล่าดาว!" : "ภารกิจประจำวัน"}</p>
+        <p className="font-display text-[22px] font-extrabold leading-tight">{done ? "เคลียร์แล้ววันนี้ ✔" : hunt ? "⭐ วันล่าดาว!" : boss ? "👹 วันบอส!" : "ภารกิจประจำวัน"}</p>
         <p className="text-[13px] leading-snug text-[#f3f0ff]">
           {done
             ? "กลับมาใหม่พรุ่งนี้ หรือส่งผลไปท้าคนอื่น"
             : hunt
               ? `เก็บดาวจากแผนที่หรือลานฝึก · ได้แล้ว ${huntStars}/${HUNT.target} ⭐`
-              : "3 ด่าน · ทุกคนได้โจทย์เดียวกัน · แข่งเวลากับเพื่อนได้!"}
+              : boss
+                ? `3 ด่าน · ยากขึ้น 1 ขั้นเป็น Lv${playLevel(level, dayKey())} · พิสูจน์ฝีมือ!`
+                : `3 ด่าน · Lv${level} ${DAILY_LEVELS[level].name} · แข่งเวลากับเพื่อนได้!`}
         </p>
         <span className="btn btn-gold mt-1.5 self-start text-[15px] font-extrabold">{done ? "ดูผล" : hunt ? "ไปล่าดาว" : "เริ่มเลย"}</span>
       </div>

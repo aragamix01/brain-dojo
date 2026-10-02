@@ -11,6 +11,7 @@ import { rankFor } from "@/lib/rank";
 import { decodeProgress, encodeProgress, type Decoded } from "@/lib/share";
 import { liveStreak, snapshot, useProgress, type ProgressData } from "@/lib/store";
 import { weekCompare, weekRange, weekReport } from "@/lib/weekly";
+import { DAILY_LEVELS, START_LEVEL } from "@/games/daily/plan";
 
 function last14Days(today: string) {
   return Array.from({ length: 14 }, (_, i) => shiftDay(today, i - 13));
@@ -29,7 +30,9 @@ function WeekSection({ data, today }: { data: ProgressData; today: string }) {
     ["💡", String(w.hints), "คำใบ้"],
   ];
   const fastest = w.fastest && `${formatTime(w.fastest.ms)} (${WEEKDAYS[w.days.indexOf(w.fastest.day)]})`;
+  const lv = data.dailyLevel ?? START_LEVEL;
   const lines = [
+    `⚔️ เลเวล Daily: Lv${lv} · ${DAILY_LEVELS[lv].name}`,
     fastest && `⚡ Daily เร็วสุด ${fastest}`,
     w.huntDays > 0 && `🌟 วันล่าดาว สำเร็จ ${w.huntDone}/${w.huntDays}`,
     w.played > 0 && w.noHintDays > 0 && `🧠 ไม่ใช้คำใบ้เลย ${w.noHintDays} วัน`,

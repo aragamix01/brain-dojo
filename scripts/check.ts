@@ -13,7 +13,16 @@ import { THEMES } from "../src/games/situation/data";
 import { generateScenario } from "../src/games/situation/generate";
 import { bestBudget, bestSchedule } from "../src/games/situation/solver";
 import { QUEST_NODES } from "../src/games/quest/data";
-import { dailyPlan } from "../src/games/daily/plan";
+import {
+  DAILY_LEVELS,
+  MAX_LEVEL,
+  MIN_LEVEL,
+  dailyPlan,
+  isBossDay,
+  nextLevel,
+  playLevel,
+  sprintDailyStars,
+} from "../src/games/daily/plan";
 import { HUNT, addHuntStars, huntLabel, huntTotal, isFixedLevel, isHuntDay } from "../src/games/daily/hunt";
 import { COINS, applyRewards, spend, winRewards } from "../src/lib/coins";
 import { ACHIEVEMENTS, newlyEarned } from "../src/lib/achievements";
@@ -157,38 +166,61 @@ check("quest map", () => {
   return `${QUEST_NODES.length} nodes`;
 });
 
-check("daily plan (365 days)", () => {
-  const counts: Record<string, number> = {};
-  const d = new Date(2026, 0, 1);
-  for (let i = 0; i < 365; i++, d.setDate(d.getDate() + 1)) {
-    const key = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
-    const plan = dailyPlan(key);
-    assert.equal(new Set(plan.map((s) => s.kind)).size, 3, `${key} repeats a game`);
-    assert.deepEqual(dailyPlan(key), plan, "plan is not deterministic");
-    for (const st of plan) {
-      counts[st.kind] = (counts[st.kind] ?? 0) + 1;
-      if (st.kind === "lights") {
-        const par = generateLights(rngFrom(st.seed), st.size, st.minPar).par;
-        assert.ok(par >= 6 && par <= 9, `${key} lights par ${par}`);
-      }
-      if (st.kind === "jugs") {
-        const par = generateJugs(rngFrom(st.seed), st.variant).par;
-        assert.ok(par >= 5 && par <= 8, `${key} jugs par ${par}`);
-      }
-      if (st.kind === "nonogram") genNono(rngFrom(st.seed), st.size);
-      if (st.kind === "robot") {
-        const lv = generateRobotLevel(st.tier, st.seed, st.opts);
-        assert.ok(lv.board.length <= 6 && lv.board[0].length <= 6, `${key} robot board too big`);
-        assert.ok(!/d/.test(lv.solution), `${key} robot needs a loop`);
-        assert.equal(runToEnd(lv, parseProgram(lv.solution, lv.funcs)).status, "won");
-      }
-      if (st.kind === "situation") {
-        const sc = generateScenario(theme(st.theme)!, st.seed, st.pick);
-        assert.ok((sc.kind === "budget" ? bestBudget(sc) : bestSchedule(sc)) > 0, `${key} situation`);
+for (let level = MIN_LEVEL; level <= MAX_LEVEL; level++) {
+  const T = DAILY_LEVELS[level].tuning;
+  check(`daily plan Lv${level} (365 days)`, () => {
+    const counts: Record<string, number> = {};
+    const d = new Date(2026, 0, 1);
+    for (let i = 0; i < 365; i++, d.setDate(d.getDate() + 1)) {
+      const key = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+      const plan = dailyPlan(key, level);
+      assert.equal(new Set(plan.map((s) => s.kind)).size, 3, `${key} repeats a game`);
+      assert.deepEqual(dailyPlan(key, level), plan, "plan is not deterministic");
+      for (const st of plan) {
+        counts[st.kind] = (counts[st.kind] ?? 0) + 1;
+        if (st.kind === "lights") {
+          const par = generateLights(rngFrom(st.seed), st.size, st.minPar).par;
+          assert.ok(par >= T.lights.par[0] && par <= T.lights.par[1], `${key} lights par ${par}`);
+        }
+        if (st.kind === "jugs") {
+          const par = generateJugs(rngFrom(st.seed), st.variant).par;
+          assert.ok(par >= T.jugs.par[0] && par <= T.jugs.par[1], `${key} jugs par ${par}`);
+          assert.ok(T.jugs.variants.includes(st.variant), `${key} jugs variant`);
+        }
+        if (st.kind === "nonogram") genNono(rngFrom(st.seed), st.size);
+        if (st.kind === "robot") {
+          const lv = generateRobotLevel(st.tier, st.seed, st.opts);
+          const max = T.robot.maxSize;
+          assert.ok(lv.board.length <= max && lv.board[0].length <= max, `${key} robot board too big`);
+          assert.ok(!/d/.test(lv.solution), `${key} robot needs a loop`);
+          assert.equal(runToEnd(lv, parseProgram(lv.solution, lv.funcs)).status, "won");
+        }
+        if (st.kind === "situation") {
+          const sc = generateScenario(theme(st.theme)!, st.seed, st.pick);
+          assert.ok((sc.kind === "budget" ? bestBudget(sc) : bestSchedule(sc)) > 0, `${key} situation`);
+        }
       }
     }
-  }
-  return Object.entries(counts).map(([k, v]) => `${k} ${v}`).join(", ");
+    return Object.entries(counts).map(([k, v]) => `${k} ${v}`).join(", ");
+  });
+}
+
+check("daily level rule", () => {
+  const run = (level: number, stars: number, hints = 0) => ({ level, stars, max: 9, hints });
+  assert.equal(nextLevel(3, [run(3, 9), run(3, 8), run(3, 9)]), 4, "three strong runs move up");
+  assert.equal(nextLevel(3, [run(3, 9), run(3, 9)]), 3, "two strong runs are not enough");
+  assert.equal(nextLevel(3, [run(3, 9), run(3, 9), run(3, 9, 1)]), 3, "a hint blocks moving up");
+  assert.equal(nextLevel(3, [run(2, 9), run(3, 9), run(3, 9)]), 3, "runs at another level don't count");
+  assert.equal(nextLevel(3, [run(3, 5), run(3, 9, 3)]), 2, "two rough runs move down");
+  assert.equal(nextLevel(3, [run(3, 5), run(3, 9)]), 3, "one rough run stays");
+  assert.equal(nextLevel(5, [run(5, 9), run(5, 9), run(5, 9)]), 5, "capped at the top");
+  assert.equal(nextLevel(1, [run(1, 3), run(1, 3)]), 1, "floored at the bottom");
+  assert.equal(playLevel(3, "2026-10-03"), 4, "Saturday is one level up");
+  assert.equal(playLevel(5, "2026-10-03"), 5);
+  assert.equal(playLevel(3, "2026-10-02"), 3);
+  assert.ok(isBossDay("2026-10-03") && !isBossDay("2026-10-04"));
+  assert.equal(sprintDailyStars(20, DAILY_LEVELS[2].tuning.sprint.stars), 3);
+  assert.equal(sprintDailyStars(20, DAILY_LEVELS[4].tuning.sprint.stars), 2);
 });
 
 check("hint coins", () => {

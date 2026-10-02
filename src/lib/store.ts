@@ -3,6 +3,7 @@
 import { useSyncExternalStore } from "react";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { START_LEVEL, nextLevel, type LevelRun } from "@/games/daily/plan";
 import { HUNT, addHuntStars, huntTotal, isFixedLevel, isHuntDay, type HuntLog } from "@/games/daily/hunt";
 import { QUEST_NODES } from "@/games/quest/data";
 import {
@@ -33,6 +34,9 @@ export type DailyStage = { kind: string; label: string; stars: number; detail: s
 export type DailyResult = {
   timeMs: number;
   hints: number;
+  /** the player's Daily level that day, and the level actually played (Saturday is one up) */
+  level?: number;
+  played?: number;
   /** games picked for that day and how each went */
   stages?: DailyStage[];
   // Old fixed-format days (Speed Math → Lights → Jugs) saved these instead of `stages`.
@@ -75,6 +79,8 @@ export type ProgressData = {
   hunt?: HuntLog;
   /** day key → wins, stars and coins outside the Daily (last four weeks) */
   dayLog?: Record<string, DayLog>;
+  /** Daily difficulty 1–5, moved by recent results */
+  dailyLevel?: number;
 };
 
 export type DayMark = "play" | "freeze";
@@ -160,6 +166,20 @@ function touchStreak(s: ProgressData) {
 
 const STREAK_MIGRATION = "streak-daily-v1";
 
+/** Level-tagged Daily runs, oldest first, for the level rule. */
+export function levelHistory(daily: Record<string, DailyResult>): LevelRun[] {
+  return Object.keys(daily)
+    .sort()
+    .map((d) => daily[d])
+    .filter((r) => r.level != null && r.stages?.length)
+    .map((r) => ({
+      level: r.level,
+      stars: r.stages!.reduce((a, st) => a + st.stars, 0),
+      max: r.stages!.length * 3,
+      hints: r.hints,
+    }));
+}
+
 const bossIds = new Set(QUEST_NODES.filter((n) => n.boss).map((n) => n.id));
 
 type State = ProgressData & { coinToast: CoinToast };
@@ -234,7 +254,12 @@ export const useProgress = create<State & Actions>()(
         const xp = 40 + (r.stages ?? []).reduce((a, st) => a + st.stars * 10, 0);
         const allThree = !!r.stages?.length && r.stages.every((st) => st.stars === 3);
         const changes = activity(s, dailyRewards(date, allThree));
-        set({ ...changes, xp: changes.xp + xp, daily: { ...s.daily, [date]: r } });
+        const daily = { ...s.daily, [date]: r };
+        const level = s.dailyLevel ?? START_LEVEL;
+        const next = r.level == null ? level : nextLevel(level, levelHistory(daily));
+        const moved = next > level ? `⬆️ Daily เลื่อนเป็น Lv${next}!` : next < level ? `Daily ปรับเป็น Lv${next} — ค่อยๆ ไต่ขึ้นใหม่นะ` : "";
+        const coinToast = moved ? { id: Date.now(), text: [moved, changes.coinToast?.text].filter(Boolean).join(" · ") } : changes.coinToast;
+        set({ ...changes, coinToast, xp: changes.xp + xp, daily, dailyLevel: next });
         get().checkBadges();
         return xp;
       },
@@ -349,6 +374,7 @@ function pickData(s: ProgressData): ProgressData {
     activeDays: s.activeDays,
     hunt: s.hunt,
     dayLog: s.dayLog,
+    dailyLevel: s.dailyLevel,
   };
 }
 
