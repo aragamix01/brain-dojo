@@ -16,6 +16,14 @@ export function isHuntDay(date: string): boolean {
   return HUNT.days.includes(new Date(y, m - 1, d).getDay());
 }
 
+/**
+ * Hand-made levels (the Quest map, the Robot lessons) only count the first time they're cleared —
+ * a replay has a known answer. Random puzzles always count.
+ */
+export function isFixedLevel(key: string): boolean {
+  return key.startsWith("quest:") || (key.startsWith("robot:") && !key.startsWith("robot:rand-"));
+}
+
 /** Today's best stars per game/level, so replaying the same one can't farm the count. */
 export type HuntLog = { day: string; stars: Record<string, number>; startedAt: number; hintsAt: number };
 

@@ -3,7 +3,7 @@
 import { useSyncExternalStore } from "react";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { HUNT, addHuntStars, huntTotal, isHuntDay, type HuntLog } from "@/games/daily/hunt";
+import { HUNT, addHuntStars, huntTotal, isFixedLevel, isHuntDay, type HuntLog } from "@/games/daily/hunt";
 import { QUEST_NODES } from "@/games/quest/data";
 import {
   COINS,
@@ -92,7 +92,7 @@ type Actions = {
   ) => number;
   recordDaily: (date: string, r: DailyResult) => number;
   /** Count a win toward today's Star Hunt; finishes the Daily once the target is reached. */
-  huntStar: (key: string, stars: number) => void;
+  huntStar: (key: string, stars: number, firstClear: boolean) => void;
   addHint: () => void;
   openChest: (id: string) => void;
   markDelivered: (code: string) => void;
@@ -224,7 +224,7 @@ export const useProgress = create<State & Actions>()(
             },
           },
         });
-        get().huntStar(key, r.stars);
+        get().huntStar(key, r.stars, prev.wins === 0);
         get().checkBadges();
         return xp;
       },
@@ -238,10 +238,11 @@ export const useProgress = create<State & Actions>()(
         get().checkBadges();
         return xp;
       },
-      huntStar: (key, stars) => {
+      huntStar: (key, stars, firstClear) => {
         const s = get();
         const today = dayKey();
         if (!isHuntDay(today) || s.daily[today] || stars < 1) return;
+        if (isFixedLevel(key) && !firstClear) return;
         const hunt = addHuntStars(s.hunt, today, key, stars, Date.now(), s.hintsUsed);
         set({ hunt });
         const total = huntTotal(hunt, today);

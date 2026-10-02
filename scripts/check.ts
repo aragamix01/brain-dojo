@@ -14,7 +14,7 @@ import { generateScenario } from "../src/games/situation/generate";
 import { bestBudget, bestSchedule } from "../src/games/situation/solver";
 import { QUEST_NODES } from "../src/games/quest/data";
 import { dailyPlan } from "../src/games/daily/plan";
-import { HUNT, addHuntStars, huntLabel, huntTotal, isHuntDay } from "../src/games/daily/hunt";
+import { HUNT, addHuntStars, huntLabel, huntTotal, isFixedLevel, isHuntDay } from "../src/games/daily/hunt";
 import { COINS, applyRewards, spend, winRewards } from "../src/lib/coins";
 import { ACHIEVEMENTS, newlyEarned } from "../src/lib/achievements";
 import { daysBetween, streakFromDailies, weekOf } from "../src/lib/date";
@@ -263,6 +263,11 @@ check("star hunt days", () => {
   assert.equal(huntTotal(addHuntStars(log, "2026-10-07", "sprint", 2, 500, 9), "2026-10-07"), 2, "new hunt day starts fresh");
   for (const k of [...QUEST_NODES.map((n) => `quest:${n.id}`), "logic:lights", "robot:rand-seq", "situation:camp", "sprint"])
     assert.ok(!huntLabel(k).includes(":"), `no label for ${k}`);
+  assert.deepEqual(
+    ["quest:b1", "robot:r03", "robot:rand-seq", "logic:lights", "situation:camp", "sprint"].map(isFixedLevel),
+    [true, true, false, false, false, false],
+    "only hand-made levels are fixed",
+  );
   return `target ${HUNT.target}`;
 });
 

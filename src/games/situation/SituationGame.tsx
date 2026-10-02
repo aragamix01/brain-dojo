@@ -28,7 +28,7 @@ function useFinish(key: string) {
   return (stars: number) => {
     // XP only when the result beats your previous best, so resubmitting doesn't farm points.
     if (stars > prevStars) return recordWin(key, { stars, xpBase: 25 });
-    huntStar(key, stars);
+    huntStar(key, stars, false);
     return 0;
   };
 }
