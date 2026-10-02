@@ -20,7 +20,7 @@ function last14Days(today: string) {
 const WEEKDAYS = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
 
 /** The week (Sunday → Saturday) around `today`: flames, totals and how each game went. */
-function WeekSection({ data, today }: { data: ProgressData; today: string }) {
+function WeekSection({ data, today, showLevel }: { data: ProgressData; today: string; showLevel: boolean }) {
   const w = weekReport(data, today);
   const avg = w.runs ? formatTime(w.totalMs / w.runs) : "-";
   const tiles: [string, string, string][] = [
@@ -32,7 +32,8 @@ function WeekSection({ data, today }: { data: ProgressData; today: string }) {
   const fastest = w.fastest && `${formatTime(w.fastest.ms)} (${WEEKDAYS[w.days.indexOf(w.fastest.day)]})`;
   const lv = data.dailyLevel ?? START_LEVEL;
   const lines = [
-    `⚔️ เลเวล Daily: Lv${lv} · ${DAILY_LEVELS[lv].name}`,
+    // Only on a pasted code (the uncle's view) — the player never sees their level.
+    showLevel && `🔒 ระดับ Daily (เห็นเฉพาะตอนเปิดจากโค้ด): Lv${lv} · ${DAILY_LEVELS[lv].name}`,
     fastest && `⚡ Daily เร็วสุด ${fastest}`,
     w.huntDays > 0 && `🌟 วันล่าดาว สำเร็จ ${w.huntDone}/${w.huntDays}`,
     w.played > 0 && w.noHintDays > 0 && `🧠 ไม่ใช้คำใบ้เลย ${w.noHintDays} วัน`,
@@ -168,7 +169,7 @@ function Summary({ data, exportedAt }: { data: ProgressData; exportedAt?: number
         )}
       </div>
 
-      <WeekSection data={data} today={today} />
+      <WeekSection data={data} today={today} showLevel={!!exportedAt} />
 
       <div className="card p-4">
         <p className="mb-2 font-display">📅 Daily 14 วันล่าสุด</p>

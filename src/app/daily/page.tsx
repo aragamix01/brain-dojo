@@ -5,14 +5,12 @@ import { CoinChip, useSession } from "@/components/game";
 import type { Session } from "@/components/PuzzleShell";
 import { BackHeader, ClientOnly } from "@/components/ui";
 import {
-  DAILY_LEVELS,
   DAILY_STAGES,
   START_LEVEL,
   dailyPlan,
   isBossDay,
   playLevel,
   sprintDailyStars,
-  strongRunsAt,
   type DailyStageWithSeed,
 } from "@/games/daily/plan";
 import { HuntBoard } from "@/games/daily/HuntBoard";
@@ -32,7 +30,7 @@ import { SprintGame } from "@/games/sprint/SprintGame";
 import { dayKey, elapsedSince, formatTime, shiftDay } from "@/lib/date";
 import { starsFor } from "@/lib/rank";
 import { rngFrom } from "@/lib/rng";
-import { levelHistory, useHydrated, useProgress, type DailyResult, type DailyStage } from "@/lib/store";
+import { useHydrated, useProgress, type DailyResult, type DailyStage } from "@/lib/store";
 
 const SITE = "https://brain-dojo.yok016.dev";
 
@@ -51,20 +49,19 @@ function shareText(date: string, r: DailyResult, name: string) {
   return [
     name ? `⚔️ ${name} ชวนคุณมาประลองการแก้ปัญหา!` : "⚔️ มาประลองการแก้ปัญหากัน!",
     "",
-    `🧠 Brain Dojo · Daily ${date}${r.played ? ` · Lv${r.played}${r.played > (r.level ?? r.played) ? " 👹" : ""}` : ""}${name ? ` · ${name}` : ""}`,
+    `🧠 Brain Dojo · Daily ${date}${r.played && r.played > (r.level ?? r.played) ? " · 🌊 คลื่นลมแรง" : ""}${name ? ` · ${name}` : ""}`,
     ...lines,
     `⏱ ${formatTime(r.timeMs)} · 💡hint ${r.hints}`,
     "",
     r.stages?.[0]?.kind === "hunt"
       ? "วันล่าดาว — เก็บดาวได้เร็วกว่านี้ไหม? 🏴‍☠️"
-      : "คนที่อยู่เลเวลเดียวกันได้โจทย์ชุดเดียวกัน — ทำได้ดีกว่าไหม? 🏴‍☠️",
+      : "ลองเล่นดูสิ — ทำได้ดีกว่านี้ไหม? 🏴‍☠️",
     `👉 ${origin}/daily`,
   ].join("\n");
 }
 
 function ShareBox({ date, r }: { date: string; r: DailyResult }) {
   const name = useProgress((s) => s.name);
-  const level = useProgress((s) => s.dailyLevel ?? START_LEVEL);
   const [copied, setCopied] = useState(false);
   const text = shareText(date, r, name);
   const share = async () => {
@@ -85,11 +82,8 @@ function ShareBox({ date, r }: { date: string; r: DailyResult }) {
       <button className="btn btn-primary mt-4 w-full" onClick={share}>
         {copied ? "คัดลอกแล้ว ✔" : "📤 ส่งผลไปท้าเพื่อน"}
       </button>
-      <p className="mt-3 font-display text-sm font-bold">
-        ⚔️ เลเวล Daily ตอนนี้: Lv{level} · {DAILY_LEVELS[level].name}
-      </p>
-      <p className="mt-1 text-xs text-muted">
-        {isHuntDay(shiftDay(date, 1)) ? "พรุ่งนี้วันล่าดาว ⭐ เตรียมตัวไว้!" : isBossDay(shiftDay(date, 1)) ? "พรุ่งนี้วันบอส 👹 โจทย์ยากขึ้น 1 ขั้น!" : "พรุ่งนี้สุ่มเกมชุดใหม่"}
+      <p className="mt-3 text-xs text-muted">
+        {isHuntDay(shiftDay(date, 1)) ? "พรุ่งนี้วันล่าดาว ⭐ เตรียมตัวไว้!" : "พรุ่งนี้สุ่มเกมชุดใหม่"}
       </p>
     </div>
   );
@@ -172,27 +166,20 @@ function StagePlayer({ st, session, onDone }: { st: DailyStageWithSeed; session:
   }
 }
 
-/** "Lv3 · ต้นหน", plus the boss-day bump on Saturdays. */
-function LevelBadge({ level, played }: { level: number; played: number }) {
+/** Saturday's only hint that something's different — the level itself stays hidden. */
+function RoughSeas() {
   return (
-    <div className="mb-3 flex flex-wrap items-center gap-2">
-      <span className="rounded-xl border-[2.5px] border-ink bg-yellow px-2.5 py-1 font-display text-sm font-extrabold shadow-[2px_2px_0_#1e2a3a]">
-        ⚔️ Lv{played} · {DAILY_LEVELS[played].name}
-      </span>
-      {played > level && (
-        <span className="rounded-xl border-[2.5px] border-ink bg-pink px-2.5 py-1 font-display text-sm font-extrabold text-white shadow-[2px_2px_0_#1e2a3a]">
-          👹 วันบอส +1
-        </span>
-      )}
+    <div className="mb-3 rounded-xl border-[2.5px] border-ink bg-[#dff4ff] px-3 py-2 text-sm font-bold shadow-[2px_2px_0_#1e2a3a]">
+      🌊 วันนี้คลื่นลมแรงเป็นพิเศษ — จับหางเสือให้มั่นนะ!
     </div>
   );
 }
 
 function DailyRun({ date }: { date: string }) {
   // Fixed for the whole run: the level only moves after this Daily is recorded.
+  // It's never shown to the player, so there's nothing to game by playing badly on purpose.
   const [level] = useState(() => useProgress.getState().dailyLevel ?? START_LEVEL);
   const played = playLevel(level, date);
-  const strong = useProgress((s) => strongRunsAt(level, levelHistory(s.daily)));
   const plan = useMemo(() => dailyPlan(date, played), [date, played]);
   const [stage, setStage] = useState(-1);
   const [results, setResults] = useState<DailyStage[]>([]);
@@ -203,7 +190,7 @@ function DailyRun({ date }: { date: string }) {
   if (stage === -1) {
     return (
       <div className="card speedlines p-6">
-        <LevelBadge level={level} played={played} />
+        {isBossDay(date) && <RoughSeas />}
         <p className="font-display text-xl">ภารกิจวันนี้ {DAILY_STAGES} ด่าน</p>
         <p className="text-sm text-muted">สุ่มเกมใหม่ทุกวัน — วันนี้ได้:</p>
         <ol className="mt-3 space-y-2">
@@ -217,13 +204,6 @@ function DailyRun({ date }: { date: string }) {
         </ol>
         <p className="mt-3 text-sm text-muted">
           จับเวลารวมทุกด่าน · เล่นได้ครั้งเดียวต่อวัน · ออกกลางคันต้องเริ่มใหม่ · เล่นจบ = ⚔️ วันติด +1
-        </p>
-        <p className="mt-2 rounded-xl bg-ink/5 px-3 py-2 text-xs leading-relaxed text-muted">
-          {isBossDay(date) && "👹 เสาร์คือวันบอส โจทย์ยากขึ้น 1 ขั้น · "}
-          {level < 5
-            ? `🔼 เลื่อนขั้น: ได้ 8★ ขึ้นไปโดยไม่ใช้คำใบ้ 3 วันติด (ตอนนี้ ${strong}/3)`
-            : "🏆 เลเวลสูงสุดแล้ว รักษาไว้ให้ได้!"}
-          {" · ได้ดาวน้อยหรือใช้คำใบ้เยอะ 2 วันติด เลเวลลด 1 ขั้น"}
         </p>
         <button
           className="btn btn-primary mt-5 w-full text-lg"
@@ -269,8 +249,7 @@ function DailyRun({ date }: { date: string }) {
         ))}
       </div>
       <p className="mb-3 font-display text-lg">
-        ด่าน {stage + 1}/{plan.length}: {st.emoji} {st.label}{" "}
-        <span className="text-sm text-muted">· Lv{played}</span>
+        ด่าน {stage + 1}/{plan.length}: {st.emoji} {st.label}
       </p>
       <StagePlayer key={st.kind} st={st} session={session} onDone={finishStage} />
     </>

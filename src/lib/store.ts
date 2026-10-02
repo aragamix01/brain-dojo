@@ -257,9 +257,8 @@ export const useProgress = create<State & Actions>()(
         const daily = { ...s.daily, [date]: r };
         const level = s.dailyLevel ?? START_LEVEL;
         const next = r.level == null ? level : nextLevel(level, levelHistory(daily));
-        const moved = next > level ? `⬆️ Daily เลื่อนเป็น Lv${next}!` : next < level ? `Daily ปรับเป็น Lv${next} — ค่อยๆ ไต่ขึ้นใหม่นะ` : "";
-        const coinToast = moved ? { id: Date.now(), text: [moved, changes.coinToast?.text].filter(Boolean).join(" · ") } : changes.coinToast;
-        set({ ...changes, coinToast, xp: changes.xp + xp, daily, dailyLevel: next });
+        // The level moves silently: the player never sees it, so there's nothing to sandbag.
+        set({ ...changes, xp: changes.xp + xp, daily, dailyLevel: next });
         get().checkBadges();
         return xp;
       },
