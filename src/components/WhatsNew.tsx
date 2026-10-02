@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { RobotSprite } from "@/games/robot/RobotSprite";
+import { HUNT } from "@/games/daily/hunt";
 import { ACHIEVEMENTS, BADGE_COINS } from "@/lib/achievements";
 import { COINS } from "@/lib/coins";
 import { FREEZE } from "@/lib/shop";
 import { GuideModal, type GuideStep } from "./GuideModal";
 
 /** Bump when a new batch of features should be announced again. */
-export const WHATS_NEW_ID = "whats-new-coins-shop";
+export const WHATS_NEW_ID = "whats-new-star-hunt";
 
 function Chip({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
@@ -32,6 +33,7 @@ const STEPS: GuideStep[] = [
     nova: "ลูกเรือเก่งขึ้นเยอะเลย กัปตันเลยเพิ่มของใหม่ให้ — มาดูกันว่ามีอะไรบ้าง",
     art: (
       <div className="flex justify-center gap-3">
+        <Big>⭐</Big>
         <Big>🪙</Big>
         <Big>🏪</Big>
         <Big>🧊</Big>
@@ -39,10 +41,34 @@ const STEPS: GuideStep[] = [
       </div>
     ),
     points: [
+      "⭐ วันล่าดาว — อาทิตย์กับพุธ Daily เปลี่ยนเป็นภารกิจเก็บดาว",
       "🪙 เหรียญคำใบ้ — คำใบ้ไม่ได้ฟรีไม่จำกัดแล้ว",
       "🏪 ร้านค้าบนเรือ — เอาเหรียญไปแลกสกินหุ่นกับฉายา",
       "🧊 น้ำแข็งกันไฟดับ — พลาด Daily ไปวันหนึ่ง วันติดไม่ขาด",
       "🏅 สมุดตรา — สะสมตราจากความสำเร็จ",
+    ],
+  },
+  {
+    title: "วันล่าดาว ⭐",
+    nova: "ทุกวันอาทิตย์กับวันพุธ Daily ไม่สุ่มเกมแล้ว — ออกไปล่าดาวบนแผนที่หรือลานฝึกดาบแทน!",
+    art: (
+      <div className="flex flex-col items-center gap-2">
+        <div className="flex gap-1.5">
+          <Chip className="bg-yellow">อา</Chip>
+          <Chip>จ</Chip>
+          <Chip>อ</Chip>
+          <Chip className="bg-yellow">พ</Chip>
+          <Chip>พฤ</Chip>
+          <Chip>ศ</Chip>
+          <Chip>ส</Chip>
+        </div>
+        <Chip>⭐ เก็บดาว 0 / {HUNT.target}</Chip>
+      </div>
+    ),
+    points: [
+      `ชนะด่านบนแผนที่ล่าสมบัติหรือลานฝึกดาบ เก็บดาวให้ครบ ${HUNT.target} ดวง`,
+      "ด่านหรือเกมเดิมนับครั้งเดียวต่อวัน (เอาดาวที่ดีที่สุด) — ด่านเก่าบนแผนที่เล่นซ้ำได้",
+      "ครบเมื่อไหร่ Daily เคลียร์ทันที ได้เหรียญ Daily และ ⚔️ วันติด +1",
     ],
   },
   {
