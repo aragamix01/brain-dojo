@@ -14,6 +14,7 @@ import { generateScenario } from "../src/games/situation/generate";
 import { bestBudget, bestSchedule } from "../src/games/situation/solver";
 import { QUEST_NODES } from "../src/games/quest/data";
 import { dailyPlan } from "../src/games/daily/plan";
+import { HUNT, addHuntStars, huntLabel, huntTotal, isHuntDay } from "../src/games/daily/hunt";
 import { COINS, applyRewards, spend, winRewards } from "../src/lib/coins";
 import { ACHIEVEMENTS, newlyEarned } from "../src/lib/achievements";
 import { daysBetween, streakFromDailies, weekOf } from "../src/lib/date";
@@ -239,6 +240,27 @@ check("streak days + badges", () => {
   assert.ok(ids.includes("first-sail") && ids.includes("streak-7"), `got ${ids}`);
   assert.equal(newlyEarned({ ...played, badges: { "first-sail": 1, "streak-7": 1 } }).length, 0, "badge awarded twice");
   return `${ACHIEVEMENTS.length} badges`;
+});
+
+check("star hunt days", () => {
+  // 2026-10-04 is a Sunday, 2026-10-07 a Wednesday
+  assert.deepEqual(
+    ["2026-10-04", "2026-10-05", "2026-10-06", "2026-10-07", "2026-10-08", "2026-10-09", "2026-10-10"].map(isHuntDay),
+    [true, false, false, true, false, false, false],
+  );
+  const day = "2026-10-04";
+  let log = addHuntStars(undefined, day, "quest:b1", 2, 100, 4);
+  log = addHuntStars(log, day, "quest:b1", 3, 200, 5);
+  log = addHuntStars(log, day, "quest:b1", 1, 300, 5);
+  assert.equal(huntTotal(log, day), 3, "same level counts its best once");
+  assert.equal(log.startedAt, 100, "timer starts at the first star");
+  log = addHuntStars(log, day, "logic:lights", 3, 400, 5);
+  assert.equal(huntTotal(log, day), 6);
+  assert.equal(huntTotal(log, "2026-10-05"), 0, "yesterday's stars don't carry over");
+  assert.equal(huntTotal(addHuntStars(log, "2026-10-07", "sprint", 2, 500, 9), "2026-10-07"), 2, "new hunt day starts fresh");
+  for (const k of [...QUEST_NODES.map((n) => `quest:${n.id}`), "logic:lights", "robot:rand-seq", "situation:camp", "sprint"])
+    assert.ok(!huntLabel(k).includes(":"), `no label for ${k}`);
+  return `target ${HUNT.target}`;
 });
 
 if (failures) {

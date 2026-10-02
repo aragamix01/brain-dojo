@@ -3,6 +3,7 @@
 import { useSyncExternalStore } from "react";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { HUNT, addHuntStars, huntTotal, isHuntDay, type HuntLog } from "@/games/daily/hunt";
 import { QUEST_NODES } from "@/games/quest/data";
 import {
   COINS,
@@ -69,6 +70,8 @@ export type ProgressData = {
   freezes: number;
   /** day key → how that day kept the streak alive */
   activeDays: Record<string, DayMark>;
+  /** Star Hunt days: stars collected today toward the Daily */
+  hunt?: HuntLog;
 };
 
 export type DayMark = "play" | "freeze";
@@ -85,6 +88,8 @@ type Actions = {
     r: { stars: number; timeMs?: number; score?: number; xpBase?: number },
   ) => number;
   recordDaily: (date: string, r: DailyResult) => number;
+  /** Count a win toward today's Star Hunt; finishes the Daily once the target is reached. */
+  huntStar: (key: string, stars: number) => void;
   addHint: () => void;
   openChest: (id: string) => void;
   markDelivered: (code: string) => void;
@@ -213,6 +218,7 @@ export const useProgress = create<State & Actions>()(
             },
           },
         });
+        get().huntStar(key, r.stars);
         get().checkBadges();
         return xp;
       },
@@ -225,6 +231,25 @@ export const useProgress = create<State & Actions>()(
         set({ ...changes, xp: changes.xp + xp, daily: { ...s.daily, [date]: r } });
         get().checkBadges();
         return xp;
+      },
+      huntStar: (key, stars) => {
+        const s = get();
+        const today = dayKey();
+        if (!isHuntDay(today) || s.daily[today] || stars < 1) return;
+        const hunt = addHuntStars(s.hunt, today, key, stars, Date.now(), s.hintsUsed);
+        set({ hunt });
+        const total = huntTotal(hunt, today);
+        if (total < HUNT.target) return;
+        get().recordDaily(today, {
+          timeMs: Date.now() - hunt.startedAt,
+          hints: s.hintsUsed - hunt.hintsAt,
+          stages: [{ kind: "hunt", label: "⭐ วันล่าดาว", stars: 3, detail: `${total} ดาว จาก ${Object.keys(hunt.stars).length} ด่าน` }],
+        });
+        // Keep the win's own toast (it was just set) alongside the Daily's.
+        const win = s.coinToast && Date.now() - s.coinToast.id < 1500 ? [s.coinToast.text] : [];
+        const daily = get().coinToast;
+        const parts = [`⭐ ล่าดาวครบ ${HUNT.target} ดวง! Daily เคลียร์`, ...win, ...(daily && daily !== s.coinToast ? [daily.text] : [])];
+        set({ coinToast: { id: Date.now(), text: parts.join(" · ") } });
       },
       addHint: () => set((s) => ({ hintsUsed: s.hintsUsed + 1 })),
       openChest: (id) => {
@@ -315,6 +340,7 @@ function pickData(s: ProgressData): ProgressData {
     equipped: s.equipped,
     freezes: s.freezes,
     activeDays: s.activeDays,
+    hunt: s.hunt,
   };
 }
 

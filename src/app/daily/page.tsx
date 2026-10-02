@@ -5,6 +5,8 @@ import { CoinChip, useSession } from "@/components/game";
 import type { Session } from "@/components/PuzzleShell";
 import { BackHeader, ClientOnly } from "@/components/ui";
 import { DAILY_STAGES, dailyPlan, sprintDailyStars, type DailyStageWithSeed } from "@/games/daily/plan";
+import { HuntBoard } from "@/games/daily/HuntBoard";
+import { isHuntDay } from "@/games/daily/hunt";
 import { HanoiGame } from "@/games/hanoi/HanoiGame";
 import { JugsGame } from "@/games/jugs/JugsGame";
 import { generateJugs } from "@/games/jugs/logic";
@@ -17,7 +19,7 @@ import { generateRobotLevel } from "@/games/robot/generate";
 import { DailySituation } from "@/games/situation/SituationGame";
 import { theme } from "@/games/situation/data";
 import { SprintGame } from "@/games/sprint/SprintGame";
-import { dayKey, elapsedSince, formatTime } from "@/lib/date";
+import { dayKey, elapsedSince, formatTime, shiftDay } from "@/lib/date";
 import { starsFor } from "@/lib/rank";
 import { rngFrom } from "@/lib/rng";
 import { useHydrated, useProgress, type DailyResult, type DailyStage } from "@/lib/store";
@@ -43,7 +45,9 @@ function shareText(date: string, r: DailyResult, name: string) {
     ...lines,
     `⏱ ${formatTime(r.timeMs)} · 💡hint ${r.hints}`,
     "",
-    "วันนี้ทุกคนได้โจทย์ชุดเดียวกัน — ทำได้ดีกว่าไหม? 🏴‍☠️",
+    r.stages?.[0]?.kind === "hunt"
+      ? "วันล่าดาว — เก็บดาวได้เร็วกว่านี้ไหม? 🏴‍☠️"
+      : "วันนี้ทุกคนได้โจทย์ชุดเดียวกัน — ทำได้ดีกว่าไหม? 🏴‍☠️",
     `👉 ${origin}/daily`,
   ].join("\n");
 }
@@ -70,7 +74,9 @@ function ShareBox({ date, r }: { date: string; r: DailyResult }) {
       <button className="btn btn-primary mt-4 w-full" onClick={share}>
         {copied ? "คัดลอกแล้ว ✔" : "📤 ส่งผลไปท้าเพื่อน"}
       </button>
-      <p className="mt-3 text-xs text-muted">พรุ่งนี้สุ่มเกมชุดใหม่ · ทุกคนได้เกมและโจทย์ชุดเดียวกัน</p>
+      <p className="mt-3 text-xs text-muted">
+        {isHuntDay(shiftDay(date, 1)) ? "พรุ่งนี้วันล่าดาว ⭐ เตรียมตัวไว้!" : "พรุ่งนี้สุ่มเกมชุดใหม่ · ทุกคนได้เกมและโจทย์ชุดเดียวกัน"}
+      </p>
     </div>
   );
 }
@@ -231,7 +237,8 @@ function Daily() {
   const hydrated = useHydrated();
   const result = useProgress((s) => s.daily[date]);
   if (!hydrated) return null;
-  return result ? <ShareBox date={date} r={result} /> : <DailyRun date={date} />;
+  if (result) return <ShareBox date={date} r={result} />;
+  return isHuntDay(date) ? <HuntBoard /> : <DailyRun date={date} />;
 }
 
 export default function DailyPage() {

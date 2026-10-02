@@ -23,10 +23,14 @@ type Cfg = {
 
 function useFinish(key: string) {
   const recordWin = useProgress((s) => s.recordWin);
+  const huntStar = useProgress((s) => s.huntStar);
   const prevStars = useProgress((s) => s.games[key]?.bestStars ?? 0);
-  return (stars: number) =>
+  return (stars: number) => {
     // XP only when the result beats your previous best, so resubmitting doesn't farm points.
-    stars > prevStars ? recordWin(key, { stars, xpBase: 25 }) : 0;
+    if (stars > prevStars) return recordWin(key, { stars, xpBase: 25 });
+    huntStar(key, stars);
+    return 0;
+  };
 }
 
 function HintList({ hints, shown, onMore, startedAt }: { hints: string[]; shown: number; onMore: () => void; startedAt: number }) {
