@@ -352,11 +352,11 @@ function ProgressButton() {
     >
       <RedDot show={dot.show} />
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1e2a3a" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <circle cx="12" cy="12" r="9" fill="#fff" />
-        <path d="M12 3v3M12 18v3M3 12h3M18 12h3" />
-        <path d="M14.5 9.5l-4 1-1 4 4-1z" fill="#ff5a5f" />
+        <path d="M5 12v7a1 1 0 001 1h12a1 1 0 001-1v-7" fill="#fff" />
+        <path d="M12 3v12" />
+        <path d="M7.5 7.5L12 3l4.5 4.5" stroke="#ff5a5f" />
       </svg>
-      <span className="font-display text-sm font-extrabold">ผลงาน</span>
+      <span className="font-display text-sm font-extrabold">แชร์ผลงาน</span>
     </Link>
   );
 }

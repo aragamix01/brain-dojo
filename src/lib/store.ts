@@ -19,6 +19,7 @@ import {
 import { BADGE_COINS, newlyEarned } from "./achievements";
 import { dayKey, daysBetween, shiftDay, streakFromDailies, yesterdayKey } from "./date";
 import { FREEZE, SKINS, TITLES } from "./shop";
+import { bumpLog, type DayLog } from "./weekly";
 
 export type GameStat = {
   wins: number;
@@ -27,7 +28,7 @@ export type GameStat = {
   bestScore: number | null;
 };
 
-export type DailyStage = { kind: string; label: string; stars: number; detail: string };
+export type DailyStage = { kind: string; label: string; stars: number; detail: string; /** time on this stage */ ms?: number };
 
 export type DailyResult = {
   timeMs: number;
@@ -72,6 +73,8 @@ export type ProgressData = {
   activeDays: Record<string, DayMark>;
   /** Star Hunt days: stars collected today toward the Daily */
   hunt?: HuntLog;
+  /** day key → wins, stars and coins outside the Daily (last four weeks) */
+  dayLog?: Record<string, DayLog>;
 };
 
 export type DayMark = "play" | "freeze";
@@ -170,7 +173,9 @@ function payout(s: State, rewards: Reward[], notes: string[] = []) {
     ...notes,
   ];
   const coinToast: CoinToast = parts.length ? { id: Date.now(), text: parts.join(" · ") } : s.coinToast;
-  return { ...wallet, xp: s.xp + overflow * COINS.overflowXp, coinToast };
+  const earned = gained.reduce((a, g) => a + g.amount, 0) + overflow;
+  const dayLog = earned ? bumpLog(s.dayLog, { coins: earned }) : s.dayLog;
+  return { ...wallet, xp: s.xp + overflow * COINS.overflowXp, coinToast, dayLog };
 }
 
 /** Streak update for an activity, with its 7-day bonus and a note when a freeze was used. */
@@ -207,6 +212,7 @@ export const useProgress = create<State & Actions>()(
         set({
           ...changes,
           xp: changes.xp + xp,
+          dayLog: bumpLog(changes.dayLog, { wins: 1, stars: r.stars, quest: key.startsWith("quest:") ? 1 : 0 }),
           games: {
             ...s.games,
             [key]: {
@@ -341,6 +347,7 @@ function pickData(s: ProgressData): ProgressData {
     freezes: s.freezes,
     activeDays: s.activeDays,
     hunt: s.hunt,
+    dayLog: s.dayLog,
   };
 }
 

@@ -22,6 +22,9 @@ import { generateNonogram as genNono } from "../src/games/nonogram/logic";
 import { claimCode, nodeSeed, verifyClaim } from "../src/games/quest/progress";
 import { theme } from "../src/games/situation/data";
 import { robotLevel } from "../src/games/robot/levels";
+import { bumpLog, weekCompare, weekReport } from "../src/lib/weekly";
+import { emptyProgress } from "../src/lib/store";
+import { decodeProgress, encodeProgress } from "../src/lib/share";
 
 let failures = 0;
 function check(name: string, fn: () => string | void) {
@@ -263,7 +266,68 @@ check("star hunt days", () => {
   return `target ${HUNT.target}`;
 });
 
-if (failures) {
-  console.log(`\n${failures} check(s) failed`);
-  process.exit(1);
+check("weekly report", () => {
+  const st = (kind: string, stars: number, ms?: number) => ({ kind, label: kind, stars, detail: "", ms });
+  const p = {
+    ...emptyProgress(),
+    name: "Yok",
+    daily: {
+      // last week (Sun 2026-09-20 .. Sat 09-26)
+      "2026-09-22": { timeMs: 400_000, hints: 3, stages: [st("lights", 2), st("jugs", 1), st("hanoi", 3)] },
+      // this week (Sun 09-27 .. Sat 10-03)
+      "2026-09-28": { timeMs: 300_000, hints: 1, stages: [st("lights", 3, 60_000), st("jugs", 1, 200_000), st("robot", 3, 40_000)] },
+      "2026-09-30": { timeMs: 900_000, hints: 0, stages: [{ kind: "hunt", label: "", stars: 3, detail: "" }] },
+      "2026-10-01": { timeMs: 100_000, hints: 0, stages: [st("lights", 3, 30_000), st("sprint", 2, 45_000), st("situation", 2)] },
+    },
+    activeDays: { "2026-09-29": "freeze" as const },
+    dayLog: bumpLog(bumpLog(undefined, { wins: 1, stars: 3, quest: 1, coins: 2 }, "2026-09-28"), { wins: 2, stars: 4 }, "2026-10-01"),
+  };
+  const w = weekReport(p, "2026-10-01");
+  assert.deepEqual(w.marks, ["miss", "play", "freeze", "play", "play", "future", "future"]);
+  assert.equal(w.played, 3);
+  assert.equal(w.runs, 2, "hunt day is not a timed run");
+  assert.equal(w.totalMs, 400_000);
+  assert.deepEqual(w.fastest, { day: "2026-10-01", ms: 100_000 });
+  assert.equal(w.stars, 14);
+  assert.equal(w.maxStars, 18);
+  assert.equal(w.three, 3);
+  assert.equal(w.hints, 1);
+  assert.equal(w.noHintDays, 2);
+  assert.equal(w.huntDays, 2, "Sunday and Wednesday so far");
+  assert.equal(w.huntDone, 1);
+  assert.equal(w.best?.kind, "lights", "ties go to the game played more");
+  assert.equal(w.practice?.kind, "jugs");
+  assert.deepEqual(w.outside, { wins: 3, stars: 7, quest: 1, coins: 2 });
+  assert.deepEqual(w.prev, { runs: 1, avgMs: 400_000, hints: 3 });
+  assert.equal(weekCompare(w, w.prev!), "เร็วขึ้น 50% · คำใบ้ลดลง 2");
+  const old = bumpLog({ "2026-08-01": { wins: 1, stars: 1, quest: 0, coins: 0 } }, { wins: 1 }, "2026-10-01");
+  assert.deepEqual(Object.keys(old), ["2026-10-01"], "old log days are pruned");
+});
+
+async function asyncChecks() {
+  try {
+    const p = { ...emptyProgress(), name: "Yok", xp: 1234, daily: { "2026-10-01": { timeMs: 1, hints: 0 } } };
+    const code = await encodeProgress(p);
+    assert.ok(code.startsWith("BD2."), "compressed code");
+    const back = await decodeProgress(`สรุปสัปดาห์…
+
+📥 โค้ด:
+${code}
+`);
+    assert.equal(back.name, "Yok");
+    assert.equal(back.xp, 1234);
+    await assert.rejects(decodeProgress(code.slice(0, -2) + "zz"), /แก้ไข/);
+    await assert.rejects(decodeProgress("ไม่มีโค้ด"), /ไม่เจอ/);
+    console.log(`ok   share code — ${code.length} chars`);
+  } catch (e) {
+    failures++;
+    console.log(`FAIL share code: ${(e as Error).message}`);
+  }
 }
+
+void asyncChecks().then(() => {
+  if (failures) {
+    console.log(`\n${failures} check(s) failed`);
+    process.exit(1);
+  }
+});

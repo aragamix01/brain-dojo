@@ -200,7 +200,7 @@ function DailyRun({ date }: { date: string }) {
 
   const st = plan[stage];
   const finishStage: Done = (stars, detail) => {
-    const next = [...results, { kind: st.kind, label: `${st.emoji} ${st.label}`, stars, detail }];
+    const next = [...results, { kind: st.kind, label: `${st.emoji} ${st.label}`, stars, detail, ms: elapsedSince(session.startedAt) }];
     setResults(next);
     if (stage + 1 < plan.length) {
       setTimeout(() => {
