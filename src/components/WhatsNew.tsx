@@ -9,7 +9,7 @@ import { FREEZE } from "@/lib/shop";
 import { GuideModal, type GuideStep } from "./GuideModal";
 
 /** Bump when a new batch of features should be announced again. */
-export const WHATS_NEW_ID = "whats-new-star-hunt";
+export const WHATS_NEW_ID = "whats-new-new-games";
 
 function Chip({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
@@ -33,6 +33,7 @@ const STEPS: GuideStep[] = [
     nova: "ลูกเรือเก่งขึ้นเยอะเลย กัปตันเลยเพิ่มของใหม่ให้ — มาดูกันว่ามีอะไรบ้าง",
     art: (
       <div className="flex justify-center gap-3">
+        <Big>🎮</Big>
         <Big>⭐</Big>
         <Big>🪙</Big>
         <Big>🏪</Big>
@@ -41,11 +42,30 @@ const STEPS: GuideStep[] = [
       </div>
     ),
     points: [
+      "🎮 เกมใหม่ 4 เกมในลานฝึกดาบ — สุ่มเข้า Daily ด้วย",
       "⭐ วันล่าดาว — อาทิตย์กับพุธ Daily เปลี่ยนเป็นภารกิจเก็บดาว",
       "🪙 เหรียญคำใบ้ — คำใบ้ไม่ได้ฟรีไม่จำกัดแล้ว",
       "🏪 ร้านค้าบนเรือ — เอาเหรียญไปแลกสกินหุ่นกับฉายา",
       "🧊 น้ำแข็งกันไฟดับ — พลาด Daily ไปวันหนึ่ง วันติดไม่ขาด",
       "🏅 สมุดตรา — สะสมตราจากความสำเร็จ",
+    ],
+  },
+  {
+    title: "เกมใหม่ 4 เกม 🎮",
+    nova: "ลานฝึกดาบมีของเล่นใหม่! ทุกเกมสุ่มโจทย์ใหม่ทุกครั้ง และอาจโผล่มาใน Daily วันไหนก็ได้",
+    art: (
+      <div className="flex justify-center gap-3">
+        <Big>🔐</Big>
+        <Big>⛵</Big>
+        <Big>🗺️</Big>
+        <Big>🔢</Big>
+      </div>
+    ),
+    points: [
+      "🔐 ไขกุญแจหีบ — เดารหัสอัญมณี ดู ● ○ แล้วตัดตัวเลือกทิ้ง",
+      "⛵ พาเรือออกจากท่า — เลื่อนเรือลำอื่นหลบทาง ให้เรือแดงแล่นออกไป",
+      "🗺️ ซูโดกุแผนที่ — เลขห้ามซ้ำในแถว คอลัมน์ และกล่อง",
+      "🔢 อนุกรมปริศนา — หาแพทเทิร์น แล้วเติมเลขถัดไป",
     ],
   },
   {
@@ -159,8 +179,8 @@ export function WhatsNew({ onClose }: { onClose: () => void }) {
       onClose={onClose}
       finalActions={
         <>
-          <Link href="/shop" className="btn btn-gold flex-1 text-sm" onClick={onClose}>
-            🏪 ไปร้านค้า
+          <Link href="/logic" className="btn btn-gold flex-1 text-sm" onClick={onClose}>
+            🎮 ลองเกมใหม่
           </Link>
           <Link href="/badges" className="btn btn-cyan flex-1 text-sm" onClick={onClose}>
             🏅 ดูสมุดตรา
