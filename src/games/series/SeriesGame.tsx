@@ -7,7 +7,18 @@ import type { SeriesPuzzle } from "./logic";
 
 const KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "−", "0", "⌫"];
 
-export function SeriesGame({ puzzle, session, onSolved }: { puzzle: SeriesPuzzle; session: Session; onSolved: (r: Solved) => void }) {
+export function SeriesGame({
+  puzzle,
+  session,
+  onSolved,
+  onAction,
+}: {
+  puzzle: SeriesPuzzle;
+  session: Session;
+  onSolved: (r: Solved) => void;
+  /** every answer, for the Daily's move guard */
+  onAction?: () => void;
+}) {
   const { items } = puzzle;
   const [idx, setIdx] = useState(0);
   const [input, setInput] = useState("");
@@ -30,6 +41,7 @@ export function SeriesGame({ puzzle, session, onSolved }: { puzzle: SeriesPuzzle
     if (!input || input === "-") return;
     const t = tries + 1;
     setTries(t);
+    onAction?.();
     if (Number(input) !== cur.answer) {
       setShake(true);
       setTimeout(() => setShake(false), 300);

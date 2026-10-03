@@ -11,10 +11,13 @@ export function JugsGame({
   puzzle,
   session,
   onSolved,
+  onAction,
 }: {
   puzzle: JugPuzzle;
   session: Session;
   onSolved: (r: Solved) => void;
+  /** every pour/fill/empty, for the Daily's move guard */
+  onAction?: () => void;
 }) {
   const { caps, source, target } = puzzle;
   const [state, setState] = useState(puzzle.start);
@@ -29,6 +32,7 @@ export function JugsGame({
     const next = applyMove(state, caps, m);
     setState(next);
     setMoves(moves + 1);
+    onAction?.();
     setSel(null);
     setHint(null);
     if (isGoal(next, target)) {

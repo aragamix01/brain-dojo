@@ -26,7 +26,18 @@ function Pegs({ fb, pegs }: { fb: Feedback; pegs: number }) {
   );
 }
 
-export function LockGame({ puzzle, session, onSolved }: { puzzle: LockPuzzle; session: Session; onSolved: (r: Solved) => void }) {
+export function LockGame({
+  puzzle,
+  session,
+  onSolved,
+  onAction,
+}: {
+  puzzle: LockPuzzle;
+  session: Session;
+  onSolved: (r: Solved) => void;
+  /** every try, for the Daily's move guard */
+  onAction?: () => void;
+}) {
   const { pegs, colors, code } = puzzle;
   const [rows, setRows] = useState<Row[]>([]);
   const [cur, setCur] = useState<(number | null)[]>(() => Array(pegs).fill(null));
@@ -58,6 +69,7 @@ export function LockGame({ puzzle, session, onSolved }: { puzzle: LockPuzzle; se
     const next = [...rows, { guess, fb }];
     setRows(next);
     setMsg(null);
+    onAction?.();
     if (fb.exact === pegs) {
       onSolved({ moves: next.length, par: puzzle.par });
       return;

@@ -9,7 +9,18 @@ const COLORS = ["#ffc93c", "#2ec4b6", "#4d8dff", "#a78bfa", "#ff9f43", "#8bd17c"
 
 type Drag = { boat: number; startXY: number; startPos: number; lo: number; hi: number; pos: number };
 
-export function HarborGame({ puzzle, session, onSolved }: { puzzle: HarborPuzzle; session: Session; onSolved: (r: Solved) => void }) {
+export function HarborGame({
+  puzzle,
+  session,
+  onSolved,
+  onAction,
+}: {
+  puzzle: HarborPuzzle;
+  session: Session;
+  onSolved: (r: Solved) => void;
+  /** every boat slide, for the Daily's move guard */
+  onAction?: () => void;
+}) {
   const { boats } = puzzle;
   const [history, setHistory] = useState([puzzle.start]);
   const state = history.at(-1)!;
@@ -41,6 +52,7 @@ export function HarborGame({ puzzle, session, onSolved }: { puzzle: HarborPuzzle
     if (drag.pos !== drag.startPos) {
       const next = state.map((p, i) => (i === drag.boat ? drag.pos : p));
       setHistory([...history, next]);
+      onAction?.();
       setHintBoat(null);
       setMsg(null);
       if (isSolved(next)) onSolved({ moves: moves + 1, par: puzzle.par });

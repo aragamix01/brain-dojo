@@ -120,6 +120,19 @@ export function isBossDay(date: string): boolean {
   return new Date(y, m - 1, d).getDay() === 6;
 }
 
+/**
+ * Two or three days a week (never Sunday/Wednesday, the Star Hunt days) the Daily swaps games
+ * for the player's next nodes on the Quest map. Picked per week from the date, so it's a surprise.
+ */
+export function isMapDay(date: string): boolean {
+  const [y, m, d] = date.split("-").map(Number);
+  const day = new Date(y, m - 1, d);
+  const sunday = new Date(y, m - 1, d - day.getDay());
+  const rng = rngFrom(`map-days:${sunday.getFullYear()}-${sunday.getMonth() + 1}-${sunday.getDate()}`);
+  const count = rng() < 0.5 ? 2 : 3;
+  return shuffle(rng, [1, 2, 4, 5, 6]).slice(0, count).includes(day.getDay());
+}
+
 /** The level actually played on `date` by someone at `level`. */
 export function playLevel(level: number, date: string): number {
   return Math.min(MAX_LEVEL, level + (isBossDay(date) ? 1 : 0));

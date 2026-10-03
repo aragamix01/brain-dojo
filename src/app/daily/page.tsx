@@ -9,11 +9,14 @@ import {
   START_LEVEL,
   dailyPlan,
   isBossDay,
+  isMapDay,
   playLevel,
   sprintDailyStars,
   type DailyStageWithSeed,
 } from "@/games/daily/plan";
 import { HuntBoard } from "@/games/daily/HuntBoard";
+import { DailyMapStage, mapStages, type MapStage } from "@/games/daily/MapStage";
+import { useMoveGuard } from "@/games/daily/MoveGuard";
 import { isHuntDay } from "@/games/daily/hunt";
 import { HanoiGame } from "@/games/hanoi/HanoiGame";
 import { HarborGame } from "@/games/harbor/HarborGame";
@@ -98,6 +101,7 @@ function ShareBox({ date, r }: { date: string; r: DailyResult }) {
 }
 
 type Done = (stars: number, detail: string) => void;
+type RunStage = DailyStageWithSeed | MapStage;
 type StageProps<K extends DailyStageWithSeed["kind"]> = {
   st: Extract<DailyStageWithSeed, { kind: K }>;
   session: Session;
@@ -106,23 +110,35 @@ type StageProps<K extends DailyStageWithSeed["kind"]> = {
 
 function LightsStage({ st, session, onDone }: StageProps<"lights">) {
   const puzzle = useMemo(() => generateLights(rngFrom(st.seed), st.size, st.minPar), [st]);
+  const guard = useMoveGuard(puzzle.par);
   return (
-    <LightsGame
-      puzzle={puzzle}
-      session={session}
-      onSolved={({ moves, par }) => onDone(starsFor(moves, par!, session.hints), `${moves} moves`)}
-    />
+    <>
+      {guard.banner}
+      <LightsGame
+        key={guard.key}
+        puzzle={puzzle}
+        session={session}
+        onAction={guard.onAction}
+        onSolved={({ moves, par }) => onDone(starsFor(moves, par!, session.hints), `${moves} moves`)}
+      />
+    </>
   );
 }
 
 function JugsStage({ st, session, onDone }: StageProps<"jugs">) {
   const puzzle = useMemo(() => generateJugs(rngFrom(st.seed), st.variant), [st]);
+  const guard = useMoveGuard(puzzle.par);
   return (
-    <JugsGame
-      puzzle={puzzle}
-      session={session}
-      onSolved={({ moves, par }) => onDone(starsFor(moves, par!, session.hints), `${moves} moves`)}
-    />
+    <>
+      {guard.banner}
+      <JugsGame
+        key={guard.key}
+        puzzle={puzzle}
+        session={session}
+        onAction={guard.onAction}
+        onSolved={({ moves, par }) => onDone(starsFor(moves, par!, session.hints), `${moves} moves`)}
+      />
+    </>
   );
 }
 
@@ -160,13 +176,7 @@ function StagePlayer({ st, session, onDone }: { st: DailyStageWithSeed; session:
     case "nonogram":
       return <NonogramStage st={st} session={session} onDone={onDone} />;
     case "hanoi":
-      return (
-        <HanoiGame
-          disks={st.disks}
-          session={session}
-          onSolved={({ moves }) => onDone(starsFor(moves, 2 ** st.disks - 1, session.hints), `${moves} moves`)}
-        />
-      );
+      return <HanoiStage disks={st.disks} session={session} onDone={onDone} />;
     case "situation":
       return <DailySituation th={theme(st.theme)!} seed={st.seed} pick={st.pick} onFinish={({ stars, detail }) => onDone(stars, detail)} />;
     case "robot":
@@ -182,25 +192,54 @@ function StagePlayer({ st, session, onDone }: { st: DailyStageWithSeed; session:
   }
 }
 
+function HanoiStage({ disks, session, onDone }: { disks: number; session: Session; onDone: Done }) {
+  const par = 2 ** disks - 1;
+  const guard = useMoveGuard(par);
+  return (
+    <>
+      {guard.banner}
+      <HanoiGame
+        key={guard.key}
+        disks={disks}
+        session={session}
+        onAction={guard.onAction}
+        onSolved={({ moves }) => onDone(starsFor(moves, par, session.hints), `${moves} moves`)}
+      />
+    </>
+  );
+}
+
 function LockStage({ st, session, onDone }: StageProps<"lock">) {
   const puzzle = useMemo(() => generateLock(rngFrom(st.seed), st.level), [st]);
+  const guard = useMoveGuard(puzzle.par);
   return (
-    <LockGame
-      puzzle={puzzle}
-      session={session}
-      onSolved={({ moves }) => onDone(starsFor(moves, puzzle.par, session.hints), `${moves} tries`)}
-    />
+    <>
+      {guard.banner}
+      <LockGame
+        key={guard.key}
+        puzzle={puzzle}
+        session={session}
+        onAction={guard.onAction}
+        onSolved={({ moves }) => onDone(starsFor(moves, puzzle.par, session.hints), `${moves} tries`)}
+      />
+    </>
   );
 }
 
 function HarborStage({ st, session, onDone }: StageProps<"harbor">) {
   const puzzle = useMemo(() => harborFromSeed(st.seed, st.level), [st]);
+  const guard = useMoveGuard(puzzle.par);
   return (
-    <HarborGame
-      puzzle={puzzle}
-      session={session}
-      onSolved={({ moves }) => onDone(starsFor(moves, puzzle.par, session.hints), `${moves} moves`)}
-    />
+    <>
+      {guard.banner}
+      <HarborGame
+        key={guard.key}
+        puzzle={puzzle}
+        session={session}
+        onAction={guard.onAction}
+        onSolved={({ moves }) => onDone(starsFor(moves, puzzle.par, session.hints), `${moves} moves`)}
+      />
+    </>
   );
 }
 
@@ -217,12 +256,18 @@ function SudokuStage({ st, session, onDone }: StageProps<"sudoku">) {
 
 function SeriesStage({ st, session, onDone }: StageProps<"series">) {
   const puzzle = useMemo(() => generateSeries(rngFrom(st.seed), st.level), [st]);
+  const guard = useMoveGuard(puzzle.items.length);
   return (
-    <SeriesGame
-      puzzle={puzzle}
-      session={session}
-      onSolved={({ moves }) => onDone(starsFor(moves, puzzle.items.length, session.hints), `${moves} tries`)}
-    />
+    <>
+      {guard.banner}
+      <SeriesGame
+        key={guard.key}
+        puzzle={puzzle}
+        session={session}
+        onAction={guard.onAction}
+        onSolved={({ moves }) => onDone(starsFor(moves, puzzle.items.length, session.hints), `${moves} tries`)}
+      />
+    </>
   );
 }
 
@@ -240,7 +285,13 @@ function DailyRun({ date }: { date: string }) {
   // It's never shown to the player, so there's nothing to game by playing badly on purpose.
   const [level] = useState(() => useProgress.getState().dailyLevel ?? START_LEVEL);
   const played = playLevel(level, date);
-  const plan = useMemo(() => dailyPlan(date, played), [date, played]);
+  // Map days: one random game, then the next nodes on the player's own map (fixed at start).
+  const [plan] = useState<RunStage[]>(() => {
+    const games = dailyPlan(date, played);
+    const map = isMapDay(date) ? mapStages(useProgress.getState().games) : [];
+    return map.length ? [...games.slice(0, DAILY_STAGES - map.length), ...map] : games;
+  });
+  const mapDay = plan.some((p) => p.kind === "map");
   const [stage, setStage] = useState(-1);
   const [results, setResults] = useState<DailyStage[]>([]);
   const [started, setStarted] = useState({ at: 0, hintBase: 0 });
@@ -251,11 +302,13 @@ function DailyRun({ date }: { date: string }) {
     return (
       <div className="card speedlines p-6">
         {isBossDay(date) && <RoughSeas />}
-        <p className="font-display text-xl">ภารกิจวันนี้ {DAILY_STAGES} ด่าน</p>
-        <p className="text-sm text-muted">สุ่มเกมใหม่ทุกวัน — วันนี้ได้:</p>
+        <p className="font-display text-xl">ภารกิจวันนี้ {plan.length} ด่าน</p>
+        <p className="text-sm text-muted">
+          {mapDay ? "🗺️ วันนี้มีด่านบนแผนที่ล่าสมบัติ! ผ่านแล้วนับบนแผนที่ด้วย" : "สุ่มเกมใหม่ทุกวัน — วันนี้ได้:"}
+        </p>
         <ol className="mt-3 space-y-2">
           {plan.map((st, i) => (
-            <li key={st.kind} className="flex items-center gap-3 rounded-xl bg-ink/5 px-3 py-2">
+            <li key={i} className="flex items-center gap-3 rounded-xl bg-ink/5 px-3 py-2">
               <span className="font-display text-pink">{i + 1}</span>
               <span className="text-xl">{st.emoji}</span>
               {st.label}
@@ -305,13 +358,17 @@ function DailyRun({ date }: { date: string }) {
     <>
       <div className="mb-4 flex gap-1.5">
         {plan.map((p, i) => (
-          <div key={p.kind} className={`h-1.5 flex-1 rounded-full ${i <= stage ? "bg-pink" : "bg-ink/10"}`} />
+          <div key={i} className={`h-1.5 flex-1 rounded-full ${i <= stage ? "bg-pink" : "bg-ink/10"}`} />
         ))}
       </div>
       <p className="mb-3 font-display text-lg">
         ด่าน {stage + 1}/{plan.length}: {st.emoji} {st.label}
       </p>
-      <StagePlayer key={st.kind} st={st} session={session} onDone={finishStage} />
+      {st.kind === "map" ? (
+        <DailyMapStage key={stage} node={st.node} session={session} onDone={finishStage} />
+      ) : (
+        <StagePlayer key={stage} st={st} session={session} onDone={finishStage} />
+      )}
     </>
   );
 }

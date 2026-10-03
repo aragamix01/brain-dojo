@@ -19,6 +19,7 @@ import {
   MIN_LEVEL,
   dailyPlan,
   isBossDay,
+  isMapDay,
   nextLevel,
   playLevel,
   sprintDailyStars,
@@ -239,6 +240,20 @@ check("daily level rule", () => {
   assert.ok(isBossDay("2026-10-03") && !isBossDay("2026-10-04"));
   assert.equal(sprintDailyStars(20, DAILY_LEVELS[2].tuning.sprint.stars), 3);
   assert.equal(sprintDailyStars(20, DAILY_LEVELS[4].tuning.sprint.stars), 2);
+});
+
+check("map days", () => {
+  const d = new Date(2026, 0, 4); // a Sunday
+  for (let w = 0; w < 52; w++) {
+    const week = Array.from({ length: 7 }, (_, i) => {
+      const x = new Date(d.getFullYear(), d.getMonth(), d.getDate() + w * 7 + i);
+      return `${x.getFullYear()}-${x.getMonth() + 1}-${x.getDate()}`;
+    });
+    const days = week.map(isMapDay);
+    const n = days.filter(Boolean).length;
+    assert.ok(n === 2 || n === 3, `week ${week[0]} has ${n} map days`);
+    assert.ok(!days[0] && !days[3], "a map day landed on a Star Hunt day");
+  }
 });
 
 check("treasure lock", () => {

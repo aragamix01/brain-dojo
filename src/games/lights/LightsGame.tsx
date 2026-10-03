@@ -22,10 +22,13 @@ export function LightsGame({
   puzzle,
   session,
   onSolved,
+  onAction,
 }: {
   puzzle: LightsPuzzle;
   session: Session;
   onSolved: (r: Solved) => void;
+  /** every press, for the Daily's move guard */
+  onAction?: () => void;
 }) {
   const { n } = puzzle;
   const [history, setHistory] = useState([puzzle.grid]);
@@ -47,6 +50,7 @@ export function LightsGame({
     if (done) return;
     const g = press(grid, n, i);
     setHistory([...history, g]);
+    onAction?.();
     if (hintCell === i) {
       setHintCell(null);
       setHintMsg(null);

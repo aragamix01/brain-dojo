@@ -8,7 +8,18 @@ import { canMove, move, nextMove, topDisk } from "./logic";
 const COLORS = ["#ff5fcf", "#ffd84d", "#41e8ff", "#3ddc97", "#9b5cff", "#ff8a4d", "#4d7cff", "#ff4d6d"];
 const TARGET = 2;
 
-export function HanoiGame({ disks, session, onSolved }: { disks: number; session: Session; onSolved: (r: Solved) => void }) {
+export function HanoiGame({
+  disks,
+  session,
+  onSolved,
+  onAction,
+}: {
+  disks: number;
+  session: Session;
+  onSolved: (r: Solved) => void;
+  /** every move, for the Daily's move guard */
+  onAction?: () => void;
+}) {
   const [pos, setPos] = useState<number[]>(() => Array(disks).fill(0));
   const [moves, setMoves] = useState(0);
   const [sel, setSel] = useState<number | null>(null);
@@ -29,6 +40,7 @@ export function HanoiGame({ disks, session, onSolved }: { disks: number; session
     const next = move(pos, sel, p);
     setPos(next);
     setMoves(moves + 1);
+    onAction?.();
     setSel(null);
     setHint(null);
     if (next.every((x) => x === TARGET)) {
