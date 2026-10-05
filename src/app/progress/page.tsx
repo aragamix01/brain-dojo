@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { BackHeader, ClientOnly, Stars } from "@/components/ui";
 import { LOGIC_GAMES } from "@/games/catalog";
@@ -359,6 +360,9 @@ function Mine() {
       <TimeCodes />
       <Wallet />
       <ImportBox />
+      <Link href="/parent" className="btn btn-ghost w-full text-sm">
+        👨 สำหรับผู้ปกครอง · สร้างโค้ดเวลาคอม
+      </Link>
       <button
         className="w-full py-2 text-xs text-muted underline"
         onClick={() => confirm("ลบความคืบหน้าทั้งหมดในเครื่องนี้? ย้อนกลับไม่ได้") && reset()}
