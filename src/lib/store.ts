@@ -81,7 +81,11 @@ export type ProgressData = {
   dayLog?: Record<string, DayLog>;
   /** Daily difficulty 1–5, moved by recent results */
   dailyLevel?: number;
+  /** KidTimer PC time codes earned, by Daily date */
+  timeCodes?: Record<string, TimeCode>;
 };
+
+export type TimeCode = { code: string; minutes: number; at: number };
 
 export type DayMark = "play" | "freeze";
 
@@ -99,6 +103,7 @@ type Actions = {
   recordDaily: (date: string, r: DailyResult) => number;
   /** Count a win toward today's Star Hunt; finishes the Daily once the target is reached. */
   huntStar: (key: string, stars: number, firstClear: boolean) => void;
+  saveTimeCode: (date: string, code: TimeCode) => void;
   addHint: () => void;
   openChest: (id: string) => void;
   markDelivered: (code: string) => void;
@@ -282,6 +287,7 @@ export const useProgress = create<State & Actions>()(
         const parts = [`⭐ ล่าดาวครบ ${HUNT.target} ดวง! Daily เคลียร์`, ...win, ...(daily && daily !== s.coinToast ? [daily.text] : [])];
         set({ coinToast: { id: Date.now(), text: parts.join(" · ") } });
       },
+      saveTimeCode: (date, code) => set((s) => ({ timeCodes: { ...(s.timeCodes ?? {}), [date]: code } })),
       addHint: () => set((s) => ({ hintsUsed: s.hintsUsed + 1 })),
       openChest: (id) => {
         const s = get();
@@ -374,6 +380,7 @@ function pickData(s: ProgressData): ProgressData {
     hunt: s.hunt,
     dayLog: s.dayLog,
     dailyLevel: s.dailyLevel,
+    timeCodes: s.timeCodes,
   };
 }
 

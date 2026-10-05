@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { CoinChip, useSession } from "@/components/game";
 import type { Session } from "@/components/PuzzleShell";
+import { TimeCodeBox } from "@/components/TimeCodeBox";
 import { BackHeader, ClientOnly } from "@/components/ui";
 import {
   DAILY_STAGES,
@@ -89,6 +90,7 @@ function ShareBox({ date, r }: { date: string; r: DailyResult }) {
   return (
     <div className="card speedlines p-5 text-center">
       <p className="font-display text-3xl text-pink glow-text">Daily Clear!</p>
+      <TimeCodeBox date={date} r={r} />
       <pre className="mt-4 whitespace-pre-wrap rounded-xl bg-ink/5 p-3 text-left font-sans text-sm">{text}</pre>
       <button className="btn btn-primary mt-4 w-full" onClick={share}>
         {copied ? "คัดลอกแล้ว ✔" : "📤 ส่งผลไปท้าเพื่อน"}

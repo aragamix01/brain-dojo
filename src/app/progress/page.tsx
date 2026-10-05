@@ -11,6 +11,7 @@ import { rankFor } from "@/lib/rank";
 import { decodeProgress, encodeProgress, type Decoded } from "@/lib/share";
 import { liveStreak, snapshot, useProgress, type ProgressData } from "@/lib/store";
 import { weekCompare, weekRange, weekReport } from "@/lib/weekly";
+import { formatMinutes } from "@/lib/kidtimer/reward";
 import { DAILY_LEVELS, START_LEVEL } from "@/games/daily/plan";
 
 function last14Days(today: string) {
@@ -314,6 +315,30 @@ function Wallet() {
   );
 }
 
+/** PC time codes from recent Dailies, newest first. */
+function TimeCodes() {
+  const codes = useProgress((s) => s.timeCodes);
+  const list = Object.entries(codes ?? {})
+    .sort(([a], [b]) => b.localeCompare(a))
+    .slice(0, 7);
+  if (!list.length) return null;
+  return (
+    <div className="card p-4">
+      <p className="font-display">⏰ โค้ดเวลาคอม</p>
+      <p className="mt-1 text-xs text-muted">ได้จากการเล่น Daily จบ · แต่ละโค้ดใช้ที่คอมได้ครั้งเดียว</p>
+      <ul className="mt-3 space-y-1.5 text-sm">
+        {list.map(([date, c]) => (
+          <li key={date} className="flex items-center justify-between gap-2 rounded-xl bg-ink/5 px-3 py-2">
+            <span className="text-xs text-muted">{date.slice(8)}/{date.slice(5, 7)}</span>
+            <span className="select-all font-mono font-bold tracking-wide">{c.code}</span>
+            <span className="text-xs font-bold">{formatMinutes(c.minutes)}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function Mine() {
   const p = useProgress();
   const setName = useProgress((s) => s.setName);
@@ -331,6 +356,7 @@ function Mine() {
         />
       </label>
       <Summary data={p} />
+      <TimeCodes />
       <Wallet />
       <ImportBox />
       <button

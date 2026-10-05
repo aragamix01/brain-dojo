@@ -48,6 +48,8 @@ import { SUDOKU_LEVELS, clashes, generateSudoku } from "../src/games/sudoku/logi
 import { SERIES_COUNT, generateSeries } from "../src/games/series/logic";
 import { bumpLog, weekCompare, weekReport } from "../src/lib/weekly";
 import { emptyProgress } from "../src/lib/store";
+import { WEB_SERIAL_MAX, bangkokDay, dailySerial, makeCode, manualSerial } from "../src/lib/kidtimer/core";
+import { rewardMinutes } from "../src/lib/kidtimer/reward";
 import { decodeProgress, encodeProgress } from "../src/lib/share";
 
 let failures = 0;
@@ -240,6 +242,36 @@ check("daily level rule", () => {
   assert.ok(isBossDay("2026-10-03") && !isBossDay("2026-10-04"));
   assert.equal(sprintDailyStars(20, DAILY_LEVELS[2].tuning.sprint.stars), 3);
   assert.equal(sprintDailyStars(20, DAILY_LEVELS[4].tuning.sprint.stars), 2);
+});
+
+check("kidtimer codes", () => {
+  // Test vectors from HANDOFF_WEBSITE.md — the PC rejects anything else.
+  const k1 = "11".repeat(32);
+  const vectors: [string, number, number, string][] = [
+    [k1, 15, 1, "CAAQ-AAAB-GIAPU7I"],
+    [k1, 60, 2, "CACA-AAAC-FFHKNQQ"],
+    [k1, 120, 1, "CAEA-AAAB-NWVG2HY"],
+    [k1, 240, 1000, "CAIA-AA7I-V7ZQBHA"],
+    [k1, 60, 8388607, "CACH-7777-SYH7NKI"],
+    ["00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff", 90, 42, "CADA-AABK-LNOZCLI"],
+  ];
+  for (const [key, minutes, serial, code] of vectors) assert.equal(makeCode(key, minutes, serial), code);
+  assert.throws(() => makeCode(k1, 10, 1), /multiple of 15/);
+  assert.throws(() => makeCode(k1, 15, 0x800000), /serial out of range/);
+
+  // Daily reward: 60 + 10/star, rounded up to 15.
+  assert.deepEqual([0, 1, 3, 6, 7, 9, 12].map(rewardMinutes), [60, 75, 90, 120, 135, 150, 150]);
+
+  // Serials: one per Daily day, manual ones above them, all inside the website range.
+  assert.equal(dailySerial("2026-01-01"), 1);
+  assert.equal(dailySerial("2026-10-05"), 278);
+  assert.ok(dailySerial("2099-12-31") < 100_000);
+  const t = Date.UTC(2026, 9, 5, 12, 0);
+  assert.ok(manualSerial(t) > 100_000 && manualSerial(t + 60_000) === manualSerial(t) + 1);
+  assert.ok(manualSerial(Date.UTC(2041, 5, 30)) <= WEB_SERIAL_MAX, "manual serials last into 2041");
+  // 23:30 UTC on Oct 4 is already Oct 5 in Bangkok.
+  assert.equal(bangkokDay(Date.UTC(2026, 9, 4, 23, 30)), "2026-10-05");
+  assert.equal(bangkokDay(Date.UTC(2026, 9, 4, 23, 30), -1), "2026-10-04");
 });
 
 check("map days", () => {
