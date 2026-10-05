@@ -2,7 +2,7 @@
 // with a shared key. The format must match the PC exactly — see HANDOFF_WEBSITE.md (test vectors in
 // scripts/check.ts). This file holds the pure parts; anything touching the key is in ./server.ts.
 import { createHmac } from "node:crypto";
-import { UNIT_MIN } from "./reward";
+import { SHOP_TIME, UNIT_MIN } from "./reward";
 
 const VERSION = 1;
 const MAX_UNITS = 0xfff;
@@ -46,13 +46,29 @@ export function makeCode(keyHex: string, minutes: number, serial: number): strin
  */
 const EPOCH = Date.UTC(2026, 0, 1);
 const DAILY_SERIALS = 100_000;
+/** Shop codes use the top half of the day range: SHOP_BASE + (day - 1) * perDay + slot. Raising perDay
+ * later would hand out serials past days already used (the PC would reject those codes) — start a new range instead. */
+const SHOP_BASE = 50_000;
 
 /** "2026-10-05" → 1-based day number since 2026-01-01. */
-export function dailySerial(date: string): number {
+function dayNumber(date: string): number {
   const [y, m, d] = date.split("-").map(Number);
-  const day = Math.round((Date.UTC(y, m - 1, d) - EPOCH) / 86_400_000) + 1;
-  if (day < 1 || day >= DAILY_SERIALS) throw new Error("date out of range");
+  return Math.round((Date.UTC(y, m - 1, d) - EPOCH) / 86_400_000) + 1;
+}
+
+export function dailySerial(date: string): number {
+  const day = dayNumber(date);
+  if (day < 1 || day >= SHOP_BASE) throw new Error("date out of range");
   return day;
+}
+
+/** Coin-shop code number `slot` (0-based) of a day; asking again gives the same serial, so each slot unlocks once. */
+export function shopSerial(date: string, slot: number): number {
+  const day = dayNumber(date);
+  if (!Number.isInteger(slot) || slot < 0 || slot >= SHOP_TIME.perDay) throw new Error("slot out of range");
+  const serial = SHOP_BASE + (day - 1) * SHOP_TIME.perDay + slot;
+  if (day < 1 || serial >= DAILY_SERIALS) throw new Error("date out of range");
+  return serial;
 }
 
 export function manualSerial(now: number): number {

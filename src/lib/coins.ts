@@ -2,7 +2,7 @@
 
 export const COINS = {
   start: 5,
-  cap: 20,
+  cap: 60,
   /** hints per puzzle that cost nothing (still cost stars) */
   freePerPuzzle: 2,
   /** most coins Free Play can pay out per day */

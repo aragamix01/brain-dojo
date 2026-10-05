@@ -326,11 +326,14 @@ function TimeCodes() {
   return (
     <div className="card p-4">
       <p className="font-display">⏰ โค้ดเวลาคอม</p>
-      <p className="mt-1 text-xs text-muted">ได้จากการเล่น Daily จบ · แต่ละโค้ดใช้ที่คอมได้ครั้งเดียว</p>
+      <p className="mt-1 text-xs text-muted">ได้จากการเล่น Daily จบ หรือซื้อในร้านค้า · แต่ละโค้ดใช้ที่คอมได้ครั้งเดียว</p>
       <ul className="mt-3 space-y-1.5 text-sm">
         {list.map(([date, c]) => (
           <li key={date} className="flex items-center justify-between gap-2 rounded-xl bg-ink/5 px-3 py-2">
-            <span className="text-xs text-muted">{date.slice(8)}/{date.slice(5, 7)}</span>
+            <span className="text-xs text-muted">
+              {date.slice(8, 10)}/{date.slice(5, 7)}
+              {date.includes("#shop") && " 🏪"}
+            </span>
             <span className="select-all font-mono font-bold tracking-wide">{c.code}</span>
             <span className="text-xs font-bold">{formatMinutes(c.minutes)}</span>
           </li>

@@ -5,11 +5,12 @@ import { RobotSprite } from "@/games/robot/RobotSprite";
 import { HUNT } from "@/games/daily/hunt";
 import { ACHIEVEMENTS, BADGE_COINS } from "@/lib/achievements";
 import { COINS } from "@/lib/coins";
+import { SHOP_TIME } from "@/lib/kidtimer/reward";
 import { FREEZE } from "@/lib/shop";
 import { GuideModal, type GuideStep } from "./GuideModal";
 
 /** Bump when a new batch of features should be announced again. */
-export const WHATS_NEW_ID = "whats-new-new-games";
+export const WHATS_NEW_ID = "whats-new-pc-time";
 
 function Chip({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
@@ -42,12 +43,31 @@ const STEPS: GuideStep[] = [
       </div>
     ),
     points: [
+      "⏰ เล่น Daily จบได้โค้ดเวลาคอม — ร้านค้าก็ขายด้วย",
+      `🪙 กระเป๋าเหรียญใหญ่ขึ้น เก็บได้ ${COINS.cap} เหรียญ`,
       "🎮 เกมใหม่ 4 เกมในลานฝึกดาบ — สุ่มเข้า Daily ด้วย",
       "⭐ วันล่าดาว — อาทิตย์กับพุธ Daily เปลี่ยนเป็นภารกิจเก็บดาว",
       "🪙 เหรียญคำใบ้ — คำใบ้ไม่ได้ฟรีไม่จำกัดแล้ว",
       "🏪 ร้านค้าบนเรือ — เอาเหรียญไปแลกสกินหุ่นกับฉายา",
       "🧊 น้ำแข็งกันไฟดับ — พลาด Daily ไปวันหนึ่ง วันติดไม่ขาด",
       "🏅 สมุดตรา — สะสมตราจากความสำเร็จ",
+    ],
+  },
+  {
+    title: "เวลาคอม ⏰",
+    nova: "ฝึกสมองเสร็จ ได้เวลาพักเล่นคอม! เอาโค้ดไปพิมพ์ที่คอม แล้วเครื่องจะปลดล็อกให้",
+    art: (
+      <div className="flex flex-col items-center gap-2">
+        <Chip className="bg-yellow">⚔️ Daily จบ = 1 ชม.+</Chip>
+        <Chip>⭐ ดาวละ +10 นาที</Chip>
+        <Chip>🏪 ร้านค้า 🪙{SHOP_TIME.price} = 1 ชม.</Chip>
+      </div>
+    ),
+    points: [
+      "เล่น Daily จบได้ 1 ชม. บวกดาวละ 10 นาที (สูงสุด 2.5 ชม.)",
+      `ร้านค้าขายเวลาคอม 1 ชม. ราคา ${SHOP_TIME.price} เหรียญ ซื้อได้วันละ ${SHOP_TIME.perDay} ครั้ง`,
+      `กระเป๋าเหรียญใหญ่ขึ้น เก็บได้ ${COINS.cap} เหรียญ — เก็บไว้แลกเวลาคอมได้`,
+      "โค้ดย้อนดูได้ในหน้าแชร์ผลงาน · แต่ละโค้ดใช้ได้ครั้งเดียว",
     ],
   },
   {

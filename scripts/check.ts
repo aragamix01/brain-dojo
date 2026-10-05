@@ -48,7 +48,7 @@ import { SUDOKU_LEVELS, clashes, generateSudoku } from "../src/games/sudoku/logi
 import { SERIES_COUNT, generateSeries } from "../src/games/series/logic";
 import { bumpLog, weekCompare, weekReport } from "../src/lib/weekly";
 import { emptyProgress } from "../src/lib/store";
-import { WEB_SERIAL_MAX, bangkokDay, dailySerial, makeCode, manualSerial } from "../src/lib/kidtimer/core";
+import { WEB_SERIAL_MAX, bangkokDay, dailySerial, makeCode, manualSerial, shopSerial } from "../src/lib/kidtimer/core";
 import { rewardMinutes } from "../src/lib/kidtimer/reward";
 import { decodeProgress, encodeProgress } from "../src/lib/share";
 
@@ -265,7 +265,13 @@ check("kidtimer codes", () => {
   // Serials: one per Daily day, manual ones above them, all inside the website range.
   assert.equal(dailySerial("2026-01-01"), 1);
   assert.equal(dailySerial("2026-10-05"), 278);
-  assert.ok(dailySerial("2099-12-31") < 100_000);
+  assert.ok(dailySerial("2099-12-31") < 50_000);
+  // shop: two fixed serials per day, clear of the Daily and manual ranges
+  assert.equal(shopSerial("2026-01-01", 0), 50_000);
+  assert.equal(shopSerial("2026-01-01", 1), 50_001);
+  assert.equal(shopSerial("2026-01-02", 0), 50_002);
+  assert.ok(shopSerial("2090-12-31", 1) < 100_000);
+  assert.throws(() => shopSerial("2026-10-05", 2), /slot/);
   const t = Date.UTC(2026, 9, 5, 12, 0);
   assert.ok(manualSerial(t) > 100_000 && manualSerial(t + 60_000) === manualSerial(t) + 1);
   assert.ok(manualSerial(Date.UTC(2041, 5, 30)) <= WEB_SERIAL_MAX, "manual serials last into 2041");

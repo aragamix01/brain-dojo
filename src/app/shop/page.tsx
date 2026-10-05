@@ -1,9 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { CoinChip } from "@/components/game";
 import { NovaTip } from "@/components/NovaTip";
+import { CodeDisplay } from "@/components/TimeCodeBox";
 import { BackHeader, ClientOnly } from "@/components/ui";
 import { RobotSprite } from "@/games/robot/RobotSprite";
+import { dayKey } from "@/lib/date";
+import { SHOP_TIME } from "@/lib/kidtimer/reward";
 import { FREEZE, SKINS, TITLES } from "@/lib/shop";
 import { liveStreak, useProgress, type ShopKind } from "@/lib/store";
 
@@ -77,6 +81,79 @@ function Freeze() {
   );
 }
 
+function PcTime() {
+  const date = dayKey();
+  const coins = useProgress((s) => s.coins);
+  const timeCodes = useProgress((s) => s.timeCodes);
+  const buyTimeCode = useProgress((s) => s.buyTimeCode);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const today = Object.entries(timeCodes ?? {})
+    .filter(([k]) => k.startsWith(`${date}#shop`))
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([, c]) => c);
+  const left = SHOP_TIME.perDay - today.length;
+  const short = SHOP_TIME.price - coins;
+
+  const buy = async () => {
+    if (!confirm(`ใช้ 🪙${SHOP_TIME.price} แลกเวลาคอม 1 ชม.?`)) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const slot = today.length;
+      const res = await fetch("/api/shop-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date, slot }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.code) buyTimeCode(`${date}#shop${slot}`, { code: data.code, minutes: data.minutes });
+      else
+        setError(
+          data.error === "not-configured"
+            ? "ร้านยังไม่เปิดขายเวลาคอม — ให้ผู้ปกครองตั้งค่าก่อน"
+            : data.error === "sold-out"
+              ? "วันนี้ซื้อครบแล้ว"
+              : "ซื้อไม่สำเร็จ ลองใหม่อีกครั้ง (ยังไม่เสียเหรียญ)",
+        );
+    } catch {
+      setError("ต่อเน็ตไม่ได้ ลองใหม่อีกครั้ง (ยังไม่เสียเหรียญ)");
+    }
+    setBusy(false);
+  };
+
+  return (
+    <section className="panel overflow-hidden bg-white">
+      <div className="flex items-center gap-3 bg-[#fff4cc] p-4">
+        <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border-[3px] border-ink bg-white text-4xl shadow-[0_4px_0_#1e2a3a]">
+          ⏰
+        </span>
+        <div className="flex-1">
+          <p className="font-display text-lg font-extrabold">เวลาคอม 1 ชม.</p>
+          <p className="text-xs leading-relaxed text-muted">
+            ได้โค้ดไปพิมพ์ที่คอม · ซื้อได้วันละ {SHOP_TIME.perDay} ครั้ง (วันนี้เหลือ {left})
+          </p>
+        </div>
+      </div>
+      <div className="space-y-3 border-t-[3px] border-ink p-4 text-center">
+        {today.map((c) => (
+          <CodeDisplay key={c.code} code={c.code} minutes={c.minutes} />
+        ))}
+        {error && <p className="text-sm text-bad">{error}</p>}
+        <button className="btn btn-gold w-full text-sm" disabled={busy || left <= 0 || short > 0} onClick={buy}>
+          {left <= 0
+            ? "วันนี้ซื้อครบแล้ว · พรุ่งนี้มาใหม่"
+            : busy
+              ? "กำลังสร้างโค้ด…"
+              : short > 0
+                ? `ขาดอีก 🪙${short}`
+                : `ซื้อ 🪙${SHOP_TIME.price}`}
+        </button>
+      </div>
+    </section>
+  );
+}
+
 function Shop() {
   return (
     <div className="space-y-6">
@@ -84,6 +161,7 @@ function Shop() {
         เหรียญที่เก็บได้ เอามาแลกของสวยๆ ได้ที่นี่ แต่อย่าใช้หมดนะ — เก็บไว้ใช้เป็นคำใบ้ตอนติดหนักๆ ด้วย! แนะนำซื้อ
         🧊 น้ำแข็งติดตัวไว้สัก 1 อัน กันวันติดหาย
       </NovaTip>
+      <PcTime />
       <Freeze />
 
       <section>

@@ -19,6 +19,7 @@ import {
 } from "./coins";
 import { BADGE_COINS, newlyEarned } from "./achievements";
 import { dayKey, daysBetween, shiftDay, streakFromDailies, yesterdayKey } from "./date";
+import { SHOP_TIME } from "./kidtimer/reward";
 import { FREEZE, SKINS, TITLES } from "./shop";
 import { bumpLog, type DayLog } from "./weekly";
 
@@ -114,6 +115,8 @@ type Actions = {
   buyItem: (kind: ShopKind, id: string) => boolean;
   equip: (kind: ShopKind, id: string) => void;
   buyFreeze: () => boolean;
+  /** Pay for a PC time code the server already issued; keyed "date#shopN". False when too poor. */
+  buyTimeCode: (key: string, code: Omit<TimeCode, "at">) => boolean;
   /** Award any badges the current progress has earned. */
   checkBadges: () => void;
   /** One-time switch to Daily-based streaks: rebuild the streak from Daily history. */
@@ -319,6 +322,13 @@ export const useProgress = create<State & Actions>()(
         const w = spend(s, "ซื้อน้ำแข็งกันไฟดับ 🧊", FREEZE.price);
         if (!w) return false;
         set({ ...w, freezes: (s.freezes ?? 0) + 1 });
+        return true;
+      },
+      buyTimeCode: (key, code) => {
+        const s = get();
+        const w = spend(s, `ซื้อเวลาคอม ${code.minutes / 60} ชม. ⏰`, SHOP_TIME.price);
+        if (!w) return false;
+        set({ ...w, timeCodes: { ...(s.timeCodes ?? {}), [key]: { ...code, at: Date.now() } } });
         return true;
       },
       checkBadges: () => {
