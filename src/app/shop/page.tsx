@@ -87,6 +87,7 @@ function PcTime() {
   const timeCodes = useProgress((s) => s.timeCodes);
   const buyTimeCode = useProgress((s) => s.buyTimeCode);
   const [busy, setBusy] = useState(false);
+  const [asking, setAsking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const today = Object.entries(timeCodes ?? {})
     .filter(([k]) => k.startsWith(`${date}#shop`))
@@ -96,7 +97,8 @@ function PcTime() {
   const short = SHOP_TIME.price - coins;
 
   const buy = async () => {
-    if (!confirm(`ใช้ 🪙${SHOP_TIME.price} แลกเวลาคอม 1 ชม.?`)) return;
+    // Confirmed in the page: window.confirm is silently blocked in some in-app browsers and home-screen apps.
+    setAsking(false);
     setBusy(true);
     setError(null);
     try {
@@ -140,15 +142,33 @@ function PcTime() {
           <CodeDisplay key={c.code} code={c.code} minutes={c.minutes} />
         ))}
         {error && <p className="text-sm text-bad">{error}</p>}
-        <button className="btn btn-gold w-full text-sm" disabled={busy || left <= 0 || short > 0} onClick={buy}>
-          {left <= 0
-            ? "วันนี้ซื้อครบแล้ว · พรุ่งนี้มาใหม่"
-            : busy
-              ? "กำลังสร้างโค้ด…"
-              : short > 0
-                ? `ขาดอีก 🪙${short}`
-                : `ซื้อ 🪙${SHOP_TIME.price}`}
-        </button>
+        {asking ? (
+          <div className="flex gap-2">
+            <button className="btn btn-ghost flex-1 text-sm" onClick={() => setAsking(false)}>
+              ยกเลิก
+            </button>
+            <button className="btn btn-gold flex-[2] text-sm" onClick={buy}>
+              ✔ ยืนยัน ใช้ 🪙{SHOP_TIME.price}
+            </button>
+          </div>
+        ) : (
+          <button
+            className="btn btn-gold w-full text-sm"
+            disabled={busy || left <= 0 || short > 0}
+            onClick={() => {
+              setError(null);
+              setAsking(true);
+            }}
+          >
+            {left <= 0
+              ? "วันนี้ซื้อครบแล้ว · พรุ่งนี้มาใหม่"
+              : busy
+                ? "กำลังสร้างโค้ด…"
+                : short > 0
+                  ? `ขาดอีก 🪙${short}`
+                  : `ซื้อ 🪙${SHOP_TIME.price}`}
+          </button>
+        )}
       </div>
     </section>
   );
