@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Bangers, IBM_Plex_Sans_Thai, Kanit } from "next/font/google";
+import { AutoUpdate } from "@/components/AutoUpdate";
 import { Providers } from "@/components/Providers";
 import "./globals.css";
 
@@ -39,6 +40,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="th" className={`${body.variable} ${head.variable} ${comic.variable} antialiased`}>
       <body className="font-sans">
         <Providers>
+          <AutoUpdate />
           <div className="mx-auto w-full max-w-xl px-4 pb-16 pt-[max(1rem,env(safe-area-inset-top))]">
             {children}
           </div>
