@@ -19,6 +19,7 @@ import {
 } from "./coins";
 import { BADGE_COINS, newlyEarned } from "./achievements";
 import { dayKey, daysBetween, shiftDay, streakFromDailies, yesterdayKey } from "./date";
+import type { Away } from "./away";
 import { SHOP_TIME } from "./kidtimer/reward";
 import { FREEZE, SKINS, TITLES } from "./shop";
 import { bumpLog, type DayLog } from "./weekly";
@@ -30,7 +31,16 @@ export type GameStat = {
   bestScore: number | null;
 };
 
-export type DailyStage = { kind: string; label: string; stars: number; detail: string; /** time on this stage */ ms?: number };
+export type DailyStage = {
+  kind: string;
+  label: string;
+  stars: number;
+  detail: string;
+  /** time on this stage */
+  ms?: number;
+  /** trips out of the app during this stage (uncle's view only) */
+  away?: Away;
+};
 
 export type DailyResult = {
   timeMs: number;

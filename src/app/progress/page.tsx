@@ -90,7 +90,39 @@ function WeekSection({ data, today, showLevel }: { data: ProgressData; today: st
           ))}
         </div>
       )}
+      {showLevel && <AwayLog data={data} days={w.days} />}
       <div className="h-4" />
+    </div>
+  );
+}
+
+const secs = (ms: number) => (ms < 60_000 ? `${Math.round(ms / 1000)} วิ` : formatTime(ms));
+
+/** Uncle's view only: how often the player left the app during each Daily stage this week. */
+function AwayLog({ data, days }: { data: ProgressData; days: string[] }) {
+  const rows = days.flatMap((day, i) => {
+    const stages = data.daily[day]?.stages;
+    if (!stages?.length || stages[0].kind === "hunt") return [];
+    if (stages.every((st) => !st.away)) return [{ day: i, text: "ยังไม่มีข้อมูล (ก่อนเริ่มจับ)", out: false }];
+    const out = stages.filter((st) => st.away && st.away.n > 0);
+    if (!out.length) return [{ day: i, text: "✅ ไม่ออกจากแอปเลย", out: false }];
+    return out.map((st) => ({
+      day: i,
+      text: `${st.label} ${st.stars}★ · ออก ${st.away!.n} ครั้ง รวม ${secs(st.away!.ms)}`,
+      out: true,
+    }));
+  });
+  if (!rows.length) return null;
+  return (
+    <div className="mx-4 mt-3 rounded-xl border-2 border-dashed border-ink/30 p-3 text-sm">
+      <p className="font-display">🔒 ออกจากแอประหว่างด่าน (เห็นเฉพาะตอนเปิดจากโค้ด)</p>
+      <p className="mb-1 text-[11px] text-muted">นับเมื่อสลับไปแอปอื่นหรือหน้าต่างอื่นเกิน 2 วิ · ไม่รู้ว่าไปแอปไหน · ไม่นับวันล่าดาว</p>
+      {rows.map((r, i) => (
+        <p key={i} className={r.out ? "text-bad" : "text-muted"}>
+          <span className="inline-block w-7 font-bold text-ink">{WEEKDAYS[r.day]}</span>
+          {r.text}
+        </p>
+      ))}
     </div>
   );
 }

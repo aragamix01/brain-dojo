@@ -39,6 +39,7 @@ import { generateRobotLevel } from "@/games/robot/generate";
 import { DailySituation } from "@/games/situation/SituationGame";
 import { theme } from "@/games/situation/data";
 import { SprintGame } from "@/games/sprint/SprintGame";
+import { useAwayMeter } from "@/lib/away";
 import { dayKey, elapsedSince, formatTime, shiftDay } from "@/lib/date";
 import { starsFor } from "@/lib/rank";
 import { rngFrom } from "@/lib/rng";
@@ -298,6 +299,7 @@ function DailyRun({ date }: { date: string }) {
   const [results, setResults] = useState<DailyStage[]>([]);
   const [started, setStarted] = useState({ at: 0, hintBase: 0 });
   const session = useSession();
+  const away = useAwayMeter();
   const recordDaily = useProgress((s) => s.recordDaily);
 
   if (stage === -1) {
@@ -326,6 +328,7 @@ function DailyRun({ date }: { date: string }) {
             // Hints are counted across every game kind, so diff the global counter at the end.
             setStarted({ at: Date.now(), hintBase: useProgress.getState().hintsUsed });
             session.restart();
+            away.reset();
             setStage(0);
           }}
         >
@@ -337,11 +340,12 @@ function DailyRun({ date }: { date: string }) {
 
   const st = plan[stage];
   const finishStage: Done = (stars, detail) => {
-    const next = [...results, { kind: st.kind, label: `${st.emoji} ${st.label}`, stars, detail, ms: elapsedSince(session.startedAt) }];
+    const next = [...results, { kind: st.kind, label: `${st.emoji} ${st.label}`, stars, detail, ms: elapsedSince(session.startedAt), away: away.take() }];
     setResults(next);
     if (stage + 1 < plan.length) {
       setTimeout(() => {
         session.restart();
+        away.reset();
         setStage(stage + 1);
         window.scrollTo({ top: 0 });
       }, 600);
