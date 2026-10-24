@@ -39,6 +39,7 @@ import { generateRobotLevel } from "@/games/robot/generate";
 import { DailySituation } from "@/games/situation/SituationGame";
 import { theme } from "@/games/situation/data";
 import { SprintGame } from "@/games/sprint/SprintGame";
+import { AwayDebug } from "@/components/AwayDebug";
 import { AWAY_RESET_AFTER, useAwayMeter } from "@/lib/away";
 import { dayKey, elapsedSince, formatTime, shiftDay } from "@/lib/date";
 import { starsFor } from "@/lib/rank";
@@ -302,6 +303,7 @@ function DailyRun({ date }: { date: string }) {
   // Leaving the app too often during a stage quietly starts it over — no warning, on purpose.
   const [resets, setResets] = useState(0);
   const stageLive = useRef(false);
+  const [awayDebug] = useState(() => new URLSearchParams(location.search).has("awaydebug"));
   const away = useAwayMeter((trips) => {
     if (stageLive.current && trips % (AWAY_RESET_AFTER + 1) === 0) setResets((r) => r + 1);
   });
@@ -391,6 +393,7 @@ function DailyRun({ date }: { date: string }) {
       <p className="mb-3 font-display text-lg">
         ด่าน {stage + 1}/{plan.length}: {st.emoji} {st.label}
       </p>
+      {awayDebug && <AwayDebug take={away.take} />}
       {st.kind === "map" ? (
         <DailyMapStage key={`${stage}-${resets}`} node={st.node} session={session} onDone={finishStage} />
       ) : (

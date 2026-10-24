@@ -116,7 +116,7 @@ function AwayLog({ data, days }: { data: ProgressData; days: string[] }) {
   return (
     <div className="mx-4 mt-3 rounded-xl border-2 border-dashed border-ink/30 p-3 text-sm">
       <p className="font-display">🔒 ออกจากแอประหว่างด่าน (เห็นเฉพาะตอนเปิดจากโค้ด)</p>
-      <p className="mb-1 text-[11px] text-muted">นับเมื่อสลับไปแอปอื่นหรือหน้าต่างอื่นเกิน 2 วิ · ครั้งที่ 4 ของด่าน ด่านเริ่มใหม่เงียบๆ · ไม่รู้ว่าไปแอปไหน · ไม่นับวันล่าดาว</p>
+      <p className="mb-1 text-[11px] text-muted">นับเมื่อสลับไปแอปอื่นหรือหน้าต่างอื่นเกิน 1 วิ · ครั้งที่ 4 ของด่าน ด่านเริ่มใหม่เงียบๆ · ไม่รู้ว่าไปแอปไหน · ไม่นับวันล่าดาว</p>
       {rows.map((r, i) => (
         <p key={i} className={r.out ? "text-bad" : "text-muted"}>
           <span className="inline-block w-7 font-bold text-ink">{WEEKDAYS[r.day]}</span>

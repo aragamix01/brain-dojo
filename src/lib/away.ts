@@ -6,7 +6,7 @@ import { useEffect, useRef } from "react";
 export type Away = { n: number; ms: number };
 
 /** Shorter trips (a notification shade, a stray tap) aren't counted. */
-export const AWAY_MIN_MS = 2000;
+export const AWAY_MIN_MS = 1000;
 
 /** In the Daily, every trip past this many quietly starts the stage over. */
 export const AWAY_RESET_AFTER = 3;
