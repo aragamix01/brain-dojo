@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { CoinChip, useSession } from "@/components/game";
 import type { Session } from "@/components/PuzzleShell";
 import { TimeCodeBox } from "@/components/TimeCodeBox";
@@ -39,7 +39,7 @@ import { generateRobotLevel } from "@/games/robot/generate";
 import { DailySituation } from "@/games/situation/SituationGame";
 import { theme } from "@/games/situation/data";
 import { SprintGame } from "@/games/sprint/SprintGame";
-import { useAwayMeter } from "@/lib/away";
+import { AWAY_RESET_AFTER, useAwayMeter } from "@/lib/away";
 import { dayKey, elapsedSince, formatTime, shiftDay } from "@/lib/date";
 import { starsFor } from "@/lib/rank";
 import { rngFrom } from "@/lib/rng";
@@ -299,7 +299,12 @@ function DailyRun({ date }: { date: string }) {
   const [results, setResults] = useState<DailyStage[]>([]);
   const [started, setStarted] = useState({ at: 0, hintBase: 0 });
   const session = useSession();
-  const away = useAwayMeter();
+  // Leaving the app too often during a stage quietly starts it over — no warning, on purpose.
+  const [resets, setResets] = useState(0);
+  const stageLive = useRef(false);
+  const away = useAwayMeter((trips) => {
+    if (stageLive.current && trips % (AWAY_RESET_AFTER + 1) === 0) setResets((r) => r + 1);
+  });
   const recordDaily = useProgress((s) => s.recordDaily);
 
   if (stage === -1) {
@@ -329,6 +334,8 @@ function DailyRun({ date }: { date: string }) {
             setStarted({ at: Date.now(), hintBase: useProgress.getState().hintsUsed });
             session.restart();
             away.reset();
+            setResets(0);
+            stageLive.current = true;
             setStage(0);
           }}
         >
@@ -340,12 +347,26 @@ function DailyRun({ date }: { date: string }) {
 
   const st = plan[stage];
   const finishStage: Done = (stars, detail) => {
-    const next = [...results, { kind: st.kind, label: `${st.emoji} ${st.label}`, stars, detail, ms: elapsedSince(session.startedAt), away: away.take() }];
+    stageLive.current = false;
+    const next = [
+      ...results,
+      {
+        kind: st.kind,
+        label: `${st.emoji} ${st.label}`,
+        stars,
+        detail,
+        ms: elapsedSince(session.startedAt),
+        away: away.take(),
+        ...(resets ? { resets } : {}),
+      },
+    ];
     setResults(next);
     if (stage + 1 < plan.length) {
       setTimeout(() => {
         session.restart();
         away.reset();
+        setResets(0);
+        stageLive.current = true;
         setStage(stage + 1);
         window.scrollTo({ top: 0 });
       }, 600);
@@ -371,9 +392,9 @@ function DailyRun({ date }: { date: string }) {
         ด่าน {stage + 1}/{plan.length}: {st.emoji} {st.label}
       </p>
       {st.kind === "map" ? (
-        <DailyMapStage key={stage} node={st.node} session={session} onDone={finishStage} />
+        <DailyMapStage key={`${stage}-${resets}`} node={st.node} session={session} onDone={finishStage} />
       ) : (
-        <StagePlayer key={stage} st={st} session={session} onDone={finishStage} />
+        <StagePlayer key={`${stage}-${resets}`} st={st} session={session} onDone={finishStage} />
       )}
     </>
   );

@@ -40,6 +40,8 @@ export type DailyStage = {
   ms?: number;
   /** trips out of the app during this stage (uncle's view only) */
   away?: Away;
+  /** times the stage was quietly started over for leaving the app too often */
+  resets?: number;
 };
 
 export type DailyResult = {

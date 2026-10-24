@@ -8,13 +8,20 @@ export type Away = { n: number; ms: number };
 /** Shorter trips (a notification shade, a stray tap) aren't counted. */
 export const AWAY_MIN_MS = 2000;
 
+/** In the Daily, every trip past this many quietly starts the stage over. */
+export const AWAY_RESET_AFTER = 3;
+
 /**
  * Counts how often, and how long, the page is hidden or loses focus — switching to an app on a phone
  * hides the page; switching windows on a computer only blurs it. The browser doesn't say where the
  * player went, only that they left.
  */
-export function useAwayMeter() {
+export function useAwayMeter(onTrip?: (trips: number) => void) {
   const m = useRef({ n: 0, ms: 0, since: null as number | null });
+  const cb = useRef(onTrip);
+  useEffect(() => {
+    cb.current = onTrip;
+  });
 
   useEffect(() => {
     // Driven by the events themselves, not document.hasFocus(): some webviews never report focus.
@@ -29,6 +36,7 @@ export function useAwayMeter() {
       if (ms >= AWAY_MIN_MS) {
         s.n++;
         s.ms += ms;
+        cb.current?.(s.n);
       }
     };
     const visibility = () => (document.hidden ? leave() : back());
