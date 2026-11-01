@@ -98,27 +98,31 @@ function WeekSection({ data, today, showLevel }: { data: ProgressData; today: st
 
 const secs = (ms: number) => (ms < 60_000 ? `${Math.round(ms / 1000)} วิ` : formatTime(ms));
 
-/** Uncle's view only: how often the player left the app during each Daily stage this week. */
+/** Uncle's view only: trips out of the app and bonus questions, per Daily stage this week. */
 function AwayLog({ data, days }: { data: ProgressData; days: string[] }) {
   const rows = days.flatMap((day, i) => {
     const stages = data.daily[day]?.stages;
     if (!stages?.length || stages[0].kind === "hunt") return [];
-    if (stages.every((st) => !st.away)) return [{ day: i, text: "ยังไม่มีข้อมูล (ก่อนเริ่มจับ)", out: false }];
-    const out = stages.filter((st) => st.away && st.away.n > 0);
-    if (!out.length) return [{ day: i, text: "✅ ไม่ออกจากแอปเลย", out: false }];
-    return out.map((st) => ({
-      day: i,
-      text: `${st.label} ${st.stars}★ · ออก ${st.away!.n} ครั้ง รวม ${secs(st.away!.ms)}${st.resets ? ` · โดนรีเซ็ต ${st.resets} ครั้ง` : ""}`,
-      out: true,
-    }));
+    if (stages.every((st) => !st.away)) return [{ day: i, text: "ยังไม่มีข้อมูล (ก่อนเริ่มจับ)", bad: false }];
+    const notes = stages.flatMap((st) => {
+      const parts: string[] = [];
+      if (st.away?.n) parts.push(`ออก ${st.away.n} ครั้ง รวม ${secs(st.away.ms)}`);
+      if (st.resets) parts.push(`โดนรีเซ็ต ${st.resets} ครั้ง`);
+      if (st.quiz) parts.push(`คำถาม ${st.quiz.ok ? "✔" : "✗"} ${secs(st.quiz.ms)}`);
+      if (!parts.length) return [];
+      return [{ day: i, text: `${st.label} ${st.stars}★ · ${parts.join(" · ")}`, bad: !!st.away?.n || st.quiz?.ok === false }];
+    });
+    return notes.length ? notes : [{ day: i, text: "✅ ไม่ออกจากแอปเลย", bad: false }];
   });
   if (!rows.length) return null;
   return (
     <div className="mx-4 mt-3 rounded-xl border-2 border-dashed border-ink/30 p-3 text-sm">
-      <p className="font-display">🔒 ออกจากแอประหว่างด่าน (เห็นเฉพาะตอนเปิดจากโค้ด)</p>
-      <p className="mb-1 text-[11px] text-muted">นับเมื่อสลับไปแอปอื่นหรือหน้าต่างอื่นเกิน 1 วิ · ครั้งที่ 4 ของด่าน ด่านเริ่มใหม่เงียบๆ · ไม่รู้ว่าไปแอปไหน · ไม่นับวันล่าดาว</p>
+      <p className="font-display">🔒 ตรวจคิดเอง (เห็นเฉพาะตอนเปิดจากโค้ด)</p>
+      <p className="mb-1 text-[11px] text-muted">
+        ออก = สลับไปแอป/หน้าต่างอื่นเกิน 1 วิ (ครั้งที่ 4 ของด่าน ด่านเริ่มใหม่เงียบๆ) · คำถาม = คำถามโบนัสหลังผ่านด่าน ตอบผิดได้ไม่เกิน 2★ · ไม่นับวันล่าดาว
+      </p>
       {rows.map((r, i) => (
-        <p key={i} className={r.out ? "text-bad" : "text-muted"}>
+        <p key={i} className={r.bad ? "text-bad" : "text-muted"}>
           <span className="inline-block w-7 font-bold text-ink">{WEEKDAYS[r.day]}</span>
           {r.text}
         </p>

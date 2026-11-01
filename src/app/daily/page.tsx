@@ -40,10 +40,12 @@ import { DailySituation } from "@/games/situation/SituationGame";
 import { theme } from "@/games/situation/data";
 import { SprintGame } from "@/games/sprint/SprintGame";
 import { AwayDebug } from "@/components/AwayDebug";
+import { QuizCard } from "@/games/daily/QuizCard";
+import { QUIZ_CAP, makeQuiz, type Quiz } from "@/games/daily/quiz";
 import { AWAY_RESET_AFTER, useAwayMeter } from "@/lib/away";
 import { dayKey, elapsedSince, formatTime, shiftDay } from "@/lib/date";
 import { starsFor } from "@/lib/rank";
-import { rngFrom } from "@/lib/rng";
+import { randomSeed, rngFrom } from "@/lib/rng";
 import { useHydrated, useProgress, type DailyResult, type DailyStage } from "@/lib/store";
 
 const SITE = "https://brain-dojo.yok016.dev";
@@ -298,6 +300,8 @@ function DailyRun({ date }: { date: string }) {
   const mapDay = plan.some((p) => p.kind === "map");
   const [stage, setStage] = useState(-1);
   const [results, setResults] = useState<DailyStage[]>([]);
+  // The bonus question between a stage and the next, with the stage's result waiting on it.
+  const [quiz, setQuiz] = useState<{ q: Quiz; result: DailyStage } | null>(null);
   const [started, setStarted] = useState({ at: 0, hintBase: 0 });
   const session = useSession();
   // Leaving the app too often during a stage quietly starts it over — no warning, on purpose.
@@ -348,20 +352,9 @@ function DailyRun({ date }: { date: string }) {
   }
 
   const st = plan[stage];
-  const finishStage: Done = (stars, detail) => {
-    stageLive.current = false;
-    const next = [
-      ...results,
-      {
-        kind: st.kind,
-        label: `${st.emoji} ${st.label}`,
-        stars,
-        detail,
-        ms: elapsedSince(session.startedAt),
-        away: away.take(),
-        ...(resets ? { resets } : {}),
-      },
-    ];
+  const commitStage = (result: DailyStage) => {
+    setQuiz(null);
+    const next = [...results, result];
     setResults(next);
     if (stage + 1 < plan.length) {
       setTimeout(() => {
@@ -382,6 +375,22 @@ function DailyRun({ date }: { date: string }) {
       });
     }
   };
+  const finishStage: Done = (stars, detail) => {
+    stageLive.current = false;
+    const result: DailyStage = {
+      kind: st.kind,
+      label: `${st.emoji} ${st.label}`,
+      stars,
+      detail,
+      ms: elapsedSince(session.startedAt),
+      away: away.take(),
+      ...(resets ? { resets } : {}),
+    };
+    // A fresh mini-puzzle on the same rules; games without one go straight on.
+    const q = makeQuiz(st.kind === "map" ? st.node.kind : st.kind, rngFrom(randomSeed()));
+    if (q) setTimeout(() => setQuiz({ q, result }), 600);
+    else commitStage(result);
+  };
 
   return (
     <>
@@ -394,7 +403,18 @@ function DailyRun({ date }: { date: string }) {
         ด่าน {stage + 1}/{plan.length}: {st.emoji} {st.label}
       </p>
       {awayDebug && <AwayDebug take={away.take} />}
-      {st.kind === "map" ? (
+      {quiz ? (
+        <QuizCard
+          quiz={quiz.q}
+          onDone={({ ok, ms }) =>
+            commitStage({
+              ...quiz.result,
+              stars: ok ? quiz.result.stars : Math.min(quiz.result.stars, QUIZ_CAP),
+              quiz: { ok, ms },
+            })
+          }
+        />
+      ) : st.kind === "map" ? (
         <DailyMapStage key={`${stage}-${resets}`} node={st.node} session={session} onDone={finishStage} />
       ) : (
         <StagePlayer key={`${stage}-${resets}`} st={st} session={session} onDone={finishStage} />

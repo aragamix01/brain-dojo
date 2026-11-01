@@ -1,6 +1,7 @@
 // Sanity checks for puzzle content and generators: `npm run check`
 import assert from "node:assert/strict";
 import { rngFrom } from "../src/lib/rng";
+import { candidates, makeQuiz, sureCells } from "../src/games/daily/quiz";
 import { parseBoard, parseProgram, runToEnd } from "../src/games/robot/engine";
 import { ROBOT_LEVELS } from "../src/games/robot/levels";
 import { RANDOM_TIERS, generateRobotLevel } from "../src/games/robot/generate";
@@ -242,6 +243,28 @@ check("daily level rule", () => {
   assert.ok(isBossDay("2026-10-03") && !isBossDay("2026-10-04"));
   assert.equal(sprintDailyStars(20, DAILY_LEVELS[2].tuning.sprint.stars), 3);
   assert.equal(sprintDailyStars(20, DAILY_LEVELS[4].tuning.sprint.stars), 2);
+});
+
+check("bonus questions", () => {
+  for (let i = 0; i < 300; i++) {
+    for (const kind of ["hanoi", "lights", "sudoku", "nonogram"]) {
+      const q = makeQuiz(kind, rngFrom(`quiz${kind}${i}`))!;
+      assert.equal(q.options.length, 3, kind);
+      assert.equal(new Set(q.options.map((o) => JSON.stringify(o))).size, 3, `${kind} options differ`);
+      assert.ok(q.answer >= 0 && q.answer < 3);
+      if (q.kind === "sudoku") assert.deepEqual(candidates(q.grid, q.cell), [q.options[q.answer]]);
+      if (q.kind === "nonogram") {
+        const sure = sureCells(q.clue, q.length);
+        q.options.forEach((c, j) => assert.equal(sure.includes(c), j === q.answer, "only the answer is certain"));
+      }
+      if (q.kind === "hanoi") {
+        const { disk, to } = q.options[q.answer];
+        const top = q.pegs.findIndex((p) => p.at(-1) === disk);
+        assert.ok(top >= 0 && (q.pegs[to].length === 0 || q.pegs[to].at(-1)! > disk), "answer is a legal move");
+      }
+    }
+  }
+  return "4 kinds × 300";
 });
 
 check("kidtimer codes", () => {

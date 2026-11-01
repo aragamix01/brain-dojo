@@ -42,6 +42,8 @@ export type DailyStage = {
   away?: Away;
   /** times the stage was quietly started over for leaving the app too often */
   resets?: number;
+  /** the bonus question after the stage (uncle's view only) */
+  quiz?: { ok: boolean; ms: number };
 };
 
 export type DailyResult = {
