@@ -39,6 +39,7 @@ import { generateRobotLevel } from "@/games/robot/generate";
 import { DailySituation } from "@/games/situation/SituationGame";
 import { theme } from "@/games/situation/data";
 import { SprintGame } from "@/games/sprint/SprintGame";
+import { AiNote } from "@/components/AiNote";
 import { AwayDebug } from "@/components/AwayDebug";
 import { QuizCard } from "@/games/daily/QuizCard";
 import { QuizDemo } from "@/games/daily/QuizDemo";
@@ -404,22 +405,24 @@ function DailyRun({ date }: { date: string }) {
         ด่าน {stage + 1}/{plan.length}: {st.emoji} {st.label}
       </p>
       {awayDebug && <AwayDebug take={away.take} />}
-      {quiz ? (
-        <QuizCard
-          quiz={quiz.q}
-          onDone={({ ok, ms }) =>
-            commitStage({
-              ...quiz.result,
-              stars: ok ? quiz.result.stars : Math.min(quiz.result.stars, QUIZ_CAP),
-              quiz: { ok, ms },
-            })
-          }
-        />
-      ) : st.kind === "map" ? (
-        <DailyMapStage key={`${stage}-${resets}`} node={st.node} session={session} onDone={finishStage} />
-      ) : (
-        <StagePlayer key={`${stage}-${resets}`} st={st} session={session} onDone={finishStage} />
-      )}
+      <AiNote>
+        {quiz ? (
+          <QuizCard
+            quiz={quiz.q}
+            onDone={({ ok, ms }) =>
+              commitStage({
+                ...quiz.result,
+                stars: ok ? quiz.result.stars : Math.min(quiz.result.stars, QUIZ_CAP),
+                quiz: { ok, ms },
+              })
+            }
+          />
+        ) : st.kind === "map" ? (
+          <DailyMapStage key={`${stage}-${resets}`} node={st.node} session={session} onDone={finishStage} />
+        ) : (
+          <StagePlayer key={`${stage}-${resets}`} st={st} session={session} onDone={finishStage} />
+        )}
+      </AiNote>
     </>
   );
 }

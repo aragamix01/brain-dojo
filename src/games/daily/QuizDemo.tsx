@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AiNote } from "@/components/AiNote";
 import { randomSeed, rngFrom } from "@/lib/rng";
 import { QUIZ_KINDS, makeQuiz } from "./quiz";
 import { QuizCard, type QuizResult } from "./QuizCard";
@@ -34,11 +35,13 @@ export function QuizDemo() {
       <p className="mb-2 text-xs text-muted">
         🧪 ทดลอง {i + 1}/{QUIZ_KINDS.length} · {kind} · ไม่บันทึกผล
       </p>
-      <QuizCard
-        key={`${seed}-${i}`}
-        quiz={makeQuiz(kind, rngFrom(`${seed}:${i}`))!}
-        onDone={(r) => setResults((rs) => [...rs, { ...r, kind }])}
-      />
+      <AiNote>
+        <QuizCard
+          key={`${seed}-${i}`}
+          quiz={makeQuiz(kind, rngFrom(`${seed}:${i}`))!}
+          onDone={(r) => setResults((rs) => [...rs, { ...r, kind }])}
+        />
+      </AiNote>
     </>
   );
 }
