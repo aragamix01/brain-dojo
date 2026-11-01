@@ -41,6 +41,7 @@ import { theme } from "@/games/situation/data";
 import { SprintGame } from "@/games/sprint/SprintGame";
 import { AwayDebug } from "@/components/AwayDebug";
 import { QuizCard } from "@/games/daily/QuizCard";
+import { QuizDemo } from "@/games/daily/QuizDemo";
 import { QUIZ_CAP, makeQuiz, type Quiz } from "@/games/daily/quiz";
 import { AWAY_RESET_AFTER, useAwayMeter } from "@/lib/away";
 import { dayKey, elapsedSince, formatTime, shiftDay } from "@/lib/date";
@@ -427,6 +428,8 @@ function Daily() {
   const date = dayKey();
   const hydrated = useHydrated();
   const result = useProgress((s) => s.daily[date]);
+  const [demo] = useState(() => new URLSearchParams(location.search).has("quizdemo"));
+  if (demo) return <QuizDemo />;
   if (!hydrated) return null;
   if (result) return <ShareBox date={date} r={result} />;
   return isHuntDay(date) ? <HuntBoard /> : <DailyRun date={date} />;

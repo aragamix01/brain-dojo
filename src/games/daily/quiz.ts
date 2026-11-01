@@ -1,6 +1,10 @@
 // "Bonus question" after a Daily stage: a tiny fresh puzzle on the same rules, answered in seconds.
 // Someone who solved the stage themselves gets it at a glance; someone who copied an answer doesn't.
 import { randInt, shuffle, type Rng } from "@/lib/rng";
+import { HARBOR_BANK } from "../harbor/bank";
+import { EXIT_ROW, SIZE as HARBOR_SIZE, cellsOf, decodeHarbor, type Boat } from "../harbor/logic";
+import { allCodes, score, type Feedback, type LockConfig } from "../lock/logic";
+import { generateSeries } from "../series/logic";
 
 export const QUIZ_SECONDS = 15;
 /** A wrong or missed answer caps the stage at this many stars. */
@@ -10,10 +14,31 @@ export type Quiz =
   | { kind: "hanoi"; pegs: number[][]; options: { disk: number; to: number }[]; answer: number }
   | { kind: "lights"; grid: boolean[]; press: number; options: boolean[][]; answer: number }
   | { kind: "sudoku"; grid: number[]; cell: number; options: number[]; answer: number }
-  | { kind: "nonogram"; clue: number[]; length: number; options: number[]; answer: number };
+  | { kind: "nonogram"; clue: number[]; length: number; options: number[]; answer: number }
+  | { kind: "robot"; block: RobotOp[]; times: number; options: number[]; answer: number }
+  | { kind: "jugs"; caps: [number, number]; state: [number, number]; options: [number, number][]; answer: number }
+  | { kind: "lock"; history: { guess: number[]; fb: Feedback }[]; options: number[][]; answer: number }
+  | { kind: "harbor"; boats: Boat[]; pos: number[]; options: number[]; answer: number }
+  | { kind: "series"; terms: number[]; options: number[]; answer: number }
+  | { kind: "situation"; long: QuizTask; short: QuizTask; options: number[]; answer: number };
+
+export type RobotOp = "F" | "L" | "R";
+export type QuizTask = { emoji: string; name: string; active: number; wait?: number };
 
 export type QuizKind = Quiz["kind"];
-export const QUIZ_KINDS: readonly string[] = ["hanoi", "lights", "sudoku", "nonogram"];
+/** Every Daily game except Speed Math, which is already a race against the clock. */
+export const QUIZ_KINDS: readonly string[] = [
+  "hanoi",
+  "lights",
+  "sudoku",
+  "nonogram",
+  "robot",
+  "jugs",
+  "lock",
+  "harbor",
+  "series",
+  "situation",
+];
 
 /** Shuffle the options, keeping track of where the right one went. */
 function withAnswer<T>(rng: Rng, right: T, wrong: T[]): { options: T[]; answer: number } {
@@ -153,6 +178,163 @@ export function nonogramQuiz(rng: Rng): Quiz {
   }
 }
 
+// ── Robot: a short program, maybe repeated; where does the robot stop? (5×5, starts mid, facing up) ──
+
+export const ROBOT_GRID = 5;
+export const ROBOT_START = 12;
+
+/** End cell of the program, or null if the robot would leave the grid. */
+export function runRobot(block: RobotOp[], times: number): number | null {
+  let x = 2,
+    y = 2,
+    dir = 0;
+  for (let t = 0; t < times; t++)
+    for (const op of block) {
+      if (op === "L") dir = (dir + 3) % 4;
+      else if (op === "R") dir = (dir + 1) % 4;
+      else {
+        x += [0, 1, 0, -1][dir];
+        y += [-1, 0, 1, 0][dir];
+        if (x < 0 || y < 0 || x >= ROBOT_GRID || y >= ROBOT_GRID) return null;
+      }
+    }
+  return y * ROBOT_GRID + x;
+}
+
+export function robotQuiz(rng: Rng): Quiz {
+  for (;;) {
+    const block = Array.from({ length: randInt(rng, 2, 3) }, () => (["F", "F", "L", "R"] as const)[randInt(rng, 0, 3)]);
+    if (!block.includes("F") || !block.some((o) => o !== "F")) continue;
+    const times = randInt(rng, 2, 3);
+    const end = runRobot(block, times);
+    if (end === null || end === ROBOT_START) continue;
+    const mirrored = runRobot(
+      block.map((o) => (o === "L" ? "R" : o === "R" ? "L" : o)),
+      times,
+    );
+    const wrong = [...new Set([mirrored, runRobot(block, times - 1), runRobot(block, times + 1)])].filter(
+      (c): c is number => c !== null && c !== end && c !== ROBOT_START,
+    );
+    if (wrong.length < 2) continue;
+    return { kind: "robot", block, times, ...withAnswer(rng, end, wrong.slice(0, 2)) };
+  }
+}
+
+// ── Jugs: pour A into B until B is full or A is empty; what is in each? ──
+
+export function jugsQuiz(rng: Rng): Quiz {
+  for (;;) {
+    const capB = randInt(rng, 3, 5);
+    const capA = randInt(rng, capB + 1, 9);
+    const x = randInt(rng, 2, capA);
+    const y = randInt(rng, 1, capB - 1);
+    if (x + y <= capB) continue; // only overflowing pours: that is where the thinking is
+    const moved = Math.min(x, capB - y);
+    const right: [number, number] = [x - moved, y + moved];
+    const wrong: [number, number][] = [
+      [Math.max(0, x - capB), Math.min(capB, x)], // forgot B already had water
+      [Math.max(0, x - y), capB], // poured only as much as B held
+    ];
+    if (new Set([right, ...wrong].map((w) => w.join())).size < 3) continue;
+    return { kind: "jugs", caps: [capA, capB], state: [x, y], ...withAnswer(rng, right, wrong) };
+  }
+}
+
+// ── Lock: two earlier guesses with their feedback; which code could still be the answer? ──
+
+export const QUIZ_LOCK: LockConfig = { pegs: 3, colors: 4, repeats: false, par: 0 };
+
+export function fitsHistory(code: number[], history: { guess: number[]; fb: Feedback }[]): boolean {
+  return history.every((h) => {
+    const f = score(code, h.guess);
+    return f.exact === h.fb.exact && f.near === h.fb.near;
+  });
+}
+
+export function lockQuiz(rng: Rng): Quiz {
+  const codes = allCodes(QUIZ_LOCK);
+  for (;;) {
+    const secret = codes[randInt(rng, 0, codes.length - 1)];
+    const history = shuffle(rng, codes)
+      .filter((g) => g.join() !== secret.join())
+      .slice(0, 2)
+      .map((guess) => ({ guess, fb: score(secret, guess) }));
+    const wrong = shuffle(
+      rng,
+      codes.filter((c) => !fitsHistory(c, history) && !history.some((h) => h.guess.join() === c.join())),
+    );
+    if (wrong.length < 2) continue;
+    return { kind: "lock", history, ...withAnswer(rng, secret, wrong.slice(0, 2)) };
+  }
+}
+
+// ── Harbor: which boat sits in the way out? ──
+
+/** Boats with a cell on the exit row, ahead of the ship (boat 0). */
+export function blockers(boats: Boat[], pos: number[]): number[] {
+  const shipEnd = pos[0] + boats[0].len - 1;
+  return boats
+    .map((_, i) => i)
+    .filter(
+      (i) =>
+        i > 0 &&
+        cellsOf(boats[i], pos[i]).some((c) => Math.floor(c / HARBOR_SIZE) === EXIT_ROW && c % HARBOR_SIZE > shipEnd),
+    );
+}
+
+export function harborQuiz(rng: Rng): Quiz {
+  const bank = [...HARBOR_BANK.easy, ...HARBOR_BANK.normal];
+  for (;;) {
+    const p = decodeHarbor(bank[randInt(rng, 0, bank.length - 1)]);
+    const block = blockers(p.boats, p.start);
+    const free = p.boats.map((_, i) => i).filter((i) => i > 0 && !block.includes(i));
+    if (!block.length || free.length < 2) continue;
+    const right = block[randInt(rng, 0, block.length - 1)];
+    return { kind: "harbor", boats: p.boats, pos: p.start, ...withAnswer(rng, right, shuffle(rng, free).slice(0, 2)) };
+  }
+}
+
+// ── Series: a fresh sequence; what comes next? ──
+
+export function seriesQuiz(rng: Rng): Quiz {
+  for (;;) {
+    const item = generateSeries(rng, "normal").items[randInt(rng, 0, 4)];
+    const t = item.terms;
+    const step = Math.abs(t[t.length - 1] - t[t.length - 2]) || 1;
+    const wrong = [...new Set([item.answer + step, item.answer - step, item.answer + 1, item.answer - 1])].filter(
+      (w) => w !== item.answer,
+    );
+    if (wrong.length < 2) continue;
+    return { kind: "series", terms: t, ...withAnswer(rng, item.answer, wrong.slice(0, 2)) };
+  }
+}
+
+// ── Situation: one job that runs by itself, one that needs you; how soon can both be done? ──
+
+const LONG_TASKS = [
+  { emoji: "🍚", name: "หุงข้าว" },
+  { emoji: "👕", name: "ซักผ้าด้วยเครื่อง" },
+  { emoji: "💾", name: "ดาวน์โหลดเกม" },
+  { emoji: "🔋", name: "ชาร์จแบต" },
+];
+const SHORT_TASKS = [
+  { emoji: "🧹", name: "กวาดห้อง" },
+  { emoji: "📚", name: "ทำการบ้าน" },
+  { emoji: "🥗", name: "หั่นผัก" },
+  { emoji: "🛏️", name: "เก็บที่นอน" },
+];
+
+export function situationQuiz(rng: Rng): Quiz {
+  for (;;) {
+    const long: QuizTask = { ...LONG_TASKS[randInt(rng, 0, 3)], active: randInt(rng, 1, 3), wait: randInt(rng, 3, 9) * 5 };
+    const short: QuizTask = { ...SHORT_TASKS[randInt(rng, 0, 3)], active: randInt(rng, 2, 8) * 5 };
+    const right = long.active + Math.max(long.wait!, short.active);
+    const wrong = [long.active + long.wait! + short.active, Math.max(long.active + long.wait!, short.active) + short.active];
+    if (new Set([right, ...wrong]).size < 3) continue;
+    return { kind: "situation", long, short, ...withAnswer(rng, right, wrong) };
+  }
+}
+
 export function makeQuiz(kind: string, rng: Rng): Quiz | null {
   switch (kind) {
     case "hanoi":
@@ -163,6 +345,18 @@ export function makeQuiz(kind: string, rng: Rng): Quiz | null {
       return sudokuQuiz(rng);
     case "nonogram":
       return nonogramQuiz(rng);
+    case "robot":
+      return robotQuiz(rng);
+    case "jugs":
+      return jugsQuiz(rng);
+    case "lock":
+      return lockQuiz(rng);
+    case "harbor":
+      return harborQuiz(rng);
+    case "series":
+      return seriesQuiz(rng);
+    case "situation":
+      return situationQuiz(rng);
     default:
       return null;
   }

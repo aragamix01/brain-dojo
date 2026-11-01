@@ -2,7 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useNow } from "@/components/ui";
-import { QUIZ_SECONDS, type Quiz } from "./quiz";
+import { GEMS } from "../lock/logic";
+import { EXIT_ROW, SIZE as HARBOR_SIZE, cellsOf, type Boat } from "../harbor/logic";
+import { QUIZ_SECONDS, ROBOT_GRID, ROBOT_START, type Quiz, type RobotOp } from "./quiz";
 
 export type QuizResult = { ok: boolean; ms: number };
 
@@ -79,6 +81,80 @@ function NonogramArt({ clue, length }: { clue: number[]; length: number }) {
   );
 }
 
+const LETTERS = "ABCDEFGHIJKL";
+const BOAT_COLORS = ["#ffc93c", "#2ec4b6", "#4d8dff", "#a78bfa", "#ff9f43", "#8bd17c", "#f78fb3", "#7ed6df"];
+const OP_ICON: Record<RobotOp, string> = { F: "↑", L: "↺", R: "↻" };
+
+function RobotArt({ marks }: { marks: number[] }) {
+  return (
+    <div className="mx-auto grid w-fit grid-cols-5 gap-0.5">
+      {Array.from({ length: ROBOT_GRID * ROBOT_GRID }, (_, i) => (
+        <span key={i} className="flex h-8 w-8 items-center justify-center rounded bg-[#4d8dff]/70 font-display text-sm text-white">
+          {i === ROBOT_START ? "▲" : marks.includes(i) ? LETTERS[marks.indexOf(i)] : ""}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function JugsArt({ caps, state }: { caps: [number, number]; state: [number, number] }) {
+  return (
+    <div className="flex items-end justify-center gap-6">
+      {caps.map((cap, j) => (
+        <div key={j} className="flex flex-col items-center gap-1">
+          <div className="flex w-12 flex-col-reverse overflow-hidden rounded-b-lg border-[3px] border-ink" style={{ height: cap * 12 }}>
+            <div className="bg-[#41b8ff]" style={{ height: state[j] * 12 - 3 }} />
+          </div>
+          <span className="font-display text-sm">
+            {"AB"[j]} · {state[j]}/{cap}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const gems = (code: number[]) => code.map((c) => GEMS[c]).join(" ");
+
+function LockArt({ history }: { history: { guess: number[]; fb: { exact: number; near: number } }[] }) {
+  return (
+    <div className="mx-auto w-fit space-y-1">
+      {history.map((h, i) => (
+        <p key={i} className="flex items-center gap-3 rounded-lg bg-ink/5 px-3 py-1">
+          <span className="text-xl">{gems(h.guess)}</span>
+          <span className="font-mono text-sm">{"●".repeat(h.fb.exact) + "○".repeat(h.fb.near) || "—"}</span>
+        </p>
+      ))}
+      <p className="text-center text-[11px] text-muted">● ถูกอัญมณีและถูกที่ · ○ มีแต่ผิดที่ · ไม่มีอัญมณีซ้ำ</p>
+    </div>
+  );
+}
+
+function HarborArt({ boats, pos }: { boats: Boat[]; pos: number[] }) {
+  const owner = Array<number>(HARBOR_SIZE * HARBOR_SIZE).fill(-1);
+  boats.forEach((b, i) => cellsOf(b, pos[i]).forEach((c) => (owner[c] = i)));
+  return (
+    <div className="mx-auto flex w-fit items-center">
+      <div className="grid grid-cols-6 gap-0.5 rounded-lg border-[3px] border-ink bg-[#bfe8ff] p-0.5">
+        {owner.map((o, c) => (
+          <span
+            key={c}
+            style={o > 0 ? { background: BOAT_COLORS[(o - 1) % BOAT_COLORS.length] } : undefined}
+            className={`flex h-7 w-7 items-center justify-center rounded font-display text-xs ${
+              o === 0 ? "bg-[#ff5a5f] text-white" : ""
+            }`}
+          >
+            {o === 0 ? "🚢" : o > 0 ? LETTERS[o - 1] : ""}
+          </span>
+        ))}
+      </div>
+      <span className="ml-1 font-display text-lg" style={{ transform: `translateY(${(EXIT_ROW - 2.5) * 30}px)` }}>
+        ⇨
+      </span>
+    </div>
+  );
+}
+
 function question(q: Quiz): { text: string; art: React.ReactNode } {
   switch (q.kind) {
     case "hanoi":
@@ -99,6 +175,30 @@ function question(q: Quiz): { text: string; art: React.ReactNode } {
         text: `แถวนี้มีเลข ${q.clue.join(" ")} — ช่องไหนต้องระบายแน่ๆ ไม่ว่าจะวางแบบไหน?`,
         art: <NonogramArt clue={q.clue} length={q.length} />,
       };
+    case "robot":
+      return {
+        text: `หุ่น ▲ หันขึ้น ทำซ้ำ ${q.times} ครั้ง: ${q.block.map((o) => OP_ICON[o]).join(" ")} — หยุดที่ช่องไหน?`,
+        art: <RobotArt marks={q.options} />,
+      };
+    case "jugs":
+      return {
+        text: "เท A ลง B จนกว่า B จะเต็มหรือ A จะหมด — แล้วแต่ละเหยือกมีน้ำเท่าไหร่?",
+        art: <JugsArt caps={q.caps} state={q.state} />,
+      };
+    case "lock":
+      return { text: "จากที่เดาไปแล้ว รหัสไหนยังเป็นไปได้?", art: <LockArt history={q.history} /> };
+    case "harbor":
+      return { text: "เรือ 🚢 ต้องแล่นออกทาง ⇨ — เรือลำไหนขวางทางอยู่?", art: <HarborArt boats={q.boats} pos={q.pos} /> };
+    case "series":
+      return {
+        text: "เลขถัดไปคืออะไร?",
+        art: <p className="text-center font-display text-2xl">{q.terms.join(", ")}, ?</p>,
+      };
+    case "situation":
+      return {
+        text: `${q.long.emoji} ${q.long.name}: ลงมือ ${q.long.active} นาที แล้วรอเองอีก ${q.long.wait} นาที · ${q.short.emoji} ${q.short.name}: ต้องทำเอง ${q.short.active} นาที — ทำเสร็จทั้งสองอย่างเร็วสุดกี่นาที?`,
+        art: null,
+      };
   }
 }
 
@@ -112,6 +212,18 @@ function optionLabel(q: Quiz, i: number): React.ReactNode {
       return q.options[i];
     case "nonogram":
       return `ช่อง ${q.options[i] + 1}`;
+    case "robot":
+      return `ช่อง ${LETTERS[i]}`;
+    case "jugs":
+      return `A มี ${q.options[i][0]} · B มี ${q.options[i][1]}`;
+    case "lock":
+      return <span className="text-xl">{gems(q.options[i])}</span>;
+    case "harbor":
+      return `เรือ ${LETTERS[q.options[i] - 1]}`;
+    case "series":
+      return q.options[i];
+    case "situation":
+      return `${q.options[i]} นาที`;
   }
 }
 
@@ -170,11 +282,19 @@ export function QuizCard({ quiz, onDone }: { quiz: Quiz; onDone: (r: QuizResult)
       <div className="my-4">{art}</div>
       <div className={`grid gap-2 ${quiz.kind === "lights" ? "grid-cols-3" : "grid-cols-1"}`}>
         {quiz.options.map((_, i) => {
-          const state = !picked ? "" : i === quiz.answer ? "bg-good/30 border-good" : i === picked.i ? "bg-bad/20" : "opacity-50";
+          // Inline: .btn styles sit outside the Tailwind layers and would win over utility classes.
+          const style: React.CSSProperties = !picked
+            ? {}
+            : i === quiz.answer
+              ? { background: "#b6ecd0", opacity: 1 }
+              : i === picked.i
+                ? { background: "#f8c4c6", opacity: 1 }
+                : { opacity: 0.4 };
           return (
             <button
               key={i}
-              className={`btn btn-ghost flex justify-center py-2 font-display ${state}`}
+              className="btn btn-ghost flex justify-center py-2 font-display"
+              style={style}
               disabled={!!picked}
               onClick={() => finish(i)}
             >

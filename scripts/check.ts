@@ -1,7 +1,7 @@
 // Sanity checks for puzzle content and generators: `npm run check`
 import assert from "node:assert/strict";
 import { rngFrom } from "../src/lib/rng";
-import { candidates, makeQuiz, sureCells } from "../src/games/daily/quiz";
+import { QUIZ_KINDS, blockers, candidates, fitsHistory, makeQuiz, runRobot, sureCells } from "../src/games/daily/quiz";
 import { parseBoard, parseProgram, runToEnd } from "../src/games/robot/engine";
 import { ROBOT_LEVELS } from "../src/games/robot/levels";
 import { RANDOM_TIERS, generateRobotLevel } from "../src/games/robot/generate";
@@ -247,7 +247,7 @@ check("daily level rule", () => {
 
 check("bonus questions", () => {
   for (let i = 0; i < 300; i++) {
-    for (const kind of ["hanoi", "lights", "sudoku", "nonogram"]) {
+    for (const kind of QUIZ_KINDS) {
       const q = makeQuiz(kind, rngFrom(`quiz${kind}${i}`))!;
       assert.equal(q.options.length, 3, kind);
       assert.equal(new Set(q.options.map((o) => JSON.stringify(o))).size, 3, `${kind} options differ`);
@@ -257,6 +257,17 @@ check("bonus questions", () => {
         const sure = sureCells(q.clue, q.length);
         q.options.forEach((c, j) => assert.equal(sure.includes(c), j === q.answer, "only the answer is certain"));
       }
+      if (q.kind === "robot") assert.equal(q.options[q.answer], runRobot(q.block, q.times));
+      if (q.kind === "jugs") {
+        const moved = Math.min(q.state[0], q.caps[1] - q.state[1]);
+        assert.deepEqual(q.options[q.answer], [q.state[0] - moved, q.state[1] + moved]);
+      }
+      if (q.kind === "lock") q.options.forEach((c, j) => assert.equal(fitsHistory(c, q.history), j === q.answer, "only the answer fits"));
+      if (q.kind === "harbor") {
+        const b = blockers(q.boats, q.pos);
+        q.options.forEach((boat, j) => assert.equal(b.includes(boat), j === q.answer, "only the answer blocks"));
+      }
+      if (q.kind === "situation") assert.equal(q.options[q.answer], q.long.active + Math.max(q.long.wait!, q.short.active));
       if (q.kind === "hanoi") {
         const { disk, to } = q.options[q.answer];
         const top = q.pegs.findIndex((p) => p.at(-1) === disk);
@@ -264,7 +275,7 @@ check("bonus questions", () => {
       }
     }
   }
-  return "4 kinds × 300";
+  return `${QUIZ_KINDS.length} kinds × 300`;
 });
 
 check("kidtimer codes", () => {
