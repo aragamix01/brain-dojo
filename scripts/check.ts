@@ -1,7 +1,7 @@
 // Sanity checks for puzzle content and generators: `npm run check`
 import assert from "node:assert/strict";
 import { rngFrom } from "../src/lib/rng";
-import { QUIZ_KINDS, blockers, candidates, fitsHistory, makeQuiz, runRobot, sureCells } from "../src/games/daily/quiz";
+import { QUIZ_KINDS, blockers, candidates, makeQuiz, pressLight, runRobot, sureCells } from "../src/games/daily/quiz";
 import { parseBoard, parseProgram, runToEnd } from "../src/games/robot/engine";
 import { ROBOT_LEVELS } from "../src/games/robot/levels";
 import { RANDOM_TIERS, generateRobotLevel } from "../src/games/robot/generate";
@@ -249,29 +249,30 @@ check("bonus questions", () => {
   for (let i = 0; i < 300; i++) {
     for (const kind of QUIZ_KINDS) {
       const q = makeQuiz(kind, rngFrom(`quiz${kind}${i}`))!;
-      assert.equal(q.options.length, 3, kind);
-      assert.equal(new Set(q.options.map((o) => JSON.stringify(o))).size, 3, `${kind} options differ`);
-      assert.ok(q.answer >= 0 && q.answer < 3);
-      if (q.kind === "sudoku") assert.deepEqual(candidates(q.grid, q.cell), [q.options[q.answer]]);
+      assert.ok(q.answers.length > 0, kind);
+      assert.ok(q.answers.every((a) => Number.isInteger(a) && a >= 0 && a < 1000), `${kind} answers are typeable`);
+      if (q.kind === "sudoku") assert.deepEqual(candidates(q.grid, q.cell), q.answers);
       if (q.kind === "nonogram") {
-        const sure = sureCells(q.clue, q.length);
-        q.options.forEach((c, j) => assert.equal(sure.includes(c), j === q.answer, "only the answer is certain"));
+        assert.deepEqual(q.answers, sureCells(q.clue, q.length).map((c) => c + 1));
+        assert.ok(q.answers.length <= q.length / 2, "most cells are wrong answers");
       }
-      if (q.kind === "robot") assert.equal(q.options[q.answer], runRobot(q.block, q.times));
+      if (q.kind === "robot") assert.deepEqual(q.answers, [runRobot(q.block, q.times)! + 1]);
       if (q.kind === "jugs") {
         const moved = Math.min(q.state[0], q.caps[1] - q.state[1]);
-        assert.deepEqual(q.options[q.answer], [q.state[0] - moved, q.state[1] + moved]);
+        assert.ok(moved < q.state[0], "A never empties completely");
+        assert.deepEqual(q.answers, [q.state[0] - moved]);
       }
-      if (q.kind === "lock") q.options.forEach((c, j) => assert.equal(fitsHistory(c, q.history), j === q.answer, "only the answer fits"));
-      if (q.kind === "harbor") {
-        const b = blockers(q.boats, q.pos);
-        q.options.forEach((boat, j) => assert.equal(b.includes(boat), j === q.answer, "only the answer blocks"));
-      }
-      if (q.kind === "situation") assert.equal(q.options[q.answer], q.long.active + Math.max(q.long.wait!, q.short.active));
+      if (q.kind === "lock") assert.deepEqual(q.answers, [score(q.secret, q.guess).near]);
+      if (q.kind === "lights") assert.deepEqual(q.answers, [pressLight(q.grid, q.press).filter(Boolean).length]);
+      if (q.kind === "harbor") assert.deepEqual(q.answers, blockers(q.boats, q.pos));
+      if (q.kind === "situation") assert.deepEqual(q.answers, [q.long.active + Math.max(q.long.wait!, q.short.active)]);
       if (q.kind === "hanoi") {
-        const { disk, to } = q.options[q.answer];
-        const top = q.pegs.findIndex((p) => p.at(-1) === disk);
-        assert.ok(top >= 0 && (q.pegs[to].length === 0 || q.pegs[to].at(-1)! > disk), "answer is a legal move");
+        // The asked disk is on top of a peg and has somewhere legal to go.
+        const disk = q.answers[0];
+        assert.ok(disk > 1, "never the smallest disk");
+        const from = q.pegs.findIndex((p) => p.at(-1) === disk);
+        assert.ok(from >= 0, "answer disk is on top");
+        assert.ok(q.pegs.some((p, j) => j !== from && (p.length === 0 || p.at(-1)! > disk)), "and can move");
       }
     }
   }

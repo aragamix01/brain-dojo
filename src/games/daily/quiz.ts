@@ -1,31 +1,35 @@
-// "Bonus question" after a Daily stage: a tiny fresh puzzle on the same rules, answered in seconds.
-// Someone who solved the stage themselves gets it at a glance; someone who copied an answer doesn't.
+// "Bonus question" after a Daily stage: a tiny fresh puzzle on the same rules, answered by typing a
+// number. Someone who solved the stage themselves gets it at a glance; someone who copied an answer
+// doesn't — and with no choices on screen there's nothing to guess between.
 import { randInt, shuffle, type Rng } from "@/lib/rng";
 import { HARBOR_BANK } from "../harbor/bank";
 import { EXIT_ROW, SIZE as HARBOR_SIZE, cellsOf, decodeHarbor, type Boat } from "../harbor/logic";
-import { allCodes, score, type Feedback, type LockConfig } from "../lock/logic";
+import { allCodes, score, type LockConfig } from "../lock/logic";
 import { generateSeries } from "../series/logic";
 
-export const QUIZ_SECONDS = 15;
+export const QUIZ_SECONDS = 20;
 /** A wrong or missed answer caps the stage at this many stars. */
 export const QUIZ_CAP = 2;
-
-export type Quiz =
-  | { kind: "hanoi"; pegs: number[][]; options: { disk: number; to: number }[]; answer: number }
-  | { kind: "lights"; grid: boolean[]; press: number; options: boolean[][]; answer: number }
-  | { kind: "sudoku"; grid: number[]; cell: number; options: number[]; answer: number }
-  | { kind: "nonogram"; clue: number[]; length: number; options: number[]; answer: number }
-  | { kind: "robot"; block: RobotOp[]; times: number; options: number[]; answer: number }
-  | { kind: "jugs"; caps: [number, number]; state: [number, number]; options: [number, number][]; answer: number }
-  | { kind: "lock"; history: { guess: number[]; fb: Feedback }[]; options: number[][]; answer: number }
-  | { kind: "harbor"; boats: Boat[]; pos: number[]; options: number[]; answer: number }
-  | { kind: "series"; terms: number[]; options: number[]; answer: number }
-  | { kind: "situation"; long: QuizTask; short: QuizTask; options: number[]; answer: number };
 
 export type RobotOp = "F" | "L" | "R";
 export type QuizTask = { emoji: string; name: string; active: number; wait?: number };
 
+/** Every question takes a typed whole number; `answers` lists all the right ones. */
+export type Quiz = { answers: number[] } & (
+  | { kind: "hanoi"; pegs: number[][] }
+  | { kind: "lights"; grid: boolean[]; press: number }
+  | { kind: "sudoku"; grid: number[]; cell: number }
+  | { kind: "nonogram"; clue: number[]; length: number }
+  | { kind: "robot"; block: RobotOp[]; times: number }
+  | { kind: "jugs"; caps: [number, number]; state: [number, number] }
+  | { kind: "lock"; secret: number[]; guess: number[] }
+  | { kind: "harbor"; boats: Boat[]; pos: number[] }
+  | { kind: "series"; terms: number[] }
+  | { kind: "situation"; long: QuizTask; short: QuizTask }
+);
+
 export type QuizKind = Quiz["kind"];
+
 /** Every Daily game except Speed Math, which is already a race against the clock. */
 export const QUIZ_KINDS: readonly string[] = [
   "hanoi",
@@ -40,18 +44,11 @@ export const QUIZ_KINDS: readonly string[] = [
   "situation",
 ];
 
-/** Shuffle the options, keeping track of where the right one went. */
-function withAnswer<T>(rng: Rng, right: T, wrong: T[]): { options: T[]; answer: number } {
-  const order = shuffle(rng, [0, 1, 2].slice(0, wrong.length + 1));
-  const all = [right, ...wrong];
-  return { options: order.map((i) => all[i]), answer: order.indexOf(0) };
-}
-
-// ── Hanoi: a position from the shortest solution; which of the legal moves comes next? ──
+// ── Hanoi: a position from the shortest solution; which disk moves next? (never disk 1 — too guessable) ──
 
 const HANOI_DISKS = 4;
 
-function hanoiMoves(n: number, from: number, to: number, via: number, out: [number, number, number][]) {
+export function hanoiMoves(n: number, from: number, to: number, via: number, out: [number, number, number][]) {
   if (n === 0) return;
   hanoiMoves(n - 1, from, via, to, out);
   out.push([n, from, to]);
@@ -61,40 +58,31 @@ function hanoiMoves(n: number, from: number, to: number, via: number, out: [numb
 export function hanoiQuiz(rng: Rng): Quiz {
   const moves: [number, number, number][] = [];
   hanoiMoves(HANOI_DISKS, 0, 2, 1, moves);
-  const step = randInt(rng, 1, moves.length - 2);
+  // Pick the disk first, so every answer is equally likely (disk 2 moves far more often than 4).
+  const disk = randInt(rng, 2, HANOI_DISKS);
+  const steps = moves.map((_, i) => i).filter((i) => moves[i][0] === disk);
+  const step = steps[randInt(rng, 0, steps.length - 1)];
   // pegs list disks bottom → top; disk 1 is the smallest
   const pegs: number[][] = [Array.from({ length: HANOI_DISKS }, (_, i) => HANOI_DISKS - i), [], []];
   for (const [, from, to] of moves.slice(0, step)) pegs[to].push(pegs[from].pop()!);
-  const [disk, , to] = moves[step];
-  const legal: { disk: number; to: number }[] = [];
-  pegs.forEach((p, from) => {
-    const top = p.at(-1);
-    if (top === undefined) return;
-    pegs.forEach((q, dest) => {
-      if (dest !== from && (q.length === 0 || q.at(-1)! > top)) legal.push({ disk: top, to: dest });
-    });
-  });
-  const wrong = legal.filter((m) => !(m.disk === disk && m.to === to));
-  return { kind: "hanoi", pegs, ...withAnswer(rng, { disk, to }, wrong.slice(0, 2)) };
+  return { kind: "hanoi", pegs, answers: [moves[step][0]] };
 }
 
-// ── Lights Out: press one light on a 3×3 board; which picture comes out? ──
+// ── Lights Out: press one light on a 3×3 board; how many are on afterwards? ──
 
-const plus = (i: number) => [i, i - 3, i + 3, ...(i % 3 > 0 ? [i - 1] : []), ...(i % 3 < 2 ? [i + 1] : [])].filter((j) => j >= 0 && j < 9);
-const cross = (i: number) => [i, ...[-4, -2, 2, 4].map((d) => i + d).filter((j) => j >= 0 && j < 9 && Math.abs((j % 3) - (i % 3)) === 1)];
+const plus = (i: number) =>
+  [i, i - 3, i + 3, ...(i % 3 > 0 ? [i - 1] : []), ...(i % 3 < 2 ? [i + 1] : [])].filter((j) => j >= 0 && j < 9);
 
-function toggle(grid: boolean[], cells: number[]): boolean[] {
+export function pressLight(grid: boolean[], i: number): boolean[] {
   const out = grid.slice();
-  for (const c of cells) out[c] = !out[c];
+  for (const c of plus(i)) out[c] = !out[c];
   return out;
 }
 
 export function lightsQuiz(rng: Rng): Quiz {
   const grid = Array.from({ length: 9 }, () => rng() < 0.45);
   const press = randInt(rng, 0, 8);
-  const right = toggle(grid, plus(press));
-  const wrong = [toggle(grid, [press]), toggle(grid, cross(press))];
-  return { kind: "lights", grid, press, ...withAnswer(rng, right, wrong) };
+  return { kind: "lights", grid, press, answers: [pressLight(grid, press).filter(Boolean).length] };
 }
 
 // ── Sudoku 4×4: one empty cell that only row + column + box together pin down. ──
@@ -115,7 +103,9 @@ function shuffledSolution(rng: Rng): number[] {
 
 export function candidates(grid: number[], cell: number): number[] {
   const seen = new Set(
-    grid.filter((v, j) => v && j !== cell && (rowOf(j) === rowOf(cell) || colOf(j) === colOf(cell) || boxOf(j) === boxOf(cell))),
+    grid.filter(
+      (v, j) => v && j !== cell && (rowOf(j) === rowOf(cell) || colOf(j) === colOf(cell) || boxOf(j) === boxOf(cell)),
+    ),
   );
   return [1, 2, 3, 4].filter((d) => !seen.has(d));
 }
@@ -131,18 +121,13 @@ export function sudokuQuiz(rng: Rng): Quiz {
       blanks(grid, (j) => rowOf(j) === rowOf(cell)) >= 2 &&
       blanks(grid, (j) => colOf(j) === colOf(cell)) >= 2 &&
       blanks(grid, (j) => boxOf(j) === boxOf(cell)) >= 2;
-    if (!needsAll || candidates(grid, cell).length !== 1) continue;
-    const right = solution[cell];
-    const wrong = shuffle(rng, [1, 2, 3, 4].filter((d) => d !== right)).slice(0, 2);
-    return { kind: "sudoku", grid, cell, ...withAnswer(rng, right, wrong) };
+    if (needsAll && candidates(grid, cell).length === 1) return { kind: "sudoku", grid, cell, answers: [solution[cell]] };
   }
   // Practically unreachable; a plain row-forced cell still checks the rule.
-  const grid = solution.map((v, j) => (j === cell ? 0 : v));
-  const right = solution[cell];
-  return { kind: "sudoku", grid, cell, ...withAnswer(rng, right, shuffle(rng, [1, 2, 3, 4].filter((d) => d !== right)).slice(0, 2)) };
+  return { kind: "sudoku", grid: solution.map((v, j) => (j === cell ? 0 : v)), cell, answers: [solution[cell]] };
 }
 
-// ── Nonogram: one row and its clue; which cell must be filled whatever the layout? ──
+// ── Nonogram: one row and its clue; type any cell that must be filled whatever the layout. ──
 
 const NONO_LENGTH = 8;
 
@@ -161,7 +146,7 @@ function placements(clue: number[], length: number): boolean[][] {
   return out;
 }
 
-/** Cells filled in every possible layout of the clue. */
+/** Cells (0-based) filled in every possible layout of the clue. */
 export function sureCells(clue: number[], length: number): number[] {
   const all = placements(clue, length);
   return Array.from({ length }, (_, i) => i).filter((i) => all.every((r) => r[i]));
@@ -171,19 +156,18 @@ export function nonogramQuiz(rng: Rng): Quiz {
   for (;;) {
     const clue = rng() < 0.5 ? [randInt(rng, 5, 7)] : [randInt(rng, 2, 4), randInt(rng, 2, 4)];
     const sure = sureCells(clue, NONO_LENGTH);
-    const unsure = Array.from({ length: NONO_LENGTH }, (_, i) => i).filter((i) => !sure.includes(i));
-    if (!sure.length || unsure.length < 2) continue;
-    const right = sure[randInt(rng, 0, sure.length - 1)];
-    return { kind: "nonogram", clue, length: NONO_LENGTH, ...withAnswer(rng, right, shuffle(rng, unsure).slice(0, 2)) };
+    // Leave room to be wrong: at most half the row is certain.
+    if (sure.length && sure.length <= NONO_LENGTH / 2)
+      return { kind: "nonogram", clue, length: NONO_LENGTH, answers: sure.map((c) => c + 1) };
   }
 }
 
-// ── Robot: a short program, maybe repeated; where does the robot stop? (5×5, starts mid, facing up) ──
+// ── Robot: a short program, maybe repeated; which numbered cell does it stop on? (5×5, starts mid, facing up) ──
 
 export const ROBOT_GRID = 5;
 export const ROBOT_START = 12;
 
-/** End cell of the program, or null if the robot would leave the grid. */
+/** End cell (0-based) of the program, or null if the robot would leave the grid. */
 export function runRobot(block: RobotOp[], times: number): number | null {
   let x = 2,
     y = 2,
@@ -208,19 +192,11 @@ export function robotQuiz(rng: Rng): Quiz {
     const times = randInt(rng, 2, 3);
     const end = runRobot(block, times);
     if (end === null || end === ROBOT_START) continue;
-    const mirrored = runRobot(
-      block.map((o) => (o === "L" ? "R" : o === "R" ? "L" : o)),
-      times,
-    );
-    const wrong = [...new Set([mirrored, runRobot(block, times - 1), runRobot(block, times + 1)])].filter(
-      (c): c is number => c !== null && c !== end && c !== ROBOT_START,
-    );
-    if (wrong.length < 2) continue;
-    return { kind: "robot", block, times, ...withAnswer(rng, end, wrong.slice(0, 2)) };
+    return { kind: "robot", block, times, answers: [end + 1] };
   }
 }
 
-// ── Jugs: pour A into B until B is full or A is empty; what is in each? ──
+// ── Jugs: pour A into B until B is full; how much is left in A? ──
 
 export function jugsQuiz(rng: Rng): Quiz {
   for (;;) {
@@ -228,49 +204,31 @@ export function jugsQuiz(rng: Rng): Quiz {
     const capA = randInt(rng, capB + 1, 9);
     const x = randInt(rng, 2, capA);
     const y = randInt(rng, 1, capB - 1);
-    if (x + y <= capB) continue; // only overflowing pours: that is where the thinking is
-    const moved = Math.min(x, capB - y);
-    const right: [number, number] = [x - moved, y + moved];
-    const wrong: [number, number][] = [
-      [Math.max(0, x - capB), Math.min(capB, x)], // forgot B already had water
-      [Math.max(0, x - y), capB], // poured only as much as B held
-    ];
-    if (new Set([right, ...wrong].map((w) => w.join())).size < 3) continue;
-    return { kind: "jugs", caps: [capA, capB], state: [x, y], ...withAnswer(rng, right, wrong) };
+    if (x + y <= capB) continue; // only overflowing pours: that's where the thinking is
+    return { kind: "jugs", caps: [capA, capB], state: [x, y], answers: [x - (capB - y)] };
   }
 }
 
-// ── Lock: two earlier guesses with their feedback; which code could still be the answer? ──
+// ── Lock: the real code and one guess; how many ○ (right gem, wrong place) does it get? ──
 
 export const QUIZ_LOCK: LockConfig = { pegs: 3, colors: 4, repeats: false, par: 0 };
 
-export function fitsHistory(code: number[], history: { guess: number[]; fb: Feedback }[]): boolean {
-  return history.every((h) => {
-    const f = score(code, h.guess);
-    return f.exact === h.fb.exact && f.near === h.fb.near;
-  });
-}
-
 export function lockQuiz(rng: Rng): Quiz {
   const codes = allCodes(QUIZ_LOCK);
+  const want = randInt(rng, 0, 3);
   for (;;) {
     const secret = codes[randInt(rng, 0, codes.length - 1)];
-    const history = shuffle(rng, codes)
-      .filter((g) => g.join() !== secret.join())
-      .slice(0, 2)
-      .map((guess) => ({ guess, fb: score(secret, guess) }));
-    const wrong = shuffle(
-      rng,
-      codes.filter((c) => !fitsHistory(c, history) && !history.some((h) => h.guess.join() === c.join())),
-    );
-    if (wrong.length < 2) continue;
-    return { kind: "lock", history, ...withAnswer(rng, secret, wrong.slice(0, 2)) };
+    const guess = codes[randInt(rng, 0, codes.length - 1)];
+    const fb = score(secret, guess);
+    // Aim for an even spread of answers 0–3, so no single number is a safe guess.
+    if (fb.near !== want || fb.exact === 3) continue;
+    return { kind: "lock", secret, guess, answers: [fb.near] };
   }
 }
 
-// ── Harbor: which boat sits in the way out? ──
+// ── Harbor: which numbered boat sits in the way out? (any blocker counts) ──
 
-/** Boats with a cell on the exit row, ahead of the ship (boat 0). */
+/** Boats (by index) with a cell on the exit row, ahead of the ship (boat 0). */
 export function blockers(boats: Boat[], pos: number[]): number[] {
   const shipEnd = pos[0] + boats[0].len - 1;
   return boats
@@ -287,26 +245,17 @@ export function harborQuiz(rng: Rng): Quiz {
   for (;;) {
     const p = decodeHarbor(bank[randInt(rng, 0, bank.length - 1)]);
     const block = blockers(p.boats, p.start);
-    const free = p.boats.map((_, i) => i).filter((i) => i > 0 && !block.includes(i));
-    if (!block.length || free.length < 2) continue;
-    const right = block[randInt(rng, 0, block.length - 1)];
-    return { kind: "harbor", boats: p.boats, pos: p.start, ...withAnswer(rng, right, shuffle(rng, free).slice(0, 2)) };
+    // A few boats, mostly not in the way, so picking one at random rarely works.
+    if (block.length && block.length * 3 <= p.boats.length - 1)
+      return { kind: "harbor", boats: p.boats, pos: p.start, answers: block };
   }
 }
 
 // ── Series: a fresh sequence; what comes next? ──
 
 export function seriesQuiz(rng: Rng): Quiz {
-  for (;;) {
-    const item = generateSeries(rng, "normal").items[randInt(rng, 0, 4)];
-    const t = item.terms;
-    const step = Math.abs(t[t.length - 1] - t[t.length - 2]) || 1;
-    const wrong = [...new Set([item.answer + step, item.answer - step, item.answer + 1, item.answer - 1])].filter(
-      (w) => w !== item.answer,
-    );
-    if (wrong.length < 2) continue;
-    return { kind: "series", terms: t, ...withAnswer(rng, item.answer, wrong.slice(0, 2)) };
-  }
+  const item = generateSeries(rng, "easy").items[randInt(rng, 0, 4)];
+  return { kind: "series", terms: item.terms, answers: [item.answer] };
 }
 
 // ── Situation: one job that runs by itself, one that needs you; how soon can both be done? ──
@@ -325,14 +274,9 @@ const SHORT_TASKS = [
 ];
 
 export function situationQuiz(rng: Rng): Quiz {
-  for (;;) {
-    const long: QuizTask = { ...LONG_TASKS[randInt(rng, 0, 3)], active: randInt(rng, 1, 3), wait: randInt(rng, 3, 9) * 5 };
-    const short: QuizTask = { ...SHORT_TASKS[randInt(rng, 0, 3)], active: randInt(rng, 2, 8) * 5 };
-    const right = long.active + Math.max(long.wait!, short.active);
-    const wrong = [long.active + long.wait! + short.active, Math.max(long.active + long.wait!, short.active) + short.active];
-    if (new Set([right, ...wrong]).size < 3) continue;
-    return { kind: "situation", long, short, ...withAnswer(rng, right, wrong) };
-  }
+  const long: QuizTask = { ...LONG_TASKS[randInt(rng, 0, 3)], active: randInt(rng, 1, 2) * 5, wait: randInt(rng, 3, 8) * 5 };
+  const short: QuizTask = { ...SHORT_TASKS[randInt(rng, 0, 3)], active: randInt(rng, 2, 8) * 5 };
+  return { kind: "situation", long, short, answers: [long.active + Math.max(long.wait!, short.active)] };
 }
 
 export function makeQuiz(kind: string, rng: Rng): Quiz | null {
