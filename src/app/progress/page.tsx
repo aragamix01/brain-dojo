@@ -9,7 +9,7 @@ import { THEMES } from "@/games/situation/data";
 import { COINS } from "@/lib/coins";
 import { dayKey, formatTime, shiftDay } from "@/lib/date";
 import { rankFor } from "@/lib/rank";
-import { decodeProgress, encodeProgress, type Decoded } from "@/lib/share";
+import { decodeProgress, encodeProgress, encodeReport, REPORT_DAYS, reportUrl, type Decoded } from "@/lib/share";
 import { liveStreak, snapshot, useProgress, type ProgressData } from "@/lib/store";
 import { weekCompare, weekRange, weekReport } from "@/lib/weekly";
 import { formatMinutes } from "@/lib/kidtimer/reward";
@@ -127,48 +127,92 @@ function AwayLog({ data, days }: { data: ProgressData; days: string[] }) {
   );
 }
 
-/** Main share: the whole progress as a code; whoever gets it pastes it below to see everything. */
+/** Opens the share sheet with `text`, or copies it where there's none; true when copied. */
+async function shareText(text: string): Promise<boolean> {
+  try {
+    if (navigator.share) {
+      await navigator.share({ text });
+      return false;
+    }
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    return false; // cancelled
+  }
+}
+
+/**
+ * Main share: a link (and QR code) to the last two weeks, which opens the summary with one tap or
+ * scan. The whole progress still goes out as a long code, for backups and moving to a new phone.
+ */
 function ShareCard() {
   const p = useProgress();
-  const [code, setCode] = useState("");
-  const [copied, setCopied] = useState(false);
+  const [link, setLink] = useState("");
+  const [qr, setQr] = useState("");
+  const [showQr, setShowQr] = useState(false);
+  const [copied, setCopied] = useState<"link" | "backup" | null>(null);
   // Built ahead of time so the share sheet opens straight from the tap.
   useEffect(() => {
     let live = true;
-    void encodeProgress(snapshot()).then((c) => live && setCode(c));
+    void encodeReport(snapshot()).then((c) => live && setLink(reportUrl(c, location.origin)));
     return () => {
       live = false;
     };
   }, [p]);
-  const share = async () => {
-    try {
-      if (navigator.share) await navigator.share({ text: code });
-      else {
-        await navigator.clipboard.writeText(code);
-        setCopied(true);
-      }
-    } catch {
-      /* cancelled */
-    }
+  useEffect(() => {
+    if (!showQr || !link) return;
+    let live = true;
+    void import("qrcode")
+      .then((QR) => QR.toDataURL(link, { errorCorrectionLevel: "L", margin: 2, width: 640 }))
+      .then((url) => live && setQr(url));
+    return () => {
+      live = false;
+    };
+  }, [showQr, link]);
+
+  const shareLink = async () => {
+    const who = p.name ? `ของ ${p.name}` : "";
+    if (await shareText(`📊 ผลงาน Brain Dojo ${who} (${REPORT_DAYS} วันล่าสุด) — กดดูได้เลย\n${link}`)) setCopied("link");
+  };
+  const shareBackup = async () => {
+    if (await shareText(await encodeProgress(snapshot()))) setCopied("backup");
   };
   const saturday = new Date().getDay() === 6;
   return (
     <div className="card p-4">
-      <button className="btn btn-primary w-full text-lg" disabled={!code} onClick={share}>
-        {copied ? "คัดลอกโค้ดแล้ว ✔" : "📤 แชร์ผลงาน"}
-      </button>
+      <div className="flex gap-2">
+        <button className="btn btn-primary flex-1 text-lg" disabled={!link} onClick={shareLink}>
+          {copied === "link" ? "คัดลอกลิงก์แล้ว ✔" : "📤 ส่งลิงก์ผลงาน"}
+        </button>
+        <button className="btn btn-ghost px-4 text-lg" disabled={!link} onClick={() => setShowQr((v) => !v)} aria-expanded={showQr}>
+          🔳 QR
+        </button>
+      </div>
+      {showQr && (
+        <div className="mt-3 flex flex-col items-center">
+          {qr ? (
+            // eslint-disable-next-line @next/next/no-img-element -- a data: URL, nothing to optimise
+            <img src={qr} alt="QR code ผลงาน" className="aspect-square w-full max-w-[280px] rounded-xl border-2 border-ink" />
+          ) : (
+            <div className="aspect-square w-full max-w-[280px] animate-pulse rounded-xl bg-ink/5" />
+          )}
+          <p className="mt-2 text-center text-xs text-muted">สแกนด้วยกล้องมือถือ · กดค้างที่รูปเพื่อบันทึกหรือส่งต่อ</p>
+        </div>
+      )}
       <p className="mt-2 text-center text-xs leading-relaxed text-muted">
         {saturday && <span className="font-bold text-ink">วันเสาร์แล้ว ส่งสรุปทั้งสัปดาห์ได้เลย! · </span>}
-        ส่งเป็นโค้ด — คนที่ได้รับวางในช่อง &quot;ดูผลงาน&quot; ด้านล่าง จะเห็นผลงานทั้งหมดกับสรุปสัปดาห์ · ใช้ย้ายข้อมูลไปเครื่องใหม่ได้ด้วย
+        คนที่ได้รับกดลิงก์หรือสแกน QR จะเห็นสรุปสัปดาห์กับผลงาน {REPORT_DAYS} วันล่าสุดทันที
       </p>
+      <button className="mt-2 w-full py-1 text-xs text-muted underline" onClick={shareBackup}>
+        {copied === "backup" ? "คัดลอกโค้ดสำรองแล้ว ✔" : "📦 สำรองข้อมูลทั้งหมด (โค้ดยาว ใช้ย้ายไปเครื่องใหม่)"}
+      </button>
     </div>
   );
 }
 
-function Summary({ data, exportedAt }: { data: ProgressData; exportedAt?: number }) {
+function Summary({ data, exportedAt, dailyCount }: { data: ProgressData; exportedAt?: number; dailyCount?: number }) {
   const rank = rankFor(data.xp);
   const g = data.games;
-  const dailyCount = Object.keys(data.daily).length;
   // A pasted code shows the week as it was when it was shared.
   const today = exportedAt ? dayKey(new Date(exportedAt)) : dayKey();
   return (
@@ -189,7 +233,7 @@ function Summary({ data, exportedAt }: { data: ProgressData; exportedAt?: number
           {[
             ["⚔️ streak", liveStreak(data)],
             ["best", data.bestStreak],
-            ["📅 daily", dailyCount],
+            ["📅 daily", dailyCount ?? Object.keys(data.daily).length],
             ["💡 hints", data.hintsUsed],
           ].map(([k, v]) => (
             <div key={k} className="rounded-xl bg-ink/5 py-2">
@@ -263,8 +307,14 @@ function Summary({ data, exportedAt }: { data: ProgressData; exportedAt?: number
   );
 }
 
-function ImportBox() {
-  const [text, setText] = useState("");
+/** The code in a shared link (`/progress#v=…`), if the page was opened from one. */
+function linkCode(): string | null {
+  return location.hash.startsWith("#v=") ? location.hash.slice(3) : null;
+}
+
+/** Paste a code (or a shared link) to see someone's progress; a full code can also be restored. */
+function ImportBox({ initial, onClose }: { initial?: string; onClose?: () => void }) {
+  const [text, setText] = useState(initial ?? "");
   const [data, setData] = useState<Decoded | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const importData = useProgress((s) => s.importData);
@@ -278,15 +328,37 @@ function ImportBox() {
       setErr((e as Error).message);
     }
   };
+  useEffect(() => {
+    if (!initial) return;
+    decodeProgress(initial).then(setData, (e: Error) => setErr(e.message));
+  }, [initial]);
+
+  if (initial)
+    return (
+      <div className="card border-pink p-4">
+        <div className="flex items-center justify-between">
+          <p className="font-display">📬 ผลงานที่ได้รับ</p>
+          <button className="text-sm text-muted underline" onClick={onClose}>
+            ปิด
+          </button>
+        </div>
+        {err && <p className="mt-2 text-sm text-bad">ลิงก์นี้เปิดไม่ได้: {err}</p>}
+        {data && (
+          <div className="mt-3">
+            <Summary data={data} exportedAt={data.exportedAt} dailyCount={data.dailyCount} />
+          </div>
+        )}
+      </div>
+    );
 
   return (
     <div className="card p-4">
       <p className="font-display">📥 ดูผลงาน / กู้ข้อมูล</p>
-      <p className="mt-1 text-xs text-muted">วางโค้ดที่ได้รับ แล้วกดเปิดดู — เห็นผลงานทั้งหมดกับสรุปสัปดาห์</p>
+      <p className="mt-1 text-xs text-muted">วางลิงก์หรือโค้ดที่ได้รับ แล้วกดเปิดดู — เห็นผลงานกับสรุปสัปดาห์</p>
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
-        placeholder="วางโค้ด BD… ที่นี่"
+        placeholder="วางลิงก์ หรือโค้ด BD… ที่นี่"
         className="mt-3 h-20 w-full rounded-xl bg-ink/5 p-2 font-mono text-[10px]"
       />
       <button className="btn btn-ghost mt-2 w-full" onClick={read} disabled={!text.trim()}>
@@ -295,21 +367,25 @@ function ImportBox() {
       {err && <p className="mt-2 text-sm text-bad">{err}</p>}
       {data && (
         <div className="mt-4">
-          <Summary data={data} exportedAt={data.exportedAt} />
-          <button
-            className="btn btn-ghost mt-3 w-full text-sm text-bad"
-            onClick={() => {
-              if (confirm("แทนที่ข้อมูลในเครื่องนี้ด้วยข้อมูลจากโค้ด? (ข้อมูลเดิมจะหายไป)")) {
-                const { exportedAt, ...rest } = data;
-                void exportedAt;
-                importData(rest);
-                setData(null);
-                setText("");
-              }
-            }}
-          >
-            กู้คืนเป็นข้อมูลของเครื่องนี้
-          </button>
+          <Summary data={data} exportedAt={data.exportedAt} dailyCount={data.dailyCount} />
+          {data.report ? (
+            <p className="mt-3 text-center text-xs text-muted">นี่คือสรุป {REPORT_DAYS} วันล่าสุด · กู้ข้อมูลต้องใช้โค้ดสำรอง 📦</p>
+          ) : (
+            <button
+              className="btn btn-ghost mt-3 w-full text-sm text-bad"
+              onClick={() => {
+                if (confirm("แทนที่ข้อมูลในเครื่องนี้ด้วยข้อมูลจากโค้ด? (ข้อมูลเดิมจะหายไป)")) {
+                  const { exportedAt, report, dailyCount, ...rest } = data;
+                  void [exportedAt, report, dailyCount];
+                  importData(rest);
+                  setData(null);
+                  setText("");
+                }
+              }}
+            >
+              กู้คืนเป็นข้อมูลของเครื่องนี้
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -379,8 +455,21 @@ function Mine() {
   const p = useProgress();
   const setName = useProgress((s) => s.setName);
   const reset = useProgress((s) => s.reset);
+  // Opened from a shared link or QR code: show what was sent first.
+  const [incoming, setIncoming] = useState<string | null>(null);
+  useEffect(() => {
+    const pick = () => setIncoming(linkCode());
+    pick();
+    addEventListener("hashchange", pick);
+    return () => removeEventListener("hashchange", pick);
+  }, []);
+  const closeIncoming = () => {
+    history.replaceState(null, "", location.pathname);
+    setIncoming(null);
+  };
   return (
     <div className="space-y-4">
+      {incoming && <ImportBox key={incoming} initial={incoming} onClose={closeIncoming} />}
       <ShareCard />
       <label className="card flex items-center gap-3 p-4">
         <span className="text-sm text-muted">ชื่อเล่น</span>

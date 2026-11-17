@@ -27,7 +27,7 @@ import {
 import { HUNT, addHuntStars, huntLabel, huntTotal, isFixedLevel, isHuntDay } from "../src/games/daily/hunt";
 import { COINS, applyRewards, spend, winRewards } from "../src/lib/coins";
 import { ACHIEVEMENTS, newlyEarned } from "../src/lib/achievements";
-import { daysBetween, streakFromDailies, weekOf } from "../src/lib/date";
+import { daysBetween, shiftDay, streakFromDailies, weekOf } from "../src/lib/date";
 import { generateNonogram as genNono } from "../src/games/nonogram/logic";
 import { claimCode, nodeSeed, verifyClaim } from "../src/games/quest/progress";
 import { theme } from "../src/games/situation/data";
@@ -50,7 +50,7 @@ import { bumpLog, weekCompare, weekReport } from "../src/lib/weekly";
 import { emptyProgress } from "../src/lib/store";
 import { WEB_SERIAL_MAX, bangkokDay, dailySerial, makeCode, manualSerial, shopSerial } from "../src/lib/kidtimer/core";
 import { rewardMinutes } from "../src/lib/kidtimer/reward";
-import { decodeProgress, encodeProgress } from "../src/lib/share";
+import { decodeProgress, encodeProgress, encodeReport, reportUrl } from "../src/lib/share";
 
 let failures = 0;
 function check(name: string, fn: () => string | void) {
@@ -506,6 +506,42 @@ ${code}
   } catch (e) {
     failures++;
     console.log(`FAIL share code: ${(e as Error).message}`);
+  }
+  try {
+    // A year of Dailies: the report keeps only the last two weeks, so it stays QR-sized.
+    const p = emptyProgress();
+    p.name = "Yok";
+    for (let i = 0; i < 365; i++) {
+      const d = shiftDay("2026-11-17", -i);
+      p.daily[d] = {
+        timeMs: 300_000 + i * 1234,
+        hints: i % 3,
+        level: 3,
+        played: 4,
+        stages: ["sprint", "lights", "robot", "situation"].map((kind, j) => ({
+          kind, label: `${kind} ${j}`, stars: 1 + ((i + j) % 3), detail: `${12 + j} ครั้ง`, ms: 60_000 + i * 77, away: { n: i % 4, ms: 4000 + i },
+        })),
+      };
+      p.activeDays[d] = "play";
+    }
+    const now = new Date(2026, 10, 17, 20).getTime();
+    const full = await encodeProgress(p);
+    const code = await encodeReport(p, now);
+    assert.ok(code.startsWith("BR2."), "compressed report");
+    const url = reportUrl(code, "https://example.com");
+    assert.ok(url.length < 1500, `report link should fit a QR code easily, got ${url.length}`);
+    const back = await decodeProgress(url);
+    assert.equal(back.report, true);
+    assert.equal(back.name, "Yok");
+    assert.equal(back.dailyCount, 365);
+    const days = Object.keys(back.daily).sort();
+    assert.deepEqual([days.length, days[0], days.at(-1)], [14, "2026-11-04", "2026-11-17"], "this week and last week");
+    assert.equal(back.daily["2026-11-17"].stages?.[0].away?.n, 0, "away counts kept for the uncle's view");
+    assert.equal((await decodeProgress(full)).report, false, "a full code can still be restored");
+    console.log(`ok   report link — ${url.length} chars (full code ${full.length})`);
+  } catch (e) {
+    failures++;
+    console.log(`FAIL report link: ${(e as Error).message}`);
   }
 }
 
