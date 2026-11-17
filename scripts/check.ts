@@ -49,7 +49,8 @@ import { SERIES_COUNT, generateSeries } from "../src/games/series/logic";
 import { bumpLog, weekCompare, weekReport } from "../src/lib/weekly";
 import { emptyProgress } from "../src/lib/store";
 import { WEB_SERIAL_MAX, bangkokDay, dailySerial, makeCode, manualSerial, shopSerial } from "../src/lib/kidtimer/core";
-import { rewardMinutes } from "../src/lib/kidtimer/reward";
+import { rewardMinutes, rewardStars } from "../src/lib/kidtimer/reward";
+import { claimDays, unpaidMinutes } from "../src/lib/kidtimer/claim";
 import { decodeProgress, encodeProgress, encodeReport, reportUrl } from "../src/lib/share";
 
 let failures = 0;
@@ -488,6 +489,21 @@ check("weekly report", () => {
   assert.deepEqual(Object.keys(old), ["2026-10-01"], "old log days are pruned");
 });
 
+check("weekly PC time claim", () => {
+  assert.equal(rewardStars({ timeMs: 1, hints: 0, stages: [{ kind: "hunt", label: "", stars: 3, detail: "" }] }), 9);
+  const days = claimDays(
+    { "2026-11-10": 9, "2026-11-11": 3, "2026-11-12": 0, "2026-11-20": 9, junk: 9 },
+    { "2026-11-11": 1 },
+    "2026-11-17",
+  );
+  assert.deepEqual(
+    days.map((d) => [d.day, d.minutes, d.paid]),
+    [["2026-11-10", 150, false], ["2026-11-11", 90, true], ["2026-11-12", 60, false]],
+    "future and malformed days are dropped",
+  );
+  assert.equal(unpaidMinutes(days), 210);
+});
+
 async function asyncChecks() {
   try {
     const p = { ...emptyProgress(), name: "Yok", xp: 1234, daily: { "2026-10-01": { timeMs: 1, hints: 0 } } };
@@ -538,6 +554,13 @@ ${code}
     assert.deepEqual([days.length, days[0], days.at(-1)], [14, "2026-11-04", "2026-11-17"], "this week and last week");
     assert.equal(back.daily["2026-11-17"].stages?.[0].away?.n, 0, "away counts kept for the uncle's view");
     assert.equal((await decodeProgress(full)).report, false, "a full code can still be restored");
+    // PC time: four weeks of Dailies, minus days already paid with an old per-day code.
+    p.timeCodes = { "2026-11-16": { code: "X", minutes: 60, at: 0 } };
+    const r = await decodeProgress(await encodeReport(p, now));
+    const claim = Object.keys(r.rewards!).sort();
+    assert.deepEqual([claim.length, claim[0], claim.at(-1)], [27, "2026-10-21", "2026-11-17"]);
+    assert.ok(!("2026-11-16" in r.rewards!), "a day with an old code isn't paid twice");
+    assert.equal(r.rewards!["2026-11-17"], rewardStars(p.daily["2026-11-17"]));
     console.log(`ok   report link — ${url.length} chars (full code ${full.length})`);
   } catch (e) {
     failures++;

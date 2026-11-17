@@ -9,7 +9,7 @@ import { THEMES } from "@/games/situation/data";
 import { COINS } from "@/lib/coins";
 import { dayKey, formatTime, shiftDay } from "@/lib/date";
 import { rankFor } from "@/lib/rank";
-import { decodeProgress, encodeProgress, encodeReport, REPORT_DAYS, reportUrl, type Decoded } from "@/lib/share";
+import { decodeProgress, encodeProgress, encodeReport, findCode, REPORT_DAYS, reportUrl, type Decoded } from "@/lib/share";
 import { liveStreak, snapshot, useProgress, type ProgressData } from "@/lib/store";
 import { weekCompare, weekRange, weekReport } from "@/lib/weekly";
 import { formatMinutes } from "@/lib/kidtimer/reward";
@@ -201,7 +201,8 @@ function ShareCard() {
       )}
       <p className="mt-2 text-center text-xs leading-relaxed text-muted">
         {saturday && <span className="font-bold text-ink">วันเสาร์แล้ว ส่งสรุปทั้งสัปดาห์ได้เลย! · </span>}
-        คนที่ได้รับกดลิงก์หรือสแกน QR จะเห็นสรุปสัปดาห์กับผลงาน {REPORT_DAYS} วันล่าสุดทันที
+        คนที่ได้รับกดลิงก์หรือสแกน QR จะเห็นสรุปสัปดาห์กับผลงาน {REPORT_DAYS} วันล่าสุดทันที · 🎁 เวลาคอมจาก Daily
+        ผู้ปกครองแลกเป็นโค้ดให้จากลิงก์นี้
       </p>
       <button className="mt-2 w-full py-1 text-xs text-muted underline" onClick={shareBackup}>
         {copied === "backup" ? "คัดลอกโค้ดสำรองแล้ว ✔" : "📦 สำรองข้อมูลทั้งหมด (โค้ดยาว ใช้ย้ายไปเครื่องใหม่)"}
@@ -312,6 +313,17 @@ function linkCode(): string | null {
   return location.hash.startsWith("#v=") ? location.hash.slice(3) : null;
 }
 
+/** From a received report to the parent page, which turns its unpaid Dailies into one PC code. */
+function RedeemLink({ data, text }: { data: Decoded; text: string }) {
+  const code = findCode(text);
+  if (!data.report || !code || !Object.keys(data.rewards ?? {}).length) return null;
+  return (
+    <Link href={`/parent#v=${code}`} className="btn btn-gold mt-3 w-full">
+      🔑 แลกเป็นเวลาคอม (ผู้ปกครอง)
+    </Link>
+  );
+}
+
 /** Paste a code (or a shared link) to see someone's progress; a full code can also be restored. */
 function ImportBox({ initial, onClose }: { initial?: string; onClose?: () => void }) {
   const [text, setText] = useState(initial ?? "");
@@ -346,6 +358,7 @@ function ImportBox({ initial, onClose }: { initial?: string; onClose?: () => voi
         {data && (
           <div className="mt-3">
             <Summary data={data} exportedAt={data.exportedAt} dailyCount={data.dailyCount} />
+            <RedeemLink data={data} text={initial} />
           </div>
         )}
       </div>
@@ -369,7 +382,10 @@ function ImportBox({ initial, onClose }: { initial?: string; onClose?: () => voi
         <div className="mt-4">
           <Summary data={data} exportedAt={data.exportedAt} dailyCount={data.dailyCount} />
           {data.report ? (
-            <p className="mt-3 text-center text-xs text-muted">นี่คือสรุป {REPORT_DAYS} วันล่าสุด · กู้ข้อมูลต้องใช้โค้ดสำรอง 📦</p>
+            <>
+              <RedeemLink data={data} text={text} />
+              <p className="mt-3 text-center text-xs text-muted">นี่คือสรุป {REPORT_DAYS} วันล่าสุด · กู้ข้อมูลต้องใช้โค้ดสำรอง 📦</p>
+            </>
           ) : (
             <button
               className="btn btn-ghost mt-3 w-full text-sm text-bad"
@@ -434,7 +450,7 @@ function TimeCodes() {
   return (
     <div className="card p-4">
       <p className="font-display">⏰ โค้ดเวลาคอม</p>
-      <p className="mt-1 text-xs text-muted">ได้จากการเล่น Daily จบ หรือซื้อในร้านค้า · แต่ละโค้ดใช้ที่คอมได้ครั้งเดียว</p>
+      <p className="mt-1 text-xs text-muted">ซื้อในร้านค้า (โค้ดจาก Daily แบบเก่าก็อยู่ที่นี่) · แต่ละโค้ดใช้ที่คอมได้ครั้งเดียว · เวลาจาก Daily ส่งผลงานให้ผู้ปกครองแลกเป็นโค้ด</p>
       <ul className="mt-3 space-y-1.5 text-sm">
         {list.map(([date, c]) => (
           <li key={date} className="flex items-center justify-between gap-2 rounded-xl bg-ink/5 px-3 py-2">

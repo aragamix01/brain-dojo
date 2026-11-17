@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { CoinChip } from "@/components/game";
 import { NovaTip } from "@/components/NovaTip";
-import { CodeDisplay } from "@/components/TimeCodeBox";
+import { CodeDisplay } from "@/components/TimeCode";
 import { BackHeader, ClientOnly } from "@/components/ui";
 import { RobotSprite } from "@/games/robot/RobotSprite";
 import { dayKey } from "@/lib/date";

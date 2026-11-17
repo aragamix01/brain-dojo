@@ -1,4 +1,6 @@
 import { dayKey, shiftDay } from "./date";
+import { CLAIM_DAYS } from "./kidtimer/claim";
+import { rewardStars } from "./kidtimer/reward";
 import { hashString } from "./rng";
 import { emptyProgress, type DailyResult, type ProgressData } from "./store";
 
@@ -54,6 +56,13 @@ export function encodeReport(data: ProgressData, now = Date.now()): Promise<stri
       { ...r, played: undefined, stages: r.stages?.map((st) => ({ ...st, detail: "" })) },
     ]),
   );
+  // Stars of each recent Daily for PC time, minus days paid with an old per-day code.
+  const claimFrom = shiftDay(dayKey(new Date(now)), 1 - CLAIM_DAYS);
+  const rewards = Object.fromEntries(
+    Object.entries(data.daily)
+      .filter(([d]) => d >= claimFrom && !data.timeCodes?.[d])
+      .map(([d, r]) => [d, rewardStars(r)]),
+  );
   return encode("BR", {
     name: data.name,
     xp: data.xp,
@@ -68,6 +77,7 @@ export function encodeReport(data: ProgressData, now = Date.now()): Promise<stri
     dailyCount: Object.keys(data.daily).length,
     activeDays: recent(data.activeDays),
     dayLog: recent(data.dayLog),
+    rewards,
     exportedAt: now,
   });
 }
@@ -78,6 +88,8 @@ export type Decoded = ProgressData & {
   report?: boolean;
   /** all-time Daily count, which a report's trimmed `daily` can't give */
   dailyCount?: number;
+  /** report only: day → stars of Dailies the player can still be paid PC time for */
+  rewards?: Record<string, number>;
 };
 
 /** Finds a code anywhere in the text, so a whole pasted share message or a link works too. */
