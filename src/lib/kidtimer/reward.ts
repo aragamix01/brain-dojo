@@ -1,4 +1,5 @@
 // Client-safe KidTimer numbers: how much time a reward is worth. No key, no crypto here.
+import type { DailyResult } from "../store";
 
 /** The PC counts time in 15-minute steps, up to 0xFFF of them. */
 export const UNIT_MIN = 15;
@@ -13,6 +14,12 @@ export const DAILY_REWARD = { base: 60, perStar: 10, maxStars: 9 };
 export function rewardMinutes(stars: number): number {
   const s = Math.max(0, Math.min(DAILY_REWARD.maxStars, Math.floor(stars)));
   return Math.ceil((DAILY_REWARD.base + s * DAILY_REWARD.perStar) / UNIT_MIN) * UNIT_MIN;
+}
+
+/** Stars a finished Daily is worth for the PC reward; a Star Hunt counts as a full 9. */
+export function rewardStars(r: DailyResult): number {
+  if (r.stages?.[0]?.kind === "hunt") return DAILY_REWARD.maxStars;
+  return (r.stages ?? []).reduce((a, st) => a + st.stars, 0);
 }
 
 export function formatMinutes(m: number): string {

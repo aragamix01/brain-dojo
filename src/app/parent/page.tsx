@@ -1,9 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { CodeDisplay } from "@/components/TimeCodeBox";
+import { useEffect, useState } from "react";
+import { QrScan } from "@/components/QrScan";
+import { CodeDisplay } from "@/components/TimeCode";
 import { BackHeader, ClientOnly } from "@/components/ui";
+import { dayKey } from "@/lib/date";
+import { claimDays, markPaid, readPaid, unpaidMinutes, CLAIM_DAYS, type ClaimDay } from "@/lib/kidtimer/claim";
 import { MAX_MINUTES, UNIT_MIN, formatMinutes } from "@/lib/kidtimer/reward";
+import { decodeProgress } from "@/lib/share";
 
 const QUICK = [15, 30, 60, 120];
 const LOG_KEY = "kidtimer-parent-log";
@@ -125,6 +129,133 @@ function PinGate({ onOpen }: { onOpen: (pin: string) => void }) {
   );
 }
 
+const shortDay = (d: string) => {
+  const [y, m, dd] = d.split("-").map(Number);
+  return new Date(y, m - 1, dd).toLocaleDateString("th-TH", { weekday: "short", day: "numeric", month: "short" });
+};
+
+/** The code in a link to this page (`/parent#v=…`), sent here from a received report. */
+const linkCode = () => (location.hash.startsWith("#v=") ? location.hash.slice(3) : "");
+
+type Claim = { name: string; days: ClaimDay[]; at?: number };
+
+/**
+ * The weekly hand-off: the player's report link / QR code → every Daily not yet paid → one code.
+ * Paid days are remembered on this device, so the same report can't be cashed twice here.
+ */
+function Redeem({ issue }: { issue: (minutes: number, why: string) => Promise<Issued | string> }) {
+  const [text, setText] = useState("");
+  const [claim, setClaim] = useState<Claim | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [issued, setIssued] = useState<Issued | null>(null);
+
+  const open = async (t: string) => {
+    setText(t);
+    setIssued(null);
+    try {
+      const d = await decodeProgress(t);
+      if (!d.report || !d.rewards) throw new Error("นี่เป็นโค้ดสำรอง — ให้หลานกด 'ส่งลิงก์ผลงาน' หรือโชว์ QR แทน");
+      setClaim({ name: d.name, days: claimDays(d.rewards, readPaid(), dayKey()), at: d.exportedAt });
+      setErr(null);
+    } catch (e) {
+      setClaim(null);
+      setErr((e as Error).message);
+    }
+  };
+  // Arrived from the "แลกเป็นเวลาคอม" button on a received report.
+  useEffect(() => {
+    const code = linkCode();
+    if (!code) return;
+    history.replaceState(null, "", location.pathname);
+    decodeProgress(code).then(
+      (d) => {
+        setText(code);
+        if (d.report && d.rewards) setClaim({ name: d.name, days: claimDays(d.rewards, readPaid(), dayKey()), at: d.exportedAt });
+      },
+      (e: Error) => setErr(e.message),
+    );
+  }, []);
+
+  const unpaid = claim ? claim.days.filter((d) => !d.paid) : [];
+  const total = claim ? unpaidMinutes(claim.days) : 0;
+  const pay = async () => {
+    if (!claim || !total) return;
+    setBusy(true);
+    const range = `${shortDay(unpaid[0].day)} – ${shortDay(unpaid.at(-1)!.day)}`;
+    const got = await issue(total, `Daily ${unpaid.length} วัน (${range})${claim.name ? ` · ${claim.name}` : ""}`);
+    if (typeof got === "string") setErr(got);
+    else {
+      setIssued(got);
+      const paid = markPaid(unpaid.map((d) => d.day));
+      setClaim({ ...claim, days: claim.days.map((d) => ({ ...d, paid: d.day in paid })) });
+    }
+    setBusy(false);
+  };
+
+  return (
+    <div className="card space-y-3 p-4">
+      <div>
+        <p className="font-display text-lg">🎁 แลกเวลาคอมจากผลงาน</p>
+        <p className="text-xs text-muted">
+          สแกน QR ที่หลานโชว์ เลือกรูป QR ที่ส่งมา หรือวางลิงก์ · รวมทุก Daily ที่ยังไม่ได้แลก ({CLAIM_DAYS} วันล่าสุด) เป็นโค้ดเดียว
+        </p>
+      </div>
+      <QrScan onCode={open} />
+      <div className="flex gap-2">
+        <input
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="หรือวางลิงก์ผลงานที่นี่"
+          className="min-w-0 flex-1 rounded-lg bg-ink/5 px-3 py-2 font-mono text-xs outline-none focus:ring-2 focus:ring-pink"
+        />
+        <button className="btn btn-ghost !min-h-9 text-sm" disabled={!text.trim()} onClick={() => open(text)}>
+          เปิด
+        </button>
+      </div>
+      {err && <p className="text-sm text-bad">{err}</p>}
+      {claim && (
+        <div className="rounded-xl border-2 border-ink/20 p-3">
+          <p className="font-display">
+            {claim.name || "Player"}
+            {claim.at && (
+              <span className="ml-2 text-xs font-normal text-muted">ส่งเมื่อ {new Date(claim.at).toLocaleString("th-TH", { dateStyle: "short", timeStyle: "short" })}</span>
+            )}
+          </p>
+          {claim.days.length ? (
+            <ul className="mt-2 space-y-1 text-sm">
+              {claim.days.map((d) => (
+                <li key={d.day} className={`flex justify-between ${d.paid ? "text-muted line-through" : ""}`}>
+                  <span>{shortDay(d.day)}</span>
+                  <span>
+                    {d.stars}★ · {formatMinutes(d.minutes)}
+                    {d.paid && " · แลกแล้ว"}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-2 text-sm text-muted">ไม่มี Daily ให้แลกในช่วงนี้</p>
+          )}
+          {total > 0 ? (
+            <button className="btn btn-primary mt-3 w-full" disabled={busy} onClick={pay}>
+              {busy ? "กำลังสร้าง…" : `🔑 สร้างโค้ด ${formatMinutes(total)} (${unpaid.length} วัน)`}
+            </button>
+          ) : (
+            claim.days.length > 0 && <p className="mt-3 text-center text-sm font-bold text-good">✅ แลกครบทุกวันแล้ว</p>
+          )}
+          {issued && (
+            <div className="mt-3 text-center">
+              <CodeDisplay code={issued.code} minutes={issued.minutes} />
+              <p className="mt-2 text-xs text-muted">ส่งโค้ดนี้ให้หลานพิมพ์ที่คอม · ใช้ได้ครั้งเดียว</p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** Parent-only: make a PC time code for any amount of time. The server checks the PIN again. */
 function ParentCodes({ password }: { password: string }) {
   const [minutes, setMinutes] = useState(60);
@@ -134,48 +265,51 @@ function ParentCodes({ password }: { password: string }) {
   const [log, setLog] = useState<Issued[]>(readLog);
   const last = log[0];
 
-  const make = async () => {
+  /** Asks the server for a code; returns it (also kept in the log), or an error message. */
+  const issue = async (mins: number, why: string): Promise<Issued | string> => {
     // Serials are per minute: a second code in the same minute would be refused by the PC.
-    if (last && Math.floor(last.at / 60_000) === Math.floor(Date.now() / 60_000)) {
-      setErr("เพิ่งสร้างโค้ดไปในนาทีนี้ — รอให้ขึ้นนาทีใหม่ก่อน แล้วค่อยกดอีกครั้ง");
-      return;
-    }
-    setBusy(true);
-    setErr(null);
+    if (last && Math.floor(last.at / 60_000) === Math.floor(Date.now() / 60_000))
+      return "เพิ่งสร้างโค้ดไปในนาทีนี้ — รอให้ขึ้นนาทีใหม่ก่อน แล้วค่อยกดอีกครั้ง";
     try {
       const res = await fetch("/api/parent-code", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password, minutes }),
+        body: JSON.stringify({ password, minutes: mins }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setErr(
-          data.error === "wrong-password"
-            ? "PIN ไม่ถูก — ออกแล้วเข้าใหม่"
-            : data.error === "not-configured"
-              ? "ยังไม่ได้ตั้งค่า KIDTIMER_KEY / PARENT_PASSWORD บน Vercel"
-              : "สร้างโค้ดไม่สำเร็จ",
-        );
-        return;
-      }
-      const next = [{ code: data.code, minutes: data.minutes, at: data.at, note: note.trim() }, ...log].slice(0, 20);
+      if (!res.ok)
+        return data.error === "wrong-password"
+          ? "PIN ไม่ถูก — ออกแล้วเข้าใหม่"
+          : data.error === "not-configured"
+            ? "ยังไม่ได้ตั้งค่า KIDTIMER_KEY / PARENT_PASSWORD บน Vercel"
+            : "สร้างโค้ดไม่สำเร็จ";
+      const made: Issued = { code: data.code, minutes: data.minutes, at: data.at, note: why };
+      const next = [made, ...log].slice(0, 20);
       setLog(next);
-      setNote("");
       try {
         localStorage.setItem(LOG_KEY, JSON.stringify(next));
       } catch {
         /* the log is a convenience */
       }
+      return made;
     } catch {
-      setErr("ต่อเน็ตไม่ได้ ลองใหม่อีกครั้ง");
-    } finally {
-      setBusy(false);
+      return "ต่อเน็ตไม่ได้ ลองใหม่อีกครั้ง";
     }
+  };
+
+  const make = async () => {
+    setBusy(true);
+    setErr(null);
+    const got = await issue(minutes, note.trim());
+    setErr(typeof got === "string" ? got : null);
+    if (typeof got !== "string") setNote("");
+    setBusy(false);
   };
 
   return (
     <div className="space-y-4">
+      <Redeem issue={issue} />
+      <p className="pt-2 font-display">✍️ สร้างโค้ดเอง</p>
       <div className="card space-y-3 p-4">
         <div>
           <span className="text-sm text-muted">เวลา (ทีละ {UNIT_MIN} นาที)</span>
@@ -240,7 +374,7 @@ function ParentCodes({ password }: { password: string }) {
         </div>
       )}
       <p className="text-center text-xs text-muted">
-        โค้ดใช้ที่คอมได้ครั้งเดียว · โค้ดหายก็สร้างใหม่ได้ · สร้างได้นาทีละโค้ด
+        โค้ดใช้ที่คอมได้ครั้งเดียว · โค้ดหายก็สร้างใหม่ได้ · สร้างได้นาทีละโค้ด · วันที่แลกแล้วจำไว้ในเครื่องนี้เท่านั้น
       </p>
     </div>
   );
