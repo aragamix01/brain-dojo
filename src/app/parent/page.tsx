@@ -7,7 +7,7 @@ import { BackHeader, ClientOnly } from "@/components/ui";
 import { dayKey } from "@/lib/date";
 import { claimDays, markPaid, readPaid, unpaidMinutes, CLAIM_DAYS, type ClaimDay } from "@/lib/kidtimer/claim";
 import { MAX_MINUTES, UNIT_MIN, formatMinutes } from "@/lib/kidtimer/reward";
-import { decodeProgress } from "@/lib/share";
+import { decodeProgress, type Decoded } from "@/lib/share";
 
 const QUICK = [15, 30, 60, 120];
 const LOG_KEY = "kidtimer-parent-log";
@@ -139,6 +139,12 @@ const linkCode = () => (location.hash.startsWith("#v=") ? location.hash.slice(3)
 
 type Claim = { name: string; days: ClaimDay[]; at?: number };
 
+const toClaim = (d: Decoded): Claim => ({
+  name: d.name,
+  days: claimDays(d.rewards ?? {}, readPaid(), dayKey(), d.coded),
+  at: d.exportedAt,
+});
+
 /**
  * The weekly hand-off: the player's report link / QR code → every Daily not yet paid → one code.
  * Paid days are remembered on this device, so the same report can't be cashed twice here.
@@ -156,7 +162,7 @@ function Redeem({ issue }: { issue: (minutes: number, why: string) => Promise<Is
     try {
       const d = await decodeProgress(t);
       if (!d.report || !d.rewards) throw new Error("นี่เป็นโค้ดสำรอง — ให้หลานกด 'ส่งลิงก์ผลงาน' หรือโชว์ QR แทน");
-      setClaim({ name: d.name, days: claimDays(d.rewards, readPaid(), dayKey()), at: d.exportedAt });
+      setClaim(toClaim(d));
       setErr(null);
     } catch (e) {
       setClaim(null);
@@ -171,7 +177,7 @@ function Redeem({ issue }: { issue: (minutes: number, why: string) => Promise<Is
     decodeProgress(code).then(
       (d) => {
         setText(code);
-        if (d.report && d.rewards) setClaim({ name: d.name, days: claimDays(d.rewards, readPaid(), dayKey()), at: d.exportedAt });
+        if (d.report && d.rewards) setClaim(toClaim(d));
       },
       (e: Error) => setErr(e.message),
     );
@@ -188,7 +194,7 @@ function Redeem({ issue }: { issue: (minutes: number, why: string) => Promise<Is
     else {
       setIssued(got);
       const paid = markPaid(unpaid.map((d) => d.day));
-      setClaim({ ...claim, days: claim.days.map((d) => ({ ...d, paid: d.day in paid })) });
+      setClaim({ ...claim, days: claim.days.map((d) => ({ ...d, paid: d.old || d.day in paid })) });
     }
     setBusy(false);
   };
@@ -225,24 +231,29 @@ function Redeem({ issue }: { issue: (minutes: number, why: string) => Promise<Is
           {claim.days.length ? (
             <ul className="mt-2 space-y-1 text-sm">
               {claim.days.map((d) => (
-                <li key={d.day} className={`flex justify-between ${d.paid ? "text-muted line-through" : ""}`}>
-                  <span>{shortDay(d.day)}</span>
+                <li key={d.day} className={`flex justify-between gap-2 ${d.paid ? "text-muted line-through" : ""}`}>
+                  <span className="whitespace-nowrap">{shortDay(d.day)}</span>
                   <span>
                     {d.stars}★ · {formatMinutes(d.minutes)}
-                    {d.paid && " · แลกแล้ว"}
+                    {d.old ? " · โค้ดเก่า" : d.paid && " · แลกแล้ว"}
                   </span>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="mt-2 text-sm text-muted">ไม่มี Daily ให้แลกในช่วงนี้</p>
+            <p className="mt-2 text-sm text-muted">ยังไม่มี Daily ใหม่ให้แลก (Daily ที่ได้โค้ดรายวันแบบเก่าไปแล้วไม่นับ)</p>
+          )}
+          {claim.days.some((d) => d.old) && (
+            <p className="mt-2 text-[11px] text-muted">โค้ดเก่า = วันที่หลานได้โค้ดรายวันไปแล้ว (ก่อนเปลี่ยนมาแลกรายสัปดาห์) ไม่นับซ้ำ</p>
           )}
           {total > 0 ? (
             <button className="btn btn-primary mt-3 w-full" disabled={busy} onClick={pay}>
               {busy ? "กำลังสร้าง…" : `🔑 สร้างโค้ด ${formatMinutes(total)} (${unpaid.length} วัน)`}
             </button>
           ) : (
-            claim.days.length > 0 && <p className="mt-3 text-center text-sm font-bold text-good">✅ แลกครบทุกวันแล้ว</p>
+            claim.days.length > 0 && (
+              <p className="mt-3 text-center text-sm font-bold text-good">✅ แลกครบทุกวันแล้ว · เล่น Daily วันใหม่แล้วค่อยส่งมาอีกครั้ง</p>
+            )
           )}
           {issued && (
             <div className="mt-3 text-center">

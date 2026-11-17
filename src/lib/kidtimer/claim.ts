@@ -5,17 +5,26 @@ import { rewardMinutes } from "./reward";
 /** How far back a report still carries Dailies to claim, so a late week isn't lost. */
 export const CLAIM_DAYS = 28;
 
-export type ClaimDay = { day: string; stars: number; minutes: number; paid: boolean };
+/** `paid`: cashed on this device; `old`: the player already got that day's own code (before weekly codes). */
+export type ClaimDay = { day: string; stars: number; minutes: number; paid: boolean; old: boolean };
 
 /**
  * Each Daily in the report with its reward, oldest first. Days after `today` (the parent's clock) are
  * dropped: they can only come from a wrong clock or a doctored code.
  */
-export function claimDays(rewards: Record<string, number>, paid: Record<string, number>, today: string): ClaimDay[] {
+export function claimDays(
+  rewards: Record<string, number>,
+  paid: Record<string, number>,
+  today: string,
+  coded: string[] = [],
+): ClaimDay[] {
   return Object.entries(rewards)
     .filter(([day]) => /^\d{4}-\d{2}-\d{2}$/.test(day) && day <= today)
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([day, stars]) => ({ day, stars, minutes: rewardMinutes(stars), paid: day in paid }));
+    .map(([day, stars]) => {
+      const old = coded.includes(day);
+      return { day, stars, minutes: rewardMinutes(stars), paid: old || day in paid, old };
+    });
 }
 
 export const unpaidMinutes = (days: ClaimDay[]) => days.reduce((a, d) => a + (d.paid ? 0 : d.minutes), 0);

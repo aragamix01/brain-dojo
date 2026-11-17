@@ -537,6 +537,9 @@ check("weekly PC time claim", () => {
     "future and malformed days are dropped",
   );
   assert.equal(unpaidMinutes(days), 210);
+  const old = claimDays({ "2026-11-10": 9, "2026-11-12": 0 }, {}, "2026-11-17", ["2026-11-10"]);
+  assert.deepEqual(old.map((d) => [d.paid, d.old]), [[true, true], [false, false]], "days with an old code are already paid");
+  assert.equal(unpaidMinutes(old), 60);
 });
 
 async function asyncChecks() {
@@ -593,8 +596,8 @@ ${code}
     p.timeCodes = { "2026-11-16": { code: "X", minutes: 60, at: 0 } };
     const r = await decodeProgress(await encodeReport(p, now));
     const claim = Object.keys(r.rewards!).sort();
-    assert.deepEqual([claim.length, claim[0], claim.at(-1)], [27, "2026-10-21", "2026-11-17"]);
-    assert.ok(!("2026-11-16" in r.rewards!), "a day with an old code isn't paid twice");
+    assert.deepEqual([claim.length, claim[0], claim.at(-1)], [28, "2026-10-21", "2026-11-17"]);
+    assert.deepEqual(r.coded, ["2026-11-16"], "a day with an old code is marked, so it isn't paid twice");
     assert.equal(r.rewards!["2026-11-17"], rewardStars(p.daily["2026-11-17"]));
     console.log(`ok   report link — ${url.length} chars (full code ${full.length})`);
   } catch (e) {

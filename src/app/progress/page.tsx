@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { BackHeader, ClientOnly, Stars } from "@/components/ui";
 import { LOGIC_GAMES } from "@/games/catalog";
@@ -317,14 +316,17 @@ function linkCode(): string | null {
   return location.hash.startsWith("#v=") ? location.hash.slice(3) : null;
 }
 
-/** From a received report to the parent page, which turns its unpaid Dailies into one PC code. */
+/**
+ * From a received report to the parent page, which lists its Dailies and turns the unpaid ones into
+ * one PC code. A plain link (full page load) so the code in the hash always arrives.
+ */
 function RedeemLink({ data, text }: { data: Decoded; text: string }) {
   const code = findCode(text);
-  if (!data.report || !code || !Object.keys(data.rewards ?? {}).length) return null;
+  if (!data.report || !code) return null;
   return (
-    <Link href={`/parent#v=${code}`} className="btn btn-gold mt-3 w-full">
+    <a href={`/parent#v=${code}`} className="btn btn-gold mt-3 w-full">
       🔑 แลกเป็นเวลาคอม (ผู้ปกครอง)
-    </Link>
+    </a>
   );
 }
 
@@ -504,9 +506,10 @@ function Mine() {
       <TimeCodes />
       <Wallet />
       <ImportBox />
-      <Link href="/parent" className="btn btn-ghost w-full text-sm">
+      {/* Carries a received report along, so the parent page opens on it. */}
+      <a href={incoming ? `/parent#v=${incoming}` : "/parent"} className="btn btn-ghost w-full text-sm">
         👨 สำหรับผู้ปกครอง · สร้างโค้ดเวลาคอม
-      </Link>
+      </a>
       <button
         className="w-full py-2 text-xs text-muted underline"
         onClick={() => confirm("ลบความคืบหน้าทั้งหมดในเครื่องนี้? ย้อนกลับไม่ได้") && reset()}
