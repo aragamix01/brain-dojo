@@ -238,14 +238,23 @@ export async function deletePlayer(db: Store, id: string) {
 /**
  * Once: Life Quest began with a single player whose data sat under unscoped keys. Copy it under a
  * player id, list it, make it the default, and remember the id for cookies made before ids existed.
- * The old keys are left in place as a backup.
+ * The old keys are left in place as a backup. Marked done only after everything is copied; a run
+ * that died halfway (its lock goes stale after a minute) is simply run again.
  */
 export async function migrate(db: Store) {
   const meta = await db.hgetall<number>(K.meta);
-  if (meta.players) return;
-  if (!(await db.hsetnx(K.meta, "players", Date.now()))) return;
+  if (meta.done) return;
   const old = await db.get<Player>(K.player);
-  if (!old) return;
+  if (!old) {
+    // Nothing from the single-player days: once anyone has an account, stop checking.
+    if ((await playerList(db)).length) await db.hset(K.meta, "done", Date.now());
+    return;
+  }
+  const now = Date.now();
+  if (!(await db.hsetnx(K.meta, "lock", now))) {
+    if (now - Number(meta.lock ?? 0) < 60_000) return; // another request is on it
+    await db.hset(K.meta, "lock", now);
+  }
   const id = newId();
   for (const k of PLAYER_VALUES) {
     const v = await db.get(k);
@@ -253,8 +262,12 @@ export async function migrate(db: Store) {
   }
   for (const k of PLAYER_HASHES) for (const [f, v] of Object.entries(await db.hgetall(k))) await db.hset(playerKey(id, k), f, v);
   const pin = await db.get(K.pin);
-  const entry: PlayerEntry = { id, name: old.name || "หลาน", createdAt: Date.now(), hasPin: !!pin };
+  // If someone already made a new account with this name in the meantime, keep both apart.
+  const name = old.name || "หลาน";
+  const taken = (await playerList(db)).some((p) => sameName(p.name, name));
+  const entry: PlayerEntry = { id, name: taken ? `${name} (เดิม)` : name, createdAt: now, hasPin: !!pin };
   await db.hset(K.players, id, entry);
   await db.set(K.defaultPlayer, id);
   await db.set(K.legacy, id);
+  await db.hset(K.meta, "done", Date.now());
 }
