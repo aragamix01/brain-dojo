@@ -4,7 +4,7 @@ import Link from "next/link";
 import { GuideModal, type GuideStep } from "./GuideModal";
 
 /** Bump when a new batch of features should be announced again. */
-export const WHATS_NEW_ID = "whats-new-life-quest";
+export const WHATS_NEW_ID = "whats-new-pc-time-v2";
 
 function Chip({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
@@ -24,6 +24,24 @@ const Big = ({ children }: { children: React.ReactNode }) => (
 
 const STEPS: GuideStep[] = [
   {
+    title: "เวลาคอมแบบใหม่ ⏰",
+    nova: "เวลาคอมจาก Daily ปรับใหม่ให้พอดีกับเสาร์อาทิตย์ — และแบ่งเป็น 2 ส่วน ส่วนสุดท้ายต้องส่งเช็กอินประจำสัปดาห์ก่อนนะ",
+    art: (
+      <div className="flex flex-col items-center gap-2">
+        <Chip className="bg-yellow">⚔️ Daily = 15 นาที + ดาวละ 5 นาที</Chip>
+        <Chip className="bg-[#bdefd9]">70% ได้ทันที</Chip>
+        <Chip className="bg-[#ffe3ee]">📓 เช็กอิน · ปลดล็อกอีก 30%</Chip>
+      </div>
+    ),
+    points: [
+      "เล่น Daily จบได้ 15 นาที + ดาวละ 5 นาที (วันละไม่เกิน 1 ชม. · ครบ 7 วัน = 7 ชม.)",
+      "ได้ทันที 70%",
+      "อีก 30% ของทั้งสัปดาห์ ปลดล็อกเมื่อส่งเช็กอินภายในวันเสาร์ ไม่ส่งส่วนนี้หายไป",
+      "ไม่ต้องส่ง QR แล้ว — พี่แตงพี่หยกเห็นยอดและแลกเป็นโค้ดให้จากโหมดพี่แตงพี่หยกเลย",
+      "ร้านค้ายังขายเวลาคอมเหมือนเดิม",
+    ],
+  },
+  {
     title: "Weekly Life Quest 📓",
     nova: "เรือมีสมุดบันทึกเล่มใหม่! สัปดาห์ละครั้ง คุยกับตัวเองแค่ 5 นาที — ไม่มีคำตอบผิด ไม่มีการหักคะแนน",
     art: (
@@ -38,22 +56,6 @@ const STEPS: GuideStep[] = [
       "📚 Study Tracker จดงาน กำหนดส่ง และคะแนนแต่ละวิชา",
       "🎯 ตั้งเป้าเล็กๆ ทุกสัปดาห์ แล้วติ๊กเมื่อทำได้ · มี XP กับ Achievement แยกของตัวเอง",
       "🔒 ตั้ง PIN 4 หลักของเราเอง · พี่แตงพี่หยกอ่านได้เฉพาะคำตอบที่กดส่งแล้ว",
-    ],
-  },
-  {
-    title: "เวลาคอมแบบใหม่ ⏰",
-    nova: "Daily ยังได้เวลาคอมเท่าเดิม แต่แบ่งเป็น 2 ส่วน — ส่วนสุดท้ายต้องส่งเช็กอินประจำสัปดาห์ก่อนนะ",
-    art: (
-      <div className="flex flex-col items-center gap-2">
-        <Chip className="bg-[#bdefd9]">⚔️ Daily · 70% ได้ทันที</Chip>
-        <Chip className="bg-[#ffe3ee]">📓 เช็กอิน · ปลดล็อกอีก 30%</Chip>
-      </div>
-    ),
-    points: [
-      "เล่น Daily จบได้เวลาเท่าเดิม (1 ชม. + ดาวละ 10 นาที) แต่ได้ทันที 70%",
-      "อีก 30% ของทั้งสัปดาห์ ปลดล็อกเมื่อส่งเช็กอินภายในวันเสาร์ ไม่ส่งส่วนนี้หายไป",
-      "ไม่ต้องส่ง QR แล้ว — พี่แตงพี่หยกเห็นยอดและแลกเป็นโค้ดให้จากโหมดพี่แตงพี่หยกเลย",
-      "ร้านค้ายังขายเวลาคอมเหมือนเดิม",
     ],
   },
 ];

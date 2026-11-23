@@ -297,7 +297,7 @@ check("kidtimer codes", () => {
   assert.throws(() => makeCode(k1, 15, 0x800000), /serial out of range/);
 
   // Daily reward: 60 + 10/star, rounded up to 15.
-  assert.deepEqual([0, 1, 3, 6, 7, 9, 12].map(rewardMinutes), [60, 75, 90, 120, 135, 150, 150]);
+  assert.deepEqual([0, 1, 3, 4, 6, 7, 9, 12].map(rewardMinutes), [15, 30, 30, 45, 45, 60, 60, 60]);
 
   // Serials: one per Daily day, manual ones above them, all inside the website range.
   assert.equal(dailySerial("2026-01-01"), 1);
