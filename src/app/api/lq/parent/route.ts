@@ -10,10 +10,12 @@ import { messages, newId, parentState, pushLog, questions, rewards, type Redeem 
 const json = (data: unknown, status = 200) => Response.json(data, { status, headers: { "Cache-Control": "no-store" } });
 const str = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 
-export async function GET() {
+export async function GET(request: Request) {
   const db = store();
   if (!db || !configured()) return json({ error: "not-configured" }, 503);
   if ((await sessionVersion("parent")) === null) return json({ signedIn: false });
+  // The Brain Dojo save is big, so it only loads when its tab opens.
+  if (new URL(request.url).searchParams.get("part") === "brain") return json({ signedIn: true, brain: await db.get(K.brain) });
   return json({ signedIn: true, ...(await parentState(db)) });
 }
 

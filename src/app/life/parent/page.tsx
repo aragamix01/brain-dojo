@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { Summary } from "@/components/ProgressSummary";
 import { CodeDisplay } from "@/components/TimeCode";
+import { emptyProgress, type ProgressData } from "@/lib/store";
 import { shiftDay } from "@/lib/date";
 import { dayLabel, goalOf, levelFor, UNDERSTANDING, weekLabel, type Message, type WeekEntry } from "@/lib/life/model";
 import { Q, TYPE_LABEL, type Question, type QuestionType } from "@/lib/life/questions";
@@ -11,7 +13,7 @@ import { answerText, Bar, errorText, hm, Loading, LockIcon, PinPad, post, useApi
 
 const API = "/api/lq/parent";
 type Data = { signedIn: boolean; error?: string } & Partial<Awaited<ReturnType<typeof parentState>>>;
-type Tab = "home" | "answers" | "growth" | "questions";
+type Tab = "home" | "answers" | "growth" | "brain" | "questions";
 
 export default function ParentPage() {
   const { data, err, reload, setData } = useApi<Data>(API);
@@ -97,12 +99,13 @@ function Dashboard({ d, reload, patch }: { d: Data; reload: () => void; patch: (
             </div>
           ))}
         </div>
-        <nav className="grid grid-cols-4 gap-1.5" aria-label="เมนูน้า">
+        <nav className="grid grid-cols-5 gap-1.5" aria-label="เมนูน้า">
           {(
             [
               ["home", "ภาพรวม"],
               ["answers", "คำตอบ"],
               ["growth", "พัฒนาการ"],
+              ["brain", "Brain Dojo"],
               ["questions", "คำถาม"],
             ] as const
           ).map(([id, label]) => (
@@ -110,7 +113,7 @@ function Dashboard({ d, reload, patch }: { d: Data; reload: () => void; patch: (
               key={id}
               onClick={() => setTab(id)}
               aria-pressed={tab === id}
-              className={`min-h-11 rounded-xl border-2 font-lq text-[13px] font-bold ${tab === id ? "border-[#2e2a4a] bg-[#ffd66b] text-[#2e2a4a]" : "border-white/70 text-white"}`}
+              className={`min-h-11 rounded-xl border-2 px-0.5 font-lq text-xs font-bold leading-tight ${tab === id ? "border-[#2e2a4a] bg-[#ffd66b] text-[#2e2a4a]" : "border-white/70 text-white"}`}
             >
               {label}
             </button>
@@ -121,6 +124,7 @@ function Dashboard({ d, reload, patch }: { d: Data; reload: () => void; patch: (
         {tab === "home" && <Home d={d} reload={reload} goAnswers={() => setTab("answers")} />}
         {tab === "answers" && <Answers d={d} patch={patch} />}
         {tab === "growth" && <Growth d={d} />}
+        {tab === "brain" && <BrainDojo />}
         {tab === "questions" && <Questions d={d} patch={patch} />}
       </div>
     </div>
@@ -411,6 +415,28 @@ function Answers({ d, patch }: { d: Data; patch: (p: Partial<Data>) => void }) {
           </div>
         )}
       </section>
+    </>
+  );
+}
+
+/** The player's whole Brain Dojo progress, synced from their phone: the same view as a share code. */
+function BrainDojo() {
+  const { data, err } = useApi<{ brain?: { data: ProgressData; at: number } | null }>(`${API}?part=brain`);
+  if (err) return <p className="lq-card p-4 text-center">{errorText(err)}</p>;
+  if (!data) return <Loading />;
+  const b = data.brain;
+  if (!b)
+    return (
+      <p className="lq-card p-4 text-center text-sm leading-relaxed text-[#5e5878]">
+        ยังไม่มีข้อมูล Brain Dojo · จะขึ้นเองหลังหลานเปิด Brain Dojo บนมือถือที่ล็อกอิน Life Quest ไว้
+      </p>
+    );
+  return (
+    <>
+      <p className="px-1 text-[13px] text-[#4a4566]">
+        ซิงก์จากมือถือหลานอัตโนมัติ · ล่าสุด {new Date(b.at).toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short" })}
+      </p>
+      <Summary data={{ ...emptyProgress(), ...b.data }} exportedAt={b.at} />
     </>
   );
 }

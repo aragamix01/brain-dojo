@@ -96,4 +96,6 @@ export const K = {
   messages: "lq:messages",
   log: "lq:log",
   redeems: "lq:redeems",
+  /** the player's whole Brain Dojo progress, as last synced from their phone */
+  brain: "lq:brain",
 } as const;

@@ -3,9 +3,13 @@
 import { useEffect } from "react";
 import { shiftDay, dayKey } from "@/lib/date";
 import { rewardStars } from "@/lib/kidtimer/reward";
-import { useProgress, type ProgressData } from "@/lib/store";
+import { hashString } from "@/lib/rng";
+import { snapshot, useProgress, type ProgressData } from "@/lib/store";
 
 const KEY = "lq-synced";
+const PROGRESS_KEY = "lq-progress-synced";
+/** Progress changes with every puzzle; send it at most this often while playing. */
+const PROGRESS_EVERY_MS = 20_000;
 
 /** Recent Dailies worth PC time, minus days already paid with an old per-day code. */
 function recent(p: Pick<ProgressData, "daily" | "timeCodes">) {
@@ -44,6 +48,33 @@ export async function syncDailies(force = false): Promise<number> {
   }
 }
 
+/** Sends the whole Brain Dojo save for the parent's view, unless it hasn't changed since last time. */
+export async function syncProgress(force = false): Promise<boolean> {
+  const data = snapshot();
+  const sig = String(hashString(JSON.stringify(data)));
+  try {
+    if (!force && localStorage.getItem(PROGRESS_KEY) === sig) return false;
+  } catch {
+    /* storage blocked: just send */
+  }
+  try {
+    const res = await fetch("/api/lq/player", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "syncProgress", data }),
+    });
+    if (!res.ok) return false;
+    try {
+      localStorage.setItem(PROGRESS_KEY, sig);
+    } catch {
+      /* it resends next time */
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** Runs `fn` once the saved progress has loaded from storage. */
 export function afterHydration(fn: () => void): () => void {
   if (useProgress.persist.hasHydrated()) {
@@ -64,5 +95,27 @@ export function LifeSync() {
   useEffect(() => {
     if (useProgress.persist.hasHydrated()) void syncDailies();
   }, [daily, timeCodes]);
+
+  // The whole save, for the parent's Brain Dojo tab: soon after any change, and when the app is left.
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const flush = () => {
+      if (timer) clearTimeout(timer);
+      timer = null;
+      void syncProgress();
+    };
+    const offHydrate = afterHydration(flush);
+    const offChange = useProgress.subscribe(() => {
+      if (!timer) timer = setTimeout(flush, PROGRESS_EVERY_MS);
+    });
+    const onHide = () => document.visibilityState === "hidden" && timer && flush();
+    document.addEventListener("visibilitychange", onHide);
+    return () => {
+      offHydrate();
+      offChange();
+      document.removeEventListener("visibilitychange", onHide);
+      if (timer) clearTimeout(timer);
+    };
+  }, []);
   return null;
 }

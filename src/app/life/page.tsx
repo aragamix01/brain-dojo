@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { afterHydration, syncDailies } from "@/components/LifeSync";
+import { afterHydration, syncDailies, syncProgress } from "@/components/LifeSync";
 import { ACHIEVEMENTS, goalOf, weekEnd } from "@/lib/life/model";
 import { shiftDay } from "@/lib/date";
 import { Bar, errorText, hm, Loading, LockIcon, PinPad, post, useApi, type PlayerData } from "./shared";
@@ -185,7 +185,14 @@ function Home({ d, reload }: { d: PlayerData; reload: () => void }) {
   const played = new Set(d.dailyDays ?? []);
 
   // Dailies played before signing in on this phone go up now.
-  useEffect(() => afterHydration(() => void syncDailies(true).then((n) => n && reload())), [reload]);
+  useEffect(
+    () =>
+      afterHydration(() => {
+        void syncDailies(true).then((n) => n && reload());
+        void syncProgress(true);
+      }),
+    [reload],
+  );
 
   const logout = async () => {
     await post(API, { action: "logout" });

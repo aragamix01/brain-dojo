@@ -84,6 +84,15 @@ export async function POST(request: Request) {
       return json(await setGoal(db, str(body.week, 10), body.done === true));
     case "syncDaily":
       return json({ added: await syncDaily(db, body.days) });
+    case "syncProgress": {
+      // The phone's own Brain Dojo save, shown to the parent as-is (like opening a share code).
+      const data = body.data;
+      if (!data || typeof data !== "object" || Array.isArray(data) || typeof data.daily !== "object")
+        return json({ error: "bad-data" }, 400);
+      if (JSON.stringify(data).length > 900_000) return json({ error: "too-big" }, 413);
+      await db.set(K.brain, { data, at: Date.now() });
+      return json({ ok: true });
+    }
     case "careers": {
       const p = await db.get<Player>(K.player);
       if (!p) return json({ error: "no-player" }, 409);
