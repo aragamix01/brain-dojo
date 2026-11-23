@@ -93,7 +93,8 @@ function PcTime() {
     .filter(([k]) => k.startsWith(`${date}#shop`))
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([, c]) => c);
-  const left = SHOP_TIME.perDay - today.length;
+  // A day that bought more under the old two-a-day limit just shows none left.
+  const left = Math.max(0, SHOP_TIME.perDay - today.length);
   const short = SHOP_TIME.price - coins;
 
   const buy = async () => {

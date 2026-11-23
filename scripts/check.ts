@@ -304,11 +304,12 @@ check("kidtimer codes", () => {
   assert.equal(dailySerial("2026-10-05"), 278);
   assert.ok(dailySerial("2099-12-31") < 50_000);
   // shop: two fixed serials per day, clear of the Daily and manual ranges
-  assert.equal(shopSerial("2026-01-01", 0), 50_000);
-  assert.equal(shopSerial("2026-01-01", 1), 50_001);
-  assert.equal(shopSerial("2026-01-02", 0), 50_002);
-  assert.ok(shopSerial("2090-12-31", 1) < 100_000);
-  assert.throws(() => shopSerial("2026-10-05", 2), /slot/);
+  // one a day, in a range of its own above the old two-a-day codes (50,000 to about 50,800)
+  assert.equal(shopSerial("2026-01-01", 0), 75_000);
+  assert.equal(shopSerial("2026-01-02", 0), 75_001);
+  assert.ok(shopSerial("2026-11-24", 0) > 50_000 + 2 * 400, "clear of every old shop code");
+  assert.ok(shopSerial("2090-12-31", 0) < 100_000);
+  assert.throws(() => shopSerial("2026-10-05", 1), /slot/);
   const t = Date.UTC(2026, 9, 5, 12, 0);
   assert.ok(manualSerial(t) > 100_000 && manualSerial(t + 60_000) === manualSerial(t) + 1);
   assert.ok(manualSerial(Date.UTC(2041, 5, 30)) <= WEB_SERIAL_MAX, "manual serials last into 2041");

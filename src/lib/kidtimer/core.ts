@@ -46,9 +46,14 @@ export function makeCode(keyHex: string, minutes: number, serial: number): strin
  */
 const EPOCH = Date.UTC(2026, 0, 1);
 const DAILY_SERIALS = 100_000;
-/** Shop codes use the top half of the day range: SHOP_BASE + (day - 1) * perDay + slot. Raising perDay
- * later would hand out serials past days already used (the PC would reject those codes) — start a new range instead. */
-const SHOP_BASE = 50_000;
+/**
+ * Shop codes live above the Daily range, numbered SHOP_BASE + (day - 1) * perDay + slot. Changing
+ * perDay renumbers the days onto serials already used (the PC would reject those codes), so each
+ * perDay gets its own range: 50,000+ held the first two-a-day codes (used up to about 50,800),
+ * 75,000+ holds one a day.
+ */
+const SHOP_BASE = 75_000;
+const FIRST_SHOP_BASE = 50_000;
 
 /** "2026-10-05" → 1-based day number since 2026-01-01. */
 function dayNumber(date: string): number {
@@ -58,7 +63,7 @@ function dayNumber(date: string): number {
 
 export function dailySerial(date: string): number {
   const day = dayNumber(date);
-  if (day < 1 || day >= SHOP_BASE) throw new Error("date out of range");
+  if (day < 1 || day >= FIRST_SHOP_BASE) throw new Error("date out of range");
   return day;
 }
 

@@ -32,5 +32,5 @@ export function formatMinutes(m: number): string {
   return h ? `${h} ชม.${r ? ` ${r} นาที` : ""}` : `${r} นาที`;
 }
 
-/** Coin shop: an hour of PC time, at most twice a day (the server's serials enforce the daily cap too). */
-export const SHOP_TIME = { minutes: 60, price: 10, perDay: 2 } as const;
+/** Coin shop: an hour of PC time, at most once a day (the server's serials enforce the daily cap too). */
+export const SHOP_TIME = { minutes: 60, price: 10, perDay: 1 } as const;
