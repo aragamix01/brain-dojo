@@ -50,8 +50,9 @@ import { SERIES_COUNT, generateSeries } from "../src/games/series/logic";
 import { bumpLog, weekCompare, weekReport } from "../src/lib/weekly";
 import { emptyProgress } from "../src/lib/store";
 import { WEB_SERIAL_MAX, bangkokDay, dailySerial, makeCode, manualSerial, shopSerial } from "../src/lib/kidtimer/core";
-import { rewardMinutes, rewardStars } from "../src/lib/kidtimer/reward";
-import { claimDays, unpaidMinutes } from "../src/lib/kidtimer/claim";
+import { rewardMinutes } from "../src/lib/kidtimer/reward";
+import { bangkokToday, checkInXp, cleanAnswers, earnedAchievements, heldOf, levelFor, weekLabel, weekRewards, type WeekEntry } from "../src/lib/life/model";
+import { DEFAULT_QUESTIONS } from "../src/lib/life/questions";
 import { decodeProgress, encodeProgress, encodeReport, reportUrl } from "../src/lib/share";
 
 let failures = 0;
@@ -524,22 +525,54 @@ check("weekly report", () => {
   assert.deepEqual(Object.keys(old), ["2026-10-01"], "old log days are pruned");
 });
 
-check("weekly PC time claim", () => {
-  assert.equal(rewardStars({ timeMs: 1, hints: 0, stages: [{ kind: "hunt", label: "", stars: 3, detail: "" }] }), 9);
-  const days = claimDays(
-    { "2026-11-10": 9, "2026-11-11": 3, "2026-11-12": 0, "2026-11-20": 9, junk: 9 },
-    { "2026-11-11": 1 },
-    "2026-11-17",
-  );
+check("life quest rules", () => {
+  // 70 / 30: the held part rounds to the PC's 15-minute steps
+  assert.equal(heldOf(405), 120);
+  assert.equal(heldOf(810), 240);
+  const daily = {
+    "2026-11-16": { stars: 9, minutes: 150, at: 0 }, // Mon, last week
+    "2026-11-17": { stars: 6, minutes: 120, at: 0 },
+    "2026-11-23": { stars: 9, minutes: 150, at: 0 }, // Sun, this week
+    "2026-11-24": { stars: 7, minutes: 135, at: 0 },
+    "2026-11-27": { stars: 9, minutes: 150, at: 0 }, // future: ignored
+  };
+  const r = weekRewards(daily, new Set(["2026-11-15"]), { "2026-11-15": 60 }, "2026-11-25");
   assert.deepEqual(
-    days.map((d) => [d.day, d.minutes, d.paid]),
-    [["2026-11-10", 150, false], ["2026-11-11", 90, true], ["2026-11-12", 60, false]],
-    "future and malformed days are dropped",
+    r.map((w) => [w.week, w.total, w.held, w.unlocked, w.expired, w.available, w.owed]),
+    [
+      ["2026-11-22", 285, 90, false, false, 195, 195],
+      ["2026-11-15", 270, 75, true, false, 270, 210],
+    ],
   );
-  assert.equal(unpaidMinutes(days), 210);
-  const old = claimDays({ "2026-11-10": 9, "2026-11-12": 0 }, {}, "2026-11-17", ["2026-11-10"]);
-  assert.deepEqual(old.map((d) => [d.paid, d.old]), [[true, true], [false, false]], "days with an old code are already paid");
-  assert.equal(unpaidMinutes(old), 60);
+  const late = weekRewards(daily, new Set(), {}, "2026-11-25").find((w) => w.week === "2026-11-15")!;
+  assert.deepEqual([late.expired, late.available], [true, 195], "no check-in by Saturday: the held part is gone");
+  assert.ok(r.every((w) => w.available % 15 === 0 && w.owed % 15 === 0), "whole PC steps");
+
+  assert.deepEqual(levelFor(1340), { level: 3, title: "นักสำรวจ", into: 340, need: 500 });
+  assert.equal(weekLabel("2026-11-22"), "22–28 พ.ย.");
+  assert.equal(weekLabel("2026-11-29"), "29 พ.ย.–5 ธ.ค.");
+  assert.equal(bangkokToday(Date.UTC(2026, 10, 21, 18)), "2026-11-22", "1 a.m. in Bangkok is already the next day");
+
+  const answers = cleanAnswers(
+    {
+      mood: { picks: ["สนุก", "เครียด"] },
+      "time-spent": { picks: ["เรียน", "เล่นเกม", "ไม่มีตัวเลือกนี้"] },
+      "time-mgmt": { rating: 9 },
+      proud: { text: "  ส่งงานทัน  " },
+      junk: { text: "x" },
+    },
+    DEFAULT_QUESTIONS,
+  );
+  assert.deepEqual(answers, { mood: { picks: ["สนุก"] }, "time-spent": { picks: ["เรียน", "เล่นเกม"] }, proud: { text: "ส่งงานทัน" } });
+  assert.equal(checkInXp(answers), 110);
+  assert.equal(checkInXp({}), 100, "a check-in of all skips still earns XP");
+
+  const wk = (week: string, goalDone?: boolean): WeekEntry => ({
+    week, questions: [], answers: { "next-goal": { picks: ["สุขภาพ"], text: "นอนเร็ว" } }, submittedAt: 0, history: [], xp: 100, goalDone,
+  });
+  const weeks = [wk("2026-11-01", false), wk("2026-11-08", true), wk("2026-11-15", true), wk("2026-11-22", true)];
+  assert.deepEqual(earnedAchievements(weeks, { tasks: [], subjects: [] }), ["first-quest", "consistency-star", "goal-getter", "never-give-up"]);
+  assert.deepEqual(earnedAchievements([wk("2026-11-01"), wk("2026-11-15")], { tasks: [], subjects: [] }), ["first-quest"], "a gap breaks the streak");
 });
 
 async function asyncChecks() {
@@ -592,13 +625,6 @@ ${code}
     assert.deepEqual([days.length, days[0], days.at(-1)], [14, "2026-11-04", "2026-11-17"], "this week and last week");
     assert.equal(back.daily["2026-11-17"].stages?.[0].away?.n, 0, "away counts kept for the uncle's view");
     assert.equal((await decodeProgress(full)).report, false, "a full code can still be restored");
-    // PC time: four weeks of Dailies, minus days already paid with an old per-day code.
-    p.timeCodes = { "2026-11-16": { code: "X", minutes: 60, at: 0 } };
-    const r = await decodeProgress(await encodeReport(p, now));
-    const claim = Object.keys(r.rewards!).sort();
-    assert.deepEqual([claim.length, claim[0], claim.at(-1)], [28, "2026-10-21", "2026-11-17"]);
-    assert.deepEqual(r.coded, ["2026-11-16"], "a day with an old code is marked, so it isn't paid twice");
-    assert.equal(r.rewards!["2026-11-17"], rewardStars(p.daily["2026-11-17"]));
     console.log(`ok   report link — ${url.length} chars (full code ${full.length})`);
   } catch (e) {
     failures++;

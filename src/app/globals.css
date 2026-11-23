@@ -194,3 +194,93 @@ body {
     animation: none;
   }
 }
+
+/* ---------- Weekly Life Quest: same ink-and-shadow DNA, pastel and calmer ---------- */
+.lq {
+  --lq-ink: #2e2a4a;
+  --lq-muted: #5e5878;
+  color: var(--lq-ink);
+}
+.lq-bg {
+  background-color: #fff6ec;
+  background-image: radial-gradient(rgba(142, 124, 255, 0.18) 1.2px, transparent 1.6px);
+  background-size: 12px 12px;
+}
+.lq-parent-bg {
+  background-color: #f6f2ff;
+}
+.lq .font-lq {
+  font-family: var(--font-lq), var(--font-body);
+}
+.lq-card {
+  background: #fff;
+  border: 2.5px solid #2e2a4a;
+  border-radius: 1.4rem;
+  box-shadow: 4px 4px 0 #2e2a4a;
+}
+.lq-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 2.9rem;
+  padding: 0 1.1rem;
+  border: 2.5px solid #2e2a4a;
+  border-radius: 1.1rem;
+  box-shadow: 0 4px 0 #2e2a4a;
+  font-family: var(--font-lq), var(--font-body);
+  font-weight: 700;
+  background: #fff;
+  color: #2e2a4a;
+  transition: transform 0.08s, box-shadow 0.08s, opacity 0.15s;
+  user-select: none;
+  touch-action: manipulation;
+}
+.lq-btn:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #2e2a4a;
+}
+.lq-btn:disabled {
+  opacity: 0.45;
+}
+.lq-btn-primary {
+  background: #6a55e0;
+  color: #fff;
+}
+.lq-btn-pink {
+  background: #ffb5cf;
+}
+.lq-btn-lav {
+  background: #cdbeff;
+}
+.lq-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0 1rem;
+  border-radius: 999px;
+  border: 2px solid #a9a2c6;
+  background: #fff;
+  font-size: 15px;
+  color: #2e2a4a;
+  text-align: left;
+}
+.lq-chip[aria-pressed="true"] {
+  border: 2.5px solid #2e2a4a;
+  background: #cdbeff;
+  box-shadow: 0 3px 0 #2e2a4a;
+  font-weight: 600;
+}
+.lq-input {
+  width: 100%;
+  border: 2.5px solid #2e2a4a;
+  border-radius: 1rem;
+  background: #fff;
+  padding: 0.6rem 0.8rem;
+  font-size: 16px;
+  color: #2e2a4a;
+  outline: none;
+}
+.lq-input:focus {
+  box-shadow: 0 0 0 3px #cdbeff;
+}

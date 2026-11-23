@@ -1,7 +1,7 @@
 # Brain Dojo 🧠
 
 เว็บฝึกสมองสำหรับวัยรุ่น: แก้โจทย์ ฝึกคิดแบบ algorithm และแก้ปัญหาเฉพาะหน้า
-ไม่มีเฉลย มีแต่คำใบ้ทีละขั้น (ปลดล็อกหลังคิดเองครบ 30 วินาที) ข้อมูลทั้งหมดเก็บใน `localStorage` ไม่ใช้ database และไม่มี backend
+ไม่มีเฉลย มีแต่คำใบ้ทีละขั้น (ปลดล็อกหลังคิดเองครบ 30 วินาที) ความคืบหน้าเกมเก็บใน `localStorage` · Weekly Life Quest เก็บใน Upstash Redis
 
 ## โหมด
 
@@ -17,7 +17,13 @@
 
 หน้า Progress ส่งผลงานเป็นลิงก์หรือ QR code (สรุป 14 วันล่าสุด) ให้คนอื่นดู และมีโค้ด `BD2.…` สำหรับสำรองข้อมูล / ย้ายไปเครื่องใหม่
 
-เวลาคอม (KidTimer): Daily ไม่แจกโค้ดรายวันแล้ว — หลานส่งลิงก์/QR ผลงานมา ผู้ปกครองเปิดหน้า `/parent` (ใส่ PIN) แล้วสแกน QR, เลือกรูป QR หรือวางลิงก์ ระบบรวม Daily ที่ยังไม่ได้แลก (28 วันล่าสุด) เป็นโค้ดเดียว วันที่แลกแล้วจำไว้ในเครื่องของผู้ปกครอง
+## Weekly Life Quest (`/life`)
+
+สมุดบันทึกประจำสัปดาห์ของหลาน: เช็กอิน 10 ข้อ, Study Tracker, My Journal, XP/Achievement แยกจาก Brain Dojo · โหมดน้าที่ `/life/parent` (ใช้ `PARENT_PASSWORD`) ดูคำตอบที่ส่งแล้ว ส่งกำลังใจ จัดการคำถาม
+
+เวลาคอม (KidTimer): Daily ของ Brain Dojo ส่งเข้า Life Quest อัตโนมัติเมื่อหลานล็อกอินบนเครื่องนั้น ได้ 70% ทันที อีก 30% ของสัปดาห์ปลดล็อกเมื่อส่งเช็กอินภายในวันเสาร์ น้าแลกเป็นโค้ดเดียวจากโหมดน้า
+
+ข้อมูลเก็บใน Upstash Redis (Vercel → Storage → Upstash for Redis ใส่ `KV_REST_API_URL` / `KV_REST_API_TOKEN` ให้เอง) ตอน `npm run dev` ไม่มีฐานข้อมูลก็ใช้หน่วยความจำแทน (หายเมื่อรีสตาร์ต, PIN น้า = `000000` ถ้าไม่ได้ตั้ง `PARENT_PASSWORD`)
 
 ## Dev
 
@@ -30,7 +36,7 @@ npm run build
 
 ## Deploy (Vercel)
 
-push ขึ้น GitHub แล้ว import repo ใน Vercel ได้เลย ไม่ต้องตั้ง env var
+push ขึ้น GitHub แล้ว import repo ใน Vercel · env: `KIDTIMER_KEY`, `PARENT_PASSWORD` และ Upstash Redis (Life Quest)
 
 ## เพิ่มเนื้อหา
 

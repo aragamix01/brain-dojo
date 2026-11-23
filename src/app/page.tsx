@@ -222,6 +222,24 @@ function DailyCard() {
 
 const WEEKDAYS = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
 
+/** Weekly Life Quest: the weekly check-in that frees the last 30% of the week's PC time. */
+function LifeQuestCard() {
+  return (
+    <Link href="/life" className="card flex items-center gap-3 bg-[#cdbeff] p-4 active:translate-y-0.5">
+      <svg width="52" height="48" viewBox="0 0 120 112" fill="none" stroke="#1e2a3a" strokeWidth="4" strokeLinejoin="round" strokeLinecap="round" aria-hidden="true" className="shrink-0">
+        <path d="M14 30c0-6 4-10 10-10h30c4 0 6 2 6 5 0-3 2-5 6-5h30c6 0 10 4 10 10v62c0 4-3 6-6 6H66c-3 0-6 2-6 5 0-3-3-5-6-5H20c-3 0-6-2-6-6z" fill="#fff" />
+        <path d="M60 25v78" />
+        <path d="M84 62l4 8 9 1-7 6 2 9-8-5-8 5 2-9-7-6 9-1z" fill="#ffd66b" />
+      </svg>
+      <div className="flex-1">
+        <p className="font-display text-[17px] font-bold leading-tight">Weekly Life Quest</p>
+        <p className="text-[13px] leading-snug text-[#2e2a4a]">เช็กอินประจำสัปดาห์ · ปลดล็อกเวลาคอม 30% ที่เหลือ</p>
+      </div>
+      <span className="text-xl font-bold">›</span>
+    </Link>
+  );
+}
+
 /** One flame: lit orange when played, blue when a freeze covered it, faint when missed or still ahead. */
 function Flame({ kind }: { kind: "play" | "freeze" | "miss" | "future" }) {
   const lit = kind === "play" || kind === "freeze";
@@ -400,6 +418,7 @@ export default function Home() {
       <ClientOnly fallback={<div className="h-[520px]" />}>
         <div className="space-y-5">
           <DailyCard />
+          <LifeQuestCard />
           <QuestCard />
           <Nova />
         </div>

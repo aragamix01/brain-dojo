@@ -1,6 +1,4 @@
 import { dayKey, shiftDay } from "./date";
-import { CLAIM_DAYS } from "./kidtimer/claim";
-import { rewardStars } from "./kidtimer/reward";
 import { hashString } from "./rng";
 import { emptyProgress, type DailyResult, type ProgressData } from "./store";
 
@@ -56,11 +54,6 @@ export function encodeReport(data: ProgressData, now = Date.now()): Promise<stri
       { ...r, played: undefined, stages: r.stages?.map((st) => ({ ...st, detail: "" })) },
     ]),
   );
-  // Stars of each recent Daily for PC time; `coded` marks days already paid with an old per-day code.
-  const claimFrom = shiftDay(dayKey(new Date(now)), 1 - CLAIM_DAYS);
-  const claimable = Object.entries(data.daily).filter(([d]) => d >= claimFrom);
-  const rewards = Object.fromEntries(claimable.map(([d, r]) => [d, rewardStars(r)]));
-  const coded = claimable.map(([d]) => d).filter((d) => data.timeCodes?.[d]);
   return encode("BR", {
     name: data.name,
     xp: data.xp,
@@ -75,8 +68,6 @@ export function encodeReport(data: ProgressData, now = Date.now()): Promise<stri
     dailyCount: Object.keys(data.daily).length,
     activeDays: recent(data.activeDays),
     dayLog: recent(data.dayLog),
-    rewards,
-    coded,
     exportedAt: now,
   });
 }
@@ -87,10 +78,6 @@ export type Decoded = ProgressData & {
   report?: boolean;
   /** all-time Daily count, which a report's trimmed `daily` can't give */
   dailyCount?: number;
-  /** report only: day → stars of recent Dailies, for PC time */
-  rewards?: Record<string, number>;
-  /** report only: days in `rewards` already paid with an old per-day code */
-  coded?: string[];
 };
 
 /** Finds a code anywhere in the text, so a whole pasted share message or a link works too. */

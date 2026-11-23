@@ -32,18 +32,18 @@ export function CodeDisplay({ code, minutes }: { code: string; minutes: number }
 }
 
 /**
- * After the Daily: what it earned in PC time. No code here any more — the parent turns the week's
- * Dailies into one code from the report the player sends (so sending it is how the time gets paid).
+ * After the Daily: what it earned in PC time. The parent pays it out from Weekly Life Quest:
+ * 70% straight away, the last 30% once the week's check-in is sent.
  */
 export function RewardNote({ r }: { r: DailyResult }) {
   return (
     <div className="mt-4 rounded-2xl border-[2.5px] border-dashed border-ink bg-yellow/40 p-4 text-center">
       <p className="font-display text-base font-extrabold">🎁 ได้เวลาคอม +{formatMinutes(rewardMinutes(rewardStars(r)))}</p>
       <p className="mt-1 text-xs leading-relaxed">
-        สะสมไว้ก่อน · ไปหน้า 📊 Progress กด <b>ส่งลิงก์ผลงาน</b> หรือโชว์ <b>QR</b> ให้ผู้ปกครอง แล้วจะได้โค้ดเดียวรวมทุกวัน
+        ส่งเข้า <b>Weekly Life Quest</b> ให้แล้ว · ได้ 70% ทันที อีก 30% ปลดล็อกเมื่อส่ง<b>เช็กอินประจำสัปดาห์</b> · น้าแลกเป็นโค้ดให้
       </p>
-      <Link href="/progress" className="btn btn-ghost mt-2 w-full text-sm">
-        📤 ไปส่งผลงาน
+      <Link href="/life" className="btn btn-ghost mt-2 w-full text-sm">
+        📓 ไป Weekly Life Quest
       </Link>
     </div>
   );

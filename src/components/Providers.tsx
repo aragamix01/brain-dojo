@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useProgress } from "@/lib/store";
 import { CoinToastHost } from "./CoinToast";
+import { LifeSync } from "./LifeSync";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
@@ -18,6 +19,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <>
       {children}
       <CoinToastHost />
+      <LifeSync />
     </>
   );
 }

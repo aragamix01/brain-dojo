@@ -8,7 +8,7 @@ import { THEMES } from "@/games/situation/data";
 import { COINS } from "@/lib/coins";
 import { dayKey, formatTime, shiftDay } from "@/lib/date";
 import { rankFor } from "@/lib/rank";
-import { decodeProgress, encodeProgress, encodeReport, findCode, REPORT_DAYS, reportUrl, type Decoded } from "@/lib/share";
+import { decodeProgress, encodeProgress, encodeReport, REPORT_DAYS, reportUrl, type Decoded } from "@/lib/share";
 import { liveStreak, snapshot, useProgress, type ProgressData } from "@/lib/store";
 import { weekCompare, weekRange, weekReport } from "@/lib/weekly";
 import { formatMinutes } from "@/lib/kidtimer/reward";
@@ -204,8 +204,7 @@ function ShareCard() {
       )}
       <p className="mt-2 text-center text-xs leading-relaxed text-muted">
         {saturday && <span className="font-bold text-ink">วันเสาร์แล้ว ส่งสรุปทั้งสัปดาห์ได้เลย! · </span>}
-        คนที่ได้รับกดลิงก์หรือสแกน QR จะเห็นสรุปสัปดาห์กับผลงาน {REPORT_DAYS} วันล่าสุดทันที · 🎁 เวลาคอมจาก Daily
-        ผู้ปกครองแลกเป็นโค้ดให้จากลิงก์นี้
+        คนที่ได้รับกดลิงก์หรือสแกน QR จะเห็นสรุปสัปดาห์กับผลงาน {REPORT_DAYS} วันล่าสุดทันที
       </p>
       <button className="mt-2 w-full py-1 text-xs text-muted underline" onClick={shareBackup}>
         {copied === "backup" ? "คัดลอกโค้ดสำรองแล้ว ✔" : "📦 สำรองข้อมูลทั้งหมด (โค้ดยาว ใช้ย้ายไปเครื่องใหม่)"}
@@ -316,20 +315,6 @@ function linkCode(): string | null {
   return location.hash.startsWith("#v=") ? location.hash.slice(3) : null;
 }
 
-/**
- * From a received report to the parent page, which lists its Dailies and turns the unpaid ones into
- * one PC code. A plain link (full page load) so the code in the hash always arrives.
- */
-function RedeemLink({ data, text }: { data: Decoded; text: string }) {
-  const code = findCode(text);
-  if (!data.report || !code) return null;
-  return (
-    <a href={`/parent#v=${code}`} className="btn btn-gold mt-3 w-full">
-      🔑 แลกเป็นเวลาคอม (ผู้ปกครอง)
-    </a>
-  );
-}
-
 /** Paste a code (or a shared link) to see someone's progress; a full code can also be restored. */
 function ImportBox({ initial, onClose }: { initial?: string; onClose?: () => void }) {
   const [text, setText] = useState(initial ?? "");
@@ -364,7 +349,6 @@ function ImportBox({ initial, onClose }: { initial?: string; onClose?: () => voi
         {data && (
           <div className="mt-3">
             <Summary data={data} exportedAt={data.exportedAt} dailyCount={data.dailyCount} />
-            <RedeemLink data={data} text={initial} />
           </div>
         )}
       </div>
@@ -388,10 +372,7 @@ function ImportBox({ initial, onClose }: { initial?: string; onClose?: () => voi
         <div className="mt-4">
           <Summary data={data} exportedAt={data.exportedAt} dailyCount={data.dailyCount} />
           {data.report ? (
-            <>
-              <RedeemLink data={data} text={text} />
-              <p className="mt-3 text-center text-xs text-muted">นี่คือสรุป {REPORT_DAYS} วันล่าสุด · กู้ข้อมูลต้องใช้โค้ดสำรอง 📦</p>
-            </>
+            <p className="mt-3 text-center text-xs text-muted">นี่คือสรุป {REPORT_DAYS} วันล่าสุด · กู้ข้อมูลต้องใช้โค้ดสำรอง 📦</p>
           ) : (
             <button
               className="btn btn-ghost mt-3 w-full text-sm text-bad"
@@ -506,9 +487,8 @@ function Mine() {
       <TimeCodes />
       <Wallet />
       <ImportBox />
-      {/* Carries a received report along, so the parent page opens on it. */}
-      <a href={incoming ? `/parent#v=${incoming}` : "/parent"} className="btn btn-ghost w-full text-sm">
-        👨 สำหรับผู้ปกครอง · สร้างโค้ดเวลาคอม
+      <a href="/life/parent" className="btn btn-ghost w-full text-sm">
+        👨 สำหรับผู้ปกครอง · Life Quest โหมดน้า
       </a>
       <button
         className="w-full py-2 text-xs text-muted underline"
