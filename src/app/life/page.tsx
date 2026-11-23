@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { afterHydration, pullProgress, syncDailies, syncProgress } from "@/components/LifeSync";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { adoptAccount, afterHydration, afterSignIn, nameIfBlank, pullProgress, syncDailies, syncProgress } from "@/components/LifeSync";
+import { PlayerLogin } from "./login";
 import { ACHIEVEMENTS, goalOf, weekEnd } from "@/lib/life/model";
 import { shiftDay } from "@/lib/date";
 import { Bar, errorText, hm, Loading, LockIcon, PinPad, post, useApi, type PlayerData } from "./shared";
@@ -11,11 +13,26 @@ const API = "/api/lq/player";
 const DAYS = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
 
 export default function LifeHome() {
+  return (
+    <Suspense fallback={<Loading />}>
+      <LifeQuest />
+    </Suspense>
+  );
+}
+
+function LifeQuest() {
   const { data, err, reload } = useApi<PlayerData>(API);
+  // Brain Dojo's lock sends "I'm new" here with ?new=1.
+  const isNew = useSearchParams().has("new");
+  const [creating, setCreating] = useState(isNew);
   if (err && err !== "signed-out") return <p className="lq-card mt-10 p-5 text-center">{errorText(err)}</p>;
   if (!data) return <Loading />;
-  if (!data.hasPin) return <Welcome onDone={reload} />;
-  if (!data.signedIn) return <Login onDone={reload} />;
+  if (!data.signedIn) {
+    const players = data.players ?? [];
+    if (creating || !players.length)
+      return <Welcome taken={players.map((p) => p.name)} onBack={players.length ? () => setCreating(false) : undefined} onDone={reload} />;
+    return <PlayerLogin players={players} title="Weekly Life Quest" onNew={() => setCreating(true)} onDone={reload} />;
+  }
   return <Home d={data} reload={reload} />;
 }
 
@@ -36,8 +53,8 @@ const ico = (d: string) => (
   </svg>
 );
 
-/** First run: what the parent can see, then a 4-digit PIN (twice). No way past without one. */
-function Welcome({ onDone }: { onDone: () => void }) {
+/** A new account: what the parent can see, your own name, then a 4-digit PIN (twice). */
+function Welcome({ taken, onBack, onDone }: { taken: string[]; onBack?: () => void; onDone: () => void }) {
   const [step, setStep] = useState<"intro" | "set" | "confirm">("intro");
   const [name, setName] = useState("");
   const [first, setFirst] = useState("");
@@ -73,13 +90,27 @@ function Welcome({ onDone }: { onDone: () => void }) {
           </Point>
         </div>
         <label className="flex flex-col gap-1.5">
-          <span className="text-sm font-semibold">ชื่อเล่นของเรา</span>
+          <span className="text-sm font-semibold">ชื่อเล่นของเรา (ใช้เลือกตอนเข้าเล่น)</span>
           <input className="lq-input" value={name} onChange={(e) => setName(e.target.value)} maxLength={30} placeholder="เช่น เตตัส" />
         </label>
         <div className="flex-1" />
-        <button className="lq-btn lq-btn-primary w-full text-lg" onClick={() => setStep("set")}>
+        {msg && <p className="text-center text-sm font-semibold text-[#b42357]">{msg}</p>}
+        <button
+          className="lq-btn lq-btn-primary w-full text-lg"
+          disabled={!name.trim()}
+          onClick={() => {
+            if (taken.some((t) => t.trim().toLowerCase() === name.trim().toLowerCase())) return setMsg("ชื่อนี้มีคนใช้แล้ว ลองชื่ออื่นนะ");
+            setMsg(null);
+            setStep("set");
+          }}
+        >
           เข้าใจแล้ว · ตั้ง PIN
         </button>
+        {onBack && (
+          <button className="min-h-11 text-sm text-[#5b47d6] underline" onClick={onBack}>
+            มีบัญชีแล้ว กลับไปเลือกชื่อ
+          </button>
+        )}
       </div>
     );
 
@@ -94,12 +125,13 @@ function Welcome({ onDone }: { onDone: () => void }) {
       return setStep("set");
     }
     setBusy(true);
-    const r = await post(API, { action: "setPin", pin, name });
+    const r = await post<{ id: string }>(API, { action: "signup", pin, name: name.trim() });
     setBusy(false);
     if (r.error) {
-      setMsg(errorText(r.error));
-      return setStep("set");
+      setMsg(r.error === "name-taken" ? "ชื่อนี้มีคนใช้แล้ว ลองชื่ออื่นนะ" : r.error === "too-many" ? "มีบัญชีเต็มแล้ว ให้น้าลบบัญชีที่ไม่ใช้ก่อน" : errorText(r.error));
+      return setStep(r.error === "name-taken" ? "intro" : "set");
     }
+    await afterSignIn(r.id, name.trim());
     onDone();
   };
 
@@ -115,38 +147,6 @@ function Welcome({ onDone }: { onDone: () => void }) {
       {msg && <p className="mb-2 text-sm font-semibold text-[#b42357]">{msg}</p>}
       <PinPad key={step} len={4} onDone={done} busy={busy} />
       <p className="mt-6 text-center text-xs text-[#5e5878]">ต้องตั้ง PIN ก่อนใช้งาน · ลืม PIN ให้น้ารีเซ็ตให้ได้</p>
-    </div>
-  );
-}
-
-function Login({ onDone }: { onDone: () => void }) {
-  const [msg, setMsg] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const done = async (pin: string) => {
-    setBusy(true);
-    const r = await post<{ left?: number }>(API, { action: "login", pin });
-    setBusy(false);
-    if (!r.error) return onDone();
-    setMsg(
-      r.error === "locked"
-        ? "ใส่ผิดหลายครั้ง รอ 5 นาทีแล้วลองใหม่"
-        : r.error === "wrong-pin"
-          ? `PIN ไม่ถูก${r.left ? ` (ลองได้อีก ${r.left} ครั้ง)` : ""}`
-          : errorText(r.error),
-    );
-  };
-  return (
-    <div className="flex flex-col items-center gap-2 pt-10">
-      <span className="flex h-16 w-16 items-center justify-center rounded-[22px] border-[2.5px] border-[#2e2a4a] bg-[#cdbeff] shadow-[3px_3px_0_#2e2a4a]">
-        <LockIcon />
-      </span>
-      <h1 className="mt-2 font-lq text-2xl font-bold">Weekly Life Quest</h1>
-      <p className="mb-4 text-sm text-[#5e5878]">ใส่ PIN 4 หลักของเรา</p>
-      {msg && <p className="mb-2 text-sm font-semibold text-[#b42357]">{msg}</p>}
-      <PinPad len={4} onDone={done} busy={busy} />
-      <Link href="/life/parent" className="mt-8 text-sm text-[#5b47d6] underline">
-        สำหรับน้า (Parent)
-      </Link>
     </div>
   );
 }
@@ -185,17 +185,21 @@ function Home({ d, reload }: { d: PlayerData; reload: () => void }) {
   const played = new Set(d.dailyDays ?? []);
 
   // Dailies played before signing in on this phone go up now.
+  const id = d.id!;
+  const name = p.name;
   useEffect(
     () =>
       afterHydration(() => {
+        adoptAccount(id, name);
         void syncDailies(true).then((n) => n && reload());
         // This PIN's save first (it may come from another phone), then anything new from this one.
-        void pullProgress().then(() => syncProgress());
+        void pullProgress().then(() => (nameIfBlank(name), syncProgress()));
       }),
-    [reload],
+    [reload, id, name],
   );
 
   const logout = async () => {
+    await syncProgress(); // this phone's latest goes up before someone else signs in
     await post(API, { action: "logout" });
     try {
       localStorage.removeItem("lq-open"); // Brain Dojo locks again too

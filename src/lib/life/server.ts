@@ -1,6 +1,6 @@
 import "server-only";
 import { rewardMinutes } from "../kidtimer/reward";
-import { K, type Store } from "./db";
+import { K, PLAYER_HASHES, PLAYER_VALUES, playerKey, scoped, type Store } from "./db";
 import {
   ACHIEVEMENTS,
   bangkokToday,
@@ -204,3 +204,57 @@ export async function parentState(db: Store) {
   };
 }
 
+
+// ---------------------------------------------------------------- several players
+
+/** One entry per player in the shared list; `hasPin` is false after the parent resets it. */
+export type PlayerEntry = { id: string; name: string; createdAt: number; hasPin: boolean };
+
+export async function playerList(db: Store): Promise<PlayerEntry[]> {
+  return Object.values(await db.hgetall<PlayerEntry>(K.players)).sort((a, b) => a.createdAt - b.createdAt);
+}
+
+/** The id the parent page opens on: the chosen default, else the first player. */
+export async function defaultPlayer(db: Store, list?: PlayerEntry[]): Promise<string | null> {
+  const players = list ?? (await playerList(db));
+  const id = await db.get<string>(K.defaultPlayer);
+  return id && players.some((p) => p.id === id) ? id : (players[0]?.id ?? null);
+}
+
+/** Names are how players find themselves on the sign-in screen, so no two may match. */
+export const sameName = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
+
+/** Removes every key of one player. */
+export async function deletePlayer(db: Store, id: string) {
+  const own = scoped(db, id);
+  for (const k of [...PLAYER_VALUES, ...PLAYER_HASHES, K.pinFails]) await own.del(k);
+  const list = await db.hgetall<PlayerEntry>(K.players);
+  delete list[id];
+  await db.del(K.players);
+  for (const [k, v] of Object.entries(list)) await db.hset(K.players, k, v);
+  if ((await db.get<string>(K.defaultPlayer)) === id) await db.del(K.defaultPlayer);
+}
+
+/**
+ * Once: Life Quest began with a single player whose data sat under unscoped keys. Copy it under a
+ * player id, list it, make it the default, and remember the id for cookies made before ids existed.
+ * The old keys are left in place as a backup.
+ */
+export async function migrate(db: Store) {
+  const meta = await db.hgetall<number>(K.meta);
+  if (meta.players) return;
+  if (!(await db.hsetnx(K.meta, "players", Date.now()))) return;
+  const old = await db.get<Player>(K.player);
+  if (!old) return;
+  const id = newId();
+  for (const k of PLAYER_VALUES) {
+    const v = await db.get(k);
+    if (v !== null) await db.set(playerKey(id, k), v);
+  }
+  for (const k of PLAYER_HASHES) for (const [f, v] of Object.entries(await db.hgetall(k))) await db.hset(playerKey(id, k), f, v);
+  const pin = await db.get(K.pin);
+  const entry: PlayerEntry = { id, name: old.name || "หลาน", createdAt: Date.now(), hasPin: !!pin };
+  await db.hset(K.players, id, entry);
+  await db.set(K.defaultPlayer, id);
+  await db.set(K.legacy, id);
+}

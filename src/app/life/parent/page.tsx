@@ -8,19 +8,61 @@ import { emptyProgress, type ProgressData } from "@/lib/store";
 import { shiftDay } from "@/lib/date";
 import { dayLabel, goalOf, levelFor, UNDERSTANDING, weekLabel, type Message, type WeekEntry } from "@/lib/life/model";
 import { Q, TYPE_LABEL, type Question, type QuestionType } from "@/lib/life/questions";
-import type { parentState, Redeem } from "@/lib/life/server";
+import type { parentState, PlayerEntry, Redeem } from "@/lib/life/server";
 import { answerText, Bar, errorText, hm, Loading, LockIcon, PinPad, post, useApi } from "../shared";
 
 const API = "/api/lq/parent";
-type Data = { signedIn: boolean; error?: string } & Partial<Awaited<ReturnType<typeof parentState>>>;
+type Data = {
+  signedIn: boolean;
+  error?: string;
+  players?: PlayerEntry[];
+  defaultId?: string | null;
+  playerId?: string | null;
+} & Partial<Awaited<ReturnType<typeof parentState>>>;
 type Tab = "home" | "answers" | "growth" | "brain" | "questions";
 
 export default function ParentPage() {
-  const { data, err, reload, setData } = useApi<Data>(API);
+  // Which player to show; none chosen yet = the default one.
+  const [player, setPlayer] = useState<string | null>(null);
+  const { data, err, reload, setData } = useApi<Data>(player ? `${API}?player=${player}` : API);
   if (err && err !== "signed-out") return <p className="lq-card mt-10 p-5 text-center">{errorText(err)}</p>;
   if (!data) return <Loading />;
   if (!data.signedIn) return <Login onDone={reload} />;
-  return <Dashboard d={data} reload={reload} patch={(p) => setData({ ...data, ...p })} />;
+  return <Dashboard key={data.playerId ?? "none"} d={data} reload={reload} patch={(p) => setData({ ...data, ...p })} pick={setPlayer} />;
+}
+
+/** The players, the one being shown, and which one the page opens on. */
+function PlayerPicker({ d, pick, reload }: { d: Data; pick: (id: string) => void; reload: () => void }) {
+  const players = d.players ?? [];
+  if (!players.length) return <p className="text-sm text-[#ede9ff]">ยังไม่มีหลานสร้างบัญชี · ให้หลานเปิด Brain Dojo แล้วกด &quot;สร้างบัญชี&quot;</p>;
+  const setDefault = async () => {
+    await post(API, { action: "setDefault", player: d.playerId });
+    reload();
+  };
+  return (
+    <div className="space-y-2">
+      <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1" role="group" aria-label="เลือกหลาน">
+        {players.map((p) => (
+          <button
+            key={p.id}
+            onClick={() => pick(p.id)}
+            aria-pressed={p.id === d.playerId}
+            className={`min-h-11 shrink-0 rounded-full border-2 px-4 font-lq text-[15px] font-bold ${
+              p.id === d.playerId ? "border-[#2e2a4a] bg-white text-[#2e2a4a]" : "border-white/70 text-white"
+            }`}
+          >
+            {p.id === d.defaultId ? "★ " : ""}
+            {p.name}
+          </button>
+        ))}
+      </div>
+      {players.length > 1 && d.playerId !== d.defaultId && (
+        <button onClick={setDefault} className="min-h-9 text-[13px] font-semibold text-white underline">
+          ตั้ง {players.find((p) => p.id === d.playerId)?.name} เป็นค่าเริ่มต้น (เปิดหน้านี้มาเจอคนนี้ก่อน)
+        </button>
+      )}
+    </div>
+  );
 }
 
 function Login({ onDone }: { onDone: () => void }) {
@@ -64,7 +106,7 @@ function streakWeeks(weeks: WeekEntry[], week: string) {
   return n;
 }
 
-function Dashboard({ d, reload, patch }: { d: Data; reload: () => void; patch: (p: Partial<Data>) => void }) {
+function Dashboard({ d, reload, patch, pick }: { d: Data; reload: () => void; patch: (p: Partial<Data>) => void; pick: (id: string) => void }) {
   const [tab, setTab] = useState<Tab>("home");
   const p = d.player;
   const lv = levelFor(p?.xp ?? 0);
@@ -85,8 +127,9 @@ function Dashboard({ d, reload, patch }: { d: Data; reload: () => void; patch: (
         </div>
         <div>
           <h1 className="font-lq text-[26px] font-bold">สวัสดีน้า</h1>
-          <p className="text-sm text-[#ede9ff]">{p ? `ภาพรวมการผจญภัยของ${p.name || "หลาน"}` : "หลานยังไม่ได้เริ่มใช้ (ยังไม่ได้ตั้ง PIN)"}</p>
+          <p className="text-sm text-[#ede9ff]">{p ? `ภาพรวมการผจญภัยของ${p.name || "หลาน"}` : "ยังไม่มีบัญชีหลาน"}</p>
         </div>
+        <PlayerPicker d={d} pick={pick} reload={reload} />
         <div className="grid grid-cols-3 gap-2 text-[#2e2a4a]">
           {[
             [String(weeks.length), "เช็กอินที่ส่งแล้ว"],
@@ -124,7 +167,7 @@ function Dashboard({ d, reload, patch }: { d: Data; reload: () => void; patch: (
         {tab === "home" && <Home d={d} reload={reload} goAnswers={() => setTab("answers")} />}
         {tab === "answers" && <Answers d={d} patch={patch} />}
         {tab === "growth" && <Growth d={d} />}
-        {tab === "brain" && <BrainDojo />}
+        {tab === "brain" && <BrainDojo player={d.playerId} />}
         {tab === "questions" && <Questions d={d} patch={patch} />}
       </div>
     </div>
@@ -145,7 +188,7 @@ function Home({ d, reload, goAnswers }: { d: Data; reload: () => void; goAnswers
   const redeem = async () => {
     setBusy(true);
     setErr(null);
-    const r = await post<{ redeem: Redeem }>(API, { action: "redeem" });
+    const r = await post<{ redeem: Redeem }>(API, { action: "redeem", player: d.playerId });
     setBusy(false);
     if (r.error)
       setErr(
@@ -166,7 +209,7 @@ function Home({ d, reload, goAnswers }: { d: Data; reload: () => void; goAnswers
   };
   const resetPin = async () => {
     if (!confirm("รีเซ็ต PIN ของหลาน? หลานจะต้องตั้ง PIN ใหม่ ข้อมูลอื่นอยู่ครบ")) return;
-    await post(API, { action: "resetPin" });
+    await post(API, { action: "resetPin", player: d.playerId });
     reload();
   };
 
@@ -309,9 +352,21 @@ function Home({ d, reload, goAnswers }: { d: Data; reload: () => void; goAnswers
           ดาวน์โหลดสำรองข้อมูล
         </button>
         <button className="lq-btn text-sm" onClick={resetPin} disabled={!d.hasPin}>
-          รีเซ็ต PIN หลาน
+          รีเซ็ต PIN {d.player?.name ?? "หลาน"}
         </button>
       </div>
+      {d.player && (
+        <button
+          className="w-full py-1 text-xs text-[#b42357] underline"
+          onClick={async () => {
+            if (!confirm(`ลบบัญชี ${d.player!.name}? ข้อมูลทั้งหมดของบัญชีนี้จะหาย ย้อนกลับไม่ได้`)) return;
+            await post(API, { action: "deletePlayer", player: d.playerId });
+            location.reload();
+          }}
+        >
+          ลบบัญชี {d.player.name}
+        </button>
+      )}
       <Link href="/parent" className="block text-center text-sm text-[#5b47d6] underline">
         สร้างโค้ดเวลาคอมเอง (รางวัลพิเศษ)
       </Link>
@@ -329,7 +384,7 @@ function Answers({ d, patch }: { d: Data; patch: (p: Partial<Data>) => void }) {
   const w = weeks.find((x) => x.week === sel);
   const send = async () => {
     if (!msg.trim()) return;
-    const r = await post<{ messages: Message[] }>(API, { action: "message", text: msg });
+    const r = await post<{ messages: Message[] }>(API, { action: "message", text: msg, player: d.playerId });
     if (!r.error) {
       patch({ messages: r.messages });
       setSent(true);
@@ -420,8 +475,8 @@ function Answers({ d, patch }: { d: Data; patch: (p: Partial<Data>) => void }) {
 }
 
 /** The player's whole Brain Dojo progress, synced from their phone: the same view as a share code. */
-function BrainDojo() {
-  const { data, err } = useApi<{ brain?: { data: ProgressData; at: number } | null }>(`${API}?part=brain`);
+function BrainDojo({ player }: { player?: string | null }) {
+  const { data, err } = useApi<{ brain?: { data: ProgressData; at: number } | null }>(`${API}?part=brain&player=${player ?? ""}`);
   if (err) return <p className="lq-card p-4 text-center">{errorText(err)}</p>;
   if (!data) return <Loading />;
   const b = data.brain;

@@ -1,7 +1,7 @@
-import { configured, endSession, hashPin, pinMatches, renewSession, sessionVersion, startSession, validPin, type PinRecord } from "@/lib/life/auth";
-import { K, store, type Store } from "@/lib/life/db";
+import { configured, endSession, hashPin, pinMatches, renewSession, session, startSession, validPin, type PinRecord } from "@/lib/life/auth";
+import { K, scoped, store, type Store } from "@/lib/life/db";
 import { bangkokToday, cleanAnswers, UNDERSTANDING, weekStart, XP, type Draft, type Player, type Study, type TaskStatus, type Understanding } from "@/lib/life/model";
-import { award, newId, playerState, pushLog, questions, setGoal, study, submitCheckIn, syncDaily } from "@/lib/life/server";
+import { award, migrate, newId, playerList, playerState, pushLog, questions, sameName, setGoal, study, submitCheckIn, syncDaily, type PlayerEntry } from "@/lib/life/server";
 
 const MAX_FAILS = 5;
 const LOCK_SECONDS = 300;
@@ -9,73 +9,112 @@ const LOCK_SECONDS = 300;
 const json = (data: unknown, status = 200) => Response.json(data, { status, headers: { "Cache-Control": "no-store" } });
 const str = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 
-/** Signed in as the player with the current PIN? A session in use is renewed, so it never lapses. */
-async function signedIn(db: Store): Promise<boolean> {
-  const ver = await sessionVersion("player");
-  if (ver === null) return false;
-  const pin = await db.get<PinRecord>(K.pin);
-  if (!pin || pin.ver !== ver) return false;
-  await renewSession("player");
-  return true;
+/**
+ * The signed-in player's id, if the cookie is valid for their current PIN. A session in use is
+ * renewed, so it never lapses. Cookies from before there were several players mean the first one.
+ */
+async function signedIn(root: Store): Promise<string | null> {
+  const s = await session("player");
+  if (!s) return null;
+  const id = s.id || (await root.get<string>(K.legacy));
+  if (!id) return null;
+  const pin = await scoped(root, id).get<PinRecord>(K.pin);
+  if (!pin || pin.ver !== s.ver) return null;
+  await renewSession("player", id);
+  return id;
 }
 
 type Brain = { data: Record<string, unknown>; at: number };
 
+/** Who can sign in here: names only (they're how a player finds themselves). */
+const publicList = (list: PlayerEntry[]) => list.map(({ id, name, hasPin }) => ({ id, name, hasPin }));
+
+/** Sets a player's PIN, bumping its version so sessions made with an old PIN stop working. */
+async function setPin(root: Store, id: string, pin: string) {
+  const db = scoped(root, id);
+  const old = await db.get<{ ver: number }>(K.pinVer);
+  const rec = hashPin(pin, (old?.ver ?? 0) + 1);
+  await db.set(K.pin, rec);
+  await db.set(K.pinVer, { ver: rec.ver });
+  const entry = (await root.hgetall<PlayerEntry>(K.players))[id];
+  if (entry) await root.hset(K.players, id, { ...entry, hasPin: true });
+  await startSession("player", rec.ver, id);
+}
+
 export async function GET(request: Request) {
-  const db = store();
-  if (!db || !configured()) return json({ error: "not-configured" }, 503);
+  const root = store();
+  if (!root || !configured()) return json({ error: "not-configured" }, 503);
+  await migrate(root);
   const params = new URL(request.url).searchParams;
   const part = params.get("part");
-  const hasPin = !!(await db.get<PinRecord>(K.pin));
-  const ok = await signedIn(db);
-  // Brain Dojo's gate only needs to know who's here.
-  if (part === "session" || !ok) return json({ hasPin, signedIn: ok });
+  const id = await signedIn(root);
+  const list = await playerList(root);
+  const me = list.find((p) => p.id === id);
+  // The sign-in screens (and Brain Dojo's gate) only need to know who's here.
+  if (part === "session" || !id) return json({ signedIn: !!id, id, name: me?.name, players: publicList(list) });
+  const db = scoped(root, id);
   if (part === "brain") {
     // The saved Brain Dojo progress, when it's newer than the copy this phone has.
     const brain = await db.get<Brain>(K.brain);
     const since = Number(params.get("since")) || 0;
-    return json({ signedIn: true, at: brain?.at ?? 0, ...(brain && brain.at > since ? { data: brain.data } : {}) });
+    return json({ signedIn: true, id, at: brain?.at ?? 0, ...(brain && brain.at > since ? { data: brain.data } : {}) });
   }
-  return json({ hasPin, signedIn: true, ...(await playerState(db)) });
+  return json({ signedIn: true, id, players: publicList(list), ...(await playerState(db)) });
 }
 
 export async function POST(request: Request) {
-  const db = store();
-  if (!db || !configured()) return json({ error: "not-configured" }, 503);
+  const root = store();
+  if (!root || !configured()) return json({ error: "not-configured" }, 503);
+  await migrate(root);
   const body = await request.json().catch(() => ({}));
   const action = body?.action;
 
-  if (action === "setPin") {
-    // Only the very first time: after that the parent resets a forgotten PIN.
-    if (await db.get(K.pin)) return json({ error: "pin-exists" }, 409);
+  if (action === "signup") {
+    // Anyone can make their own account: a name nobody else uses, and a 4-digit PIN.
+    const name = str(body.name, 30);
+    if (!name) return json({ error: "no-name" }, 400);
     if (!validPin(body.pin, 4)) return json({ error: "bad-pin" }, 400);
-    const old = await db.get<{ ver: number }>(K.pin + ":ver");
-    const rec = hashPin(body.pin, (old?.ver ?? 0) + 1);
-    await db.set(K.pin, rec);
-    await db.set(K.pin + ":ver", { ver: rec.ver });
-    if (!(await db.get(K.player))) {
-      // Dailies count from the start of this week, so days already played this week aren't lost.
-      const p: Player = { name: str(body.name, 30), startDay: weekStart(bangkokToday()), xp: 0, achievements: {}, careers: [] };
-      await db.set(K.player, p);
-      await pushLog(db, "เริ่มใช้ Weekly Life Quest");
-    }
-    await startSession("player", rec.ver);
-    return json({ ok: true });
+    const list = await playerList(root);
+    if (list.length >= 12) return json({ error: "too-many" }, 409);
+    if (list.some((p) => sameName(p.name, name))) return json({ error: "name-taken" }, 409);
+    const id = newId();
+    const entry: PlayerEntry = { id, name, createdAt: Date.now(), hasPin: true };
+    await root.hset(K.players, id, entry);
+    // Dailies count from the start of this week, so days already played this week aren't lost.
+    const p: Player = { name, startDay: weekStart(bangkokToday()), xp: 0, achievements: {}, careers: [] };
+    await scoped(root, id).set(K.player, p);
+    await pushLog(scoped(root, id), "เริ่มใช้ Weekly Life Quest");
+    if (!(await root.get(K.defaultPlayer))) await root.set(K.defaultPlayer, id);
+    await setPin(root, id, body.pin);
+    return json({ ok: true, id });
+  }
+
+  const target = typeof body.id === "string" ? (await root.hgetall<PlayerEntry>(K.players))[body.id] : undefined;
+
+  if (action === "setPin") {
+    // After the parent resets a forgotten PIN, the player sets a new one.
+    if (!target) return json({ error: "no-player" }, 404);
+    if (await scoped(root, target.id).get(K.pin)) return json({ error: "pin-exists" }, 409);
+    if (!validPin(body.pin, 4)) return json({ error: "bad-pin" }, 400);
+    await setPin(root, target.id, body.pin);
+    return json({ ok: true, id: target.id });
   }
 
   if (action === "login") {
-    const rec = await db.get<PinRecord>(K.pin);
+    if (!target) return json({ error: "no-player" }, 404);
+    const own = scoped(root, target.id);
+    const rec = await own.get<PinRecord>(K.pin);
     if (!rec) return json({ error: "no-pin" }, 409);
-    const fails = Number((await db.get<number>(K.pinFails)) ?? 0);
+    const fails = Number((await own.get<number>(K.pinFails)) ?? 0);
     if (fails >= MAX_FAILS) return json({ error: "locked" }, 429);
     if (!validPin(body.pin, 4) || !pinMatches(body.pin, rec)) {
-      await db.incr(K.pinFails, LOCK_SECONDS);
+      await own.incr(K.pinFails, LOCK_SECONDS);
       await new Promise((r) => setTimeout(r, 800));
       return json({ error: "wrong-pin", left: Math.max(0, MAX_FAILS - fails - 1) }, 401);
     }
-    await db.del(K.pinFails);
-    await startSession("player", rec.ver);
-    return json({ ok: true });
+    await own.del(K.pinFails);
+    await startSession("player", rec.ver, target.id);
+    return json({ ok: true, id: target.id });
   }
 
   if (action === "logout") {
@@ -83,7 +122,9 @@ export async function POST(request: Request) {
     return json({ ok: true });
   }
 
-  if (!(await signedIn(db))) return json({ error: "signed-out" }, 401);
+  const id = await signedIn(root);
+  if (!id) return json({ error: "signed-out" }, 401);
+  const db = scoped(root, id);
 
   switch (action) {
     case "saveDraft": {

@@ -5,7 +5,12 @@ import { useCallback, useEffect, useState } from "react";
 import type { Answer } from "@/lib/life/model";
 import type { playerState } from "@/lib/life/server";
 
-export type PlayerData = { hasPin: boolean; signedIn: boolean; error?: string } & Partial<Awaited<ReturnType<typeof playerState>>>;
+export type PlayerData = {
+  signedIn: boolean;
+  id?: string;
+  players?: { id: string; name: string; hasPin: boolean }[];
+  error?: string;
+} & Partial<Awaited<ReturnType<typeof playerState>>>;
 
 export async function post<T = Record<string, unknown>>(path: string, body: unknown): Promise<T & { error?: string }> {
   try {

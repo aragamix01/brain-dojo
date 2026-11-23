@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { shiftDay, dayKey } from "@/lib/date";
 import { rewardStars } from "@/lib/kidtimer/reward";
 import { hashString } from "@/lib/rng";
-import { snapshot, useProgress, type ProgressData } from "@/lib/store";
+import { emptyProgress, snapshot, useProgress, type ProgressData } from "@/lib/store";
 
 const KEY = "lq-synced";
 const PROGRESS_KEY = "lq-progress-synced";
@@ -115,6 +115,42 @@ export async function pullProgress(): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+const ACCOUNT_KEY = "lq-account";
+
+/**
+ * One Brain Dojo save per account. A phone that hasn't signed in before keeps what's on it (it's
+ * this player's); signing in as someone else replaces it with an empty save, which `pullProgress`
+ * then fills from that player's account. Returns true when the phone's save was swapped.
+ */
+export function adoptAccount(id: string, name?: string): boolean {
+  const current = read(ACCOUNT_KEY);
+  if (current === id) return false;
+  write(ACCOUNT_KEY, id);
+  if (current === null) return false;
+  for (const k of [KEY, PROGRESS_KEY, AT_KEY])
+    try {
+      localStorage.removeItem(k);
+    } catch {
+      /* fine */
+    }
+  useProgress.getState().importData({ ...emptyProgress(), name: name ?? "" });
+  return true;
+}
+
+/** Brain Dojo shows the account's name (on the wanted poster) when its save has none yet. */
+export function nameIfBlank(name?: string) {
+  if (name && !useProgress.getState().name) useProgress.getState().setName(name);
+}
+
+/** After signing in: this player's save first (maybe from another phone), then anything new here. */
+export async function afterSignIn(id: string, name?: string) {
+  adoptAccount(id, name);
+  await pullProgress();
+  nameIfBlank(name);
+  await syncProgress();
+  await syncDailies(true);
 }
 
 /** Runs `fn` once the saved progress has loaded from storage. */

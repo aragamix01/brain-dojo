@@ -34,14 +34,15 @@ export const validPin = (pin: unknown, len: number): pin is string =>
 const sign = (body: string, key: string) => createHmac("sha256", key).update(body).digest("base64url");
 
 /**
- * Cookie value: role.expiry.version.mac. The version is the player's PIN version, so resetting the
- * PIN signs every old player session out.
+ * Cookie value: role.expiry.version.player.mac. The version is the player's PIN version, so
+ * resetting a PIN signs that player's old sessions out. (Cookies from before there were several
+ * players have no player part.)
  */
-export async function startSession(role: Role, ver = 0): Promise<boolean> {
+export async function startSession(role: Role, ver = 0, id = ""): Promise<boolean> {
   const key = secret();
   if (!key) return false;
   const exp = Math.floor(Date.now() / 1000) + MAX_AGE[role];
-  const body = `${role}.${exp}.${ver}`;
+  const body = `${role}.${exp}.${ver}.${id}`;
   (await cookies()).set(COOKIE[role], `${body}.${sign(body, key)}`, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
@@ -62,23 +63,23 @@ export async function sessionVersion(role: Role): Promise<number | null> {
 }
 
 /** A session in use keeps going: once it's a few days old it is issued afresh for the full term. */
-export async function renewSession(role: Role) {
+export async function renewSession(role: Role, id?: string) {
   const s = await session(role);
-  if (s && s.exp - Date.now() / 1000 < MAX_AGE[role] - 3 * 86_400) await startSession(role, s.ver);
+  if (s && s.exp - Date.now() / 1000 < MAX_AGE[role] - 3 * 86_400) await startSession(role, s.ver, id ?? s.id);
 }
 
-async function session(role: Role): Promise<{ ver: number; exp: number } | null> {
+export async function session(role: Role): Promise<{ ver: number; exp: number; id: string } | null> {
   const key = secret();
   const raw = (await cookies()).get(COOKIE[role])?.value;
   if (!key || !raw) return null;
   const parts = raw.split(".");
-  if (parts.length !== 4 || parts[0] !== role) return null;
-  const body = parts.slice(0, 3).join(".");
+  if ((parts.length !== 4 && parts.length !== 5) || parts[0] !== role) return null;
+  const body = parts.slice(0, -1).join(".");
   const want = Buffer.from(sign(body, key));
-  const got = Buffer.from(parts[3]);
+  const got = Buffer.from(parts.at(-1)!);
   if (want.length !== got.length || !timingSafeEqual(want, got)) return null;
   if (Number(parts[1]) < Date.now() / 1000) return null;
-  return { ver: Number(parts[2]), exp: Number(parts[1]) };
+  return { ver: Number(parts[2]), exp: Number(parts[1]), id: parts.length === 5 ? parts[3] : "" };
 }
 
 export const configured = () => secret() !== null;
