@@ -134,7 +134,7 @@ function Dashboard({ d, reload, patch, pick }: { d: Data; reload: () => void; pa
           {[
             [String(weeks.length), "เช็กอินที่ส่งแล้ว"],
             [`Lv ${lv.level}`, `${(p?.xp ?? 0).toLocaleString()} XP`],
-            [String(streakWeeks(weeks, d.week!)), "สัปดาห์ติดกัน"],
+            [String(d.week ? streakWeeks(weeks, d.week) : 0), "สัปดาห์ติดกัน"],
           ].map(([v, k]) => (
             <div key={k} className="flex flex-col items-center rounded-2xl border-[2.5px] border-[#2e2a4a] bg-white px-1 py-2.5">
               <span className="font-lq text-[22px] font-bold">{v}</span>
@@ -164,10 +164,17 @@ function Dashboard({ d, reload, patch, pick }: { d: Data; reload: () => void; pa
         </nav>
       </div>
       <div className="space-y-4 px-4 py-4">
-        {tab === "home" && <Home d={d} reload={reload} goAnswers={() => setTab("answers")} />}
-        {tab === "answers" && <Answers d={d} patch={patch} />}
-        {tab === "growth" && <Growth d={d} />}
-        {tab === "brain" && <BrainDojo player={d.playerId} />}
+        {!d.playerId && tab !== "questions" ? (
+          <p className="lq-card p-5 text-center text-sm leading-relaxed text-[#4a4566]">
+            ยังไม่มีหลานสร้างบัญชี · ให้หลานเปิด Brain Dojo บนมือถือตัวเองแล้วกด &quot;สร้างบัญชี&quot; (ตั้งชื่อ + PIN 4 หลัก) แล้วข้อมูลจะขึ้นที่นี่
+            <br />
+            ระหว่างนี้ตั้งค่าคำถามในแท็บ &quot;คำถาม&quot; ได้
+          </p>
+        ) : null}
+        {d.playerId && tab === "home" && <Home d={d} reload={reload} goAnswers={() => setTab("answers")} />}
+        {d.playerId && tab === "answers" && <Answers d={d} patch={patch} />}
+        {d.playerId && tab === "growth" && <Growth d={d} />}
+        {d.playerId && tab === "brain" && <BrainDojo player={d.playerId} />}
         {tab === "questions" && <Questions d={d} patch={patch} />}
       </div>
     </div>
