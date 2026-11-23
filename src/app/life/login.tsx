@@ -85,7 +85,7 @@ export function PlayerLogin({
       </span>
       <h1 className="mt-2 font-lq text-2xl font-bold">{who.name}</h1>
       <p className="mb-4 text-center text-sm text-[#5e5878]">
-        {settingNew ? (first === null ? "น้ารีเซ็ต PIN แล้ว · ตั้ง PIN 4 หลักใหม่" : "ใส่ PIN ใหม่อีกครั้ง") : "ใส่ PIN 4 หลักของเรา"}
+        {settingNew ? (first === null ? "พี่แตงพี่หยกรีเซ็ต PIN แล้ว · ตั้ง PIN 4 หลักใหม่" : "ใส่ PIN ใหม่อีกครั้ง") : "ใส่ PIN 4 หลักของเรา"}
       </p>
       {msg && <p className="mb-2 text-sm font-semibold text-[#b42357]">{msg}</p>}
       <PinPad key={`${who.id}-${first ?? ""}`} len={4} onDone={done} busy={busy} />

@@ -40,7 +40,7 @@ export function RewardNote({ r }: { r: DailyResult }) {
     <div className="mt-4 rounded-2xl border-[2.5px] border-dashed border-ink bg-yellow/40 p-4 text-center">
       <p className="font-display text-base font-extrabold">🎁 ได้เวลาคอม +{formatMinutes(rewardMinutes(rewardStars(r)))}</p>
       <p className="mt-1 text-xs leading-relaxed">
-        ส่งเข้า <b>Weekly Life Quest</b> ให้แล้ว · ได้ 70% ทันที อีก 30% ปลดล็อกเมื่อส่ง<b>เช็กอินประจำสัปดาห์</b> · น้าแลกเป็นโค้ดให้
+        ส่งเข้า <b>Weekly Life Quest</b> ให้แล้ว · ได้ 70% ทันที อีก 30% ปลดล็อกเมื่อส่ง<b>เช็กอินประจำสัปดาห์</b> · พี่แตงพี่หยกแลกเป็นโค้ดให้
       </p>
       <Link href="/life" className="btn btn-ghost mt-2 w-full text-sm">
         📓 ไป Weekly Life Quest

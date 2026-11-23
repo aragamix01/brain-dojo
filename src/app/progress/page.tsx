@@ -269,7 +269,7 @@ function Mine() {
       <Wallet />
       <ImportBox />
       <a href="/life/parent" className="btn btn-ghost w-full text-sm">
-        👨 สำหรับผู้ปกครอง · Life Quest โหมดน้า
+        👨 สำหรับผู้ปกครอง · Life Quest โหมดพี่แตงพี่หยก
       </a>
       <button
         className="w-full py-2 text-xs text-muted underline"

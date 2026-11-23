@@ -180,7 +180,7 @@ function ParentCodes({ password }: { password: string }) {
     <div className="space-y-4">
       <Link href="/life/parent" className="card block bg-[#cdbeff] p-4">
         <p className="font-display font-bold">🎁 เวลาคอมจาก Daily แลกที่ Weekly Life Quest</p>
-        <p className="mt-1 text-xs">โหมดน้า รวมทุก Daily ให้อัตโนมัติ (70% ทันที · 30% หลังหลานส่งเช็กอิน)</p>
+        <p className="mt-1 text-xs">โหมดพี่แตงพี่หยก รวมทุก Daily ให้อัตโนมัติ (70% ทันที · 30% หลังหลานส่งเช็กอิน)</p>
       </Link>
       <p className="pt-2 font-display">✍️ สร้างโค้ดเอง (รางวัลพิเศษ)</p>
       <div className="card space-y-3 p-4">

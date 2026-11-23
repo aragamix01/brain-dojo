@@ -48,7 +48,7 @@ export function useApi<T>(path: string) {
 }
 
 export function errorText(err: string): string {
-  if (err === "not-configured") return "ยังไม่ได้ต่อฐานข้อมูล — ให้น้าเพิ่ม Upstash Redis ใน Vercel ก่อน";
+  if (err === "not-configured") return "ยังไม่ได้ต่อฐานข้อมูล — ให้พี่แตงพี่หยกเพิ่ม Upstash Redis ใน Vercel ก่อน";
   if (err === "offline") return "ต่อเน็ตไม่ได้ ลองใหม่อีกครั้ง";
   return "มีอะไรผิดพลาด ลองใหม่อีกครั้ง";
 }

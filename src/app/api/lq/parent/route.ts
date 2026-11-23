@@ -116,7 +116,7 @@ export async function POST(request: Request) {
       if (!text) return json({ error: "empty" }, 400);
       const list: Message[] = [{ id: newId(), at: Date.now(), text }, ...(await messages(own))].slice(0, 50);
       await own.set(K.messages, list);
-      await pushLog(own, "น้าส่งข้อความให้กำลังใจ");
+      await pushLog(own, "พี่แตงพี่หยกส่งข้อความให้กำลังใจ");
       return json({ ok: true, messages: list });
     }
     case "resetPin":
@@ -124,7 +124,7 @@ export async function POST(request: Request) {
       await own.del(K.pin);
       const entry = list.find((p) => p.id === id)!;
       await root.hset(K.players, id, { ...entry, hasPin: false });
-      await pushLog(own, "น้ารีเซ็ต PIN ของหลาน");
+      await pushLog(own, "พี่แตงพี่หยกรีเซ็ต PIN ของหลาน");
       return json({ ok: true });
     case "redeem": {
       if (!kidtimerReady()) return json({ error: "no-kidtimer" }, 503);
@@ -148,7 +148,7 @@ export async function POST(request: Request) {
       }
       const rec: Redeem = { at: now, minutes, code, weeks: paidWeeks };
       await own.set(K.redeems, [rec, ...redeems].slice(0, 30));
-      await pushLog(own, `น้าแลกเวลาคอม ${formatMinutes(minutes)}`);
+      await pushLog(own, `พี่แตงพี่หยกแลกเวลาคอม ${formatMinutes(minutes)}`);
       return json({ ok: true, redeem: rec });
     }
   }

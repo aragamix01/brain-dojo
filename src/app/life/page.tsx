@@ -77,10 +77,10 @@ function Welcome({ taken, onBack, onDone }: { taken: string[]; onBack?: () => vo
         <div className="lq-card flex flex-col gap-3 p-4">
           <p className="font-lq text-lg font-bold">ก่อนเริ่ม อยากให้รู้ไว้</p>
           <Point bg="#ffe3ee" icon={ico("M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 9a3 3 0 100 6 3 3 0 000-6z")}>
-            <b>น้าอ่านคำตอบที่เรากดส่งแล้วได้</b> เพื่อจะได้รู้ว่าช่วยอะไรเราได้บ้าง
+            <b>พี่แตงพี่หยกอ่านคำตอบที่เรากดส่งแล้วได้</b> เพื่อจะได้รู้ว่าช่วยอะไรเราได้บ้าง
           </Point>
           <Point bg="#eee8ff" icon={ico("M4 20h4L19 9l-4-4L4 16z")}>
-            <b>ร่างที่ยังไม่ส่ง น้าไม่เห็น</b> ค่อยๆ คิด แก้กี่รอบก็ได้
+            <b>ร่างที่ยังไม่ส่ง พี่แตงพี่หยกไม่เห็น</b> ค่อยๆ คิด แก้กี่รอบก็ได้
           </Point>
           <Point bg="#e2f7ee" icon={ico("M12 21s-7-4.5-7-10a4 4 0 017-2.6A4 4 0 0119 11c0 5.5-7 10-7 10z")}>
             <b>ไม่มีคำตอบผิด ไม่มีการหักคะแนน</b> ตอบว่า &quot;ยังไม่แน่ใจ&quot; ก็ได้ XP
@@ -128,7 +128,7 @@ function Welcome({ taken, onBack, onDone }: { taken: string[]; onBack?: () => vo
     const r = await post<{ id: string }>(API, { action: "signup", pin, name: name.trim() });
     setBusy(false);
     if (r.error) {
-      setMsg(r.error === "name-taken" ? "ชื่อนี้มีคนใช้แล้ว ลองชื่ออื่นนะ" : r.error === "too-many" ? "มีบัญชีเต็มแล้ว ให้น้าลบบัญชีที่ไม่ใช้ก่อน" : errorText(r.error));
+      setMsg(r.error === "name-taken" ? "ชื่อนี้มีคนใช้แล้ว ลองชื่ออื่นนะ" : r.error === "too-many" ? "มีบัญชีเต็มแล้ว ให้พี่แตงพี่หยกลบบัญชีที่ไม่ใช้ก่อน" : errorText(r.error));
       return setStep(r.error === "name-taken" ? "intro" : "set");
     }
     await afterSignIn(r.id, name.trim());
@@ -142,11 +142,11 @@ function Welcome({ taken, onBack, onDone }: { taken: string[]; onBack?: () => vo
       </span>
       <h1 className="mt-2 font-lq text-2xl font-bold">{step === "confirm" ? "ใส่ PIN อีกครั้ง" : "ตั้ง PIN 4 หลัก"}</h1>
       <p className="mb-4 text-center text-sm text-[#5e5878]">
-        {step === "confirm" ? "เพื่อยืนยันว่าจำได้" : "ใช้เข้าสมุดบันทึกของเรา น้าใช้ PIN ของน้าเองแยกกัน"}
+        {step === "confirm" ? "เพื่อยืนยันว่าจำได้" : "ใช้เข้าสมุดบันทึกของเรา พี่แตงพี่หยกใช้ PIN ของพี่แตงพี่หยกเองแยกกัน"}
       </p>
       {msg && <p className="mb-2 text-sm font-semibold text-[#b42357]">{msg}</p>}
       <PinPad key={step} len={4} onDone={done} busy={busy} />
-      <p className="mt-6 text-center text-xs text-[#5e5878]">ต้องตั้ง PIN ก่อนใช้งาน · ลืม PIN ให้น้ารีเซ็ตให้ได้</p>
+      <p className="mt-6 text-center text-xs text-[#5e5878]">ต้องตั้ง PIN ก่อนใช้งาน · ลืม PIN ให้พี่แตงพี่หยกรีเซ็ตให้ได้</p>
     </div>
   );
 }
@@ -258,7 +258,7 @@ function Home({ d, reload }: { d: PlayerData; reload: () => void }) {
             ) : (
               <>
                 <p className="text-[15px] font-semibold">{answered ? `มีร่างค้างอยู่ ตอบไปแล้ว ${answered}/${qCount} ข้อ` : "ยังไม่ได้เริ่ม · ใช้เวลาแค่ 5 นาที"}</p>
-                <p className="text-[13px] text-[#5e5878]">ร่างนี้น้ายังไม่เห็น จนกว่าเราจะกดส่ง</p>
+                <p className="text-[13px] text-[#5e5878]">ร่างนี้พี่แตงพี่หยกยังไม่เห็น จนกว่าเราจะกดส่ง</p>
                 <div className="flex gap-1" aria-hidden="true">
                   {Array.from({ length: qCount }, (_, i) => (
                     <span key={i} className="h-2 flex-1 rounded-full" style={{ background: i < answered ? "#6a55e0" : "#e6e0f5" }} />
@@ -343,9 +343,9 @@ function Home({ d, reload }: { d: PlayerData; reload: () => void }) {
             )}
             <div className="flex items-center justify-between rounded-2xl bg-[#2e2a4a] px-3.5 py-2.5 text-white">
               <span className="text-[13px] leading-snug">
-                แลกได้ตอนนี้ · น้าแลกเป็นโค้ดให้
+                แลกได้ตอนนี้
                 <br />
-                ไม่ต้องส่ง QR
+                พี่แตงพี่หยกแลกโค้ดให้
               </span>
               <span className="font-lq text-xl font-bold text-[#ffd66b]">{hm(owedNow)} ชม.</span>
             </div>
@@ -354,11 +354,12 @@ function Home({ d, reload }: { d: PlayerData; reload: () => void }) {
 
         {msg && (
           <div className="flex items-end gap-2.5">
-            <span className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-[18px] border-[2.5px] border-[#2e2a4a] bg-[#ffb5cf] font-lq text-xl font-bold">
-              น้า
+            <span className="flex h-[52px] w-[52px] shrink-0 flex-col items-center justify-center rounded-[18px] border-[2.5px] border-[#2e2a4a] bg-[#ffb5cf] font-lq text-[13px] font-bold leading-tight">
+              <span>แตง</span>
+              <span>หยก</span>
             </span>
             <div className="flex-1 rounded-[20px_20px_20px_6px] border-[2.5px] border-[#2e2a4a] bg-white px-3.5 py-2.5 shadow-[3px_3px_0_#2e2a4a]">
-              <p className="font-lq text-xs font-semibold text-[#8a2d57]">ข้อความจากน้า · {new Date(msg.at).toLocaleDateString("th-TH", { day: "numeric", month: "short" })}</p>
+              <p className="font-lq text-xs font-semibold text-[#8a2d57]">ข้อความจากพี่แตงพี่หยก · {new Date(msg.at).toLocaleDateString("th-TH", { day: "numeric", month: "short" })}</p>
               <p className="whitespace-pre-line text-[15px] leading-relaxed">{msg.text}</p>
             </div>
           </div>

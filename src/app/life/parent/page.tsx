@@ -73,7 +73,7 @@ function Login({ onDone }: { onDone: () => void }) {
       <span className="flex h-16 w-16 items-center justify-center rounded-[22px] border-[2.5px] border-[#2e2a4a] bg-[#6a55e0] shadow-[3px_3px_0_#2e2a4a]">
         <LockIcon />
       </span>
-      <h1 className="mt-2 font-lq text-2xl font-bold">โหมดน้า · Parent</h1>
+      <h1 className="mt-2 font-lq text-2xl font-bold">โหมดพี่แตงพี่หยก · Parent</h1>
       <p className="mb-4 text-sm text-[#5e5878]">ใส่ PIN ผู้ปกครอง 6 หลัก (PIN เดียวกับหน้าสร้างโค้ดเวลาคอม)</p>
       {msg && <p className="mb-2 text-sm font-semibold text-[#b42357]">{msg}</p>}
       <PinPad
@@ -120,13 +120,13 @@ function Dashboard({ d, reload, patch, pick }: { d: Data; reload: () => void; pa
       <div aria-hidden="true" className="fixed inset-0 -z-10 bg-[#f6f2ff]" />
       <div className="space-y-3.5 border-b-[2.5px] border-[#2e2a4a] bg-[#6a55e0] px-4 pb-4 pt-[max(1rem,env(safe-area-inset-top))] text-white">
         <div className="flex items-center justify-between">
-          <span className="rounded-full border-2 border-[#2e2a4a] bg-white px-3 py-0.5 font-lq text-[13px] font-bold text-[#2e2a4a]">โหมดน้า · Parent</span>
+          <span className="rounded-full border-2 border-[#2e2a4a] bg-white px-3 py-0.5 font-lq text-[13px] font-bold text-[#2e2a4a]">โหมดพี่แตงพี่หยก · Parent</span>
           <button onClick={logout} className="min-h-11 rounded-[14px] border-2 border-white px-3 font-lq text-[13px] font-semibold">
             ออกจากระบบ
           </button>
         </div>
         <div>
-          <h1 className="font-lq text-[26px] font-bold">สวัสดีน้า</h1>
+          <h1 className="font-lq text-[26px] font-bold">สวัสดีพี่แตงพี่หยก</h1>
           <p className="text-sm text-[#ede9ff]">{p ? `ภาพรวมการผจญภัยของ${p.name || "หลาน"}` : "ยังไม่มีบัญชีหลาน"}</p>
         </div>
         <PlayerPicker d={d} pick={pick} reload={reload} />
@@ -142,7 +142,7 @@ function Dashboard({ d, reload, patch, pick }: { d: Data; reload: () => void; pa
             </div>
           ))}
         </div>
-        <nav className="grid grid-cols-5 gap-1.5" aria-label="เมนูน้า">
+        <nav className="grid grid-cols-5 gap-1.5" aria-label="เมนูพี่แตงพี่หยก">
           {(
             [
               ["home", "ภาพรวม"],
@@ -281,7 +281,7 @@ function Home({ d, reload, goAnswers }: { d: Data; reload: () => void; goAnswers
           {thisWeek
             ? `ส่งเมื่อ ${new Date(thisWeek.submittedAt).toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short" })}`
             : d.draftAnswered
-              ? `หลานตอบในร่างไปแล้ว ${d.draftAnswered} ข้อ (ร่างที่ยังไม่ส่ง น้าจะไม่เห็นเนื้อหา)`
+              ? `หลานตอบในร่างไปแล้ว ${d.draftAnswered} ข้อ (ร่างที่ยังไม่ส่ง พี่แตงพี่หยกจะไม่เห็นเนื้อหา)`
               : "หลานยังไม่ได้เริ่มเช็กอินสัปดาห์นี้"}
         </p>
         {(d.weeks ?? []).length > 0 && (
@@ -381,7 +381,7 @@ function Home({ d, reload, goAnswers }: { d: Data; reload: () => void; goAnswers
   );
 }
 
-const TEMPLATES = ["น้าเห็นความพยายามของเรานะ", "ค่อยๆ พัฒนาไปทีละนิดก็ได้", "ไม่เป็นไร ลองใหม่สัปดาห์หน้า", "น้าพร้อมช่วยเสมอ"];
+const TEMPLATES = ["พี่แตงพี่หยกเห็นความพยายามของเรานะ", "ค่อยๆ พัฒนาไปทีละนิดก็ได้", "ไม่เป็นไร ลองใหม่สัปดาห์หน้า", "พี่แตงพี่หยกพร้อมช่วยเสมอ"];
 
 function Answers({ d, patch }: { d: Data; patch: (p: Partial<Data>) => void }) {
   const weeks = d.weeks ?? [];
@@ -457,7 +457,7 @@ function Answers({ d, patch }: { d: Data; patch: (p: Partial<Data>) => void }) {
         </div>
         <label className="block text-[13px] font-semibold">
           หรือเขียนเอง
-          <textarea className="lq-input mt-1 resize-none" rows={3} value={msg} maxLength={500} onChange={(e) => (setMsg(e.target.value), setSent(false))} placeholder="เช่น สัปดาห์นี้ส่งงานครบ น้าภูมิใจนะ" />
+          <textarea className="lq-input mt-1 resize-none" rows={3} value={msg} maxLength={500} onChange={(e) => (setMsg(e.target.value), setSent(false))} placeholder="เช่น สัปดาห์นี้ส่งงานครบ พี่แตงพี่หยกภูมิใจนะ" />
         </label>
         {sent ? (
           <p className="rounded-2xl border-[2.5px] border-[#2e2a4a] bg-[#bdefd9] py-3 text-center font-lq font-bold">ส่งแล้ว · จะขึ้นที่หน้าแรกของหลาน</p>

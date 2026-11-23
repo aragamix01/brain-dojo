@@ -32,7 +32,7 @@ function WeekSection({ data, today, showLevel }: { data: ProgressData; today: st
   const lv = data.dailyLevel ?? START_LEVEL;
   const lines = [
     // Only on a pasted code (the uncle's view) — the player never sees their level.
-    showLevel && `🔒 ระดับ Daily (เห็นเฉพาะน้า): Lv${lv} · ${DAILY_LEVELS[lv].name}`,
+    showLevel && `🔒 ระดับ Daily (เห็นเฉพาะพี่แตงพี่หยก): Lv${lv} · ${DAILY_LEVELS[lv].name}`,
     fastest && `⚡ Daily เร็วสุด ${fastest}`,
     w.huntDays > 0 && `🌟 วันล่าดาว สำเร็จ ${w.huntDone}/${w.huntDays}`,
     w.played > 0 && w.noHintDays > 0 && `🧠 ไม่ใช้คำใบ้เลย ${w.noHintDays} วัน`,
@@ -114,7 +114,7 @@ function AwayLog({ data, days }: { data: ProgressData; days: string[] }) {
   if (!rows.length) return null;
   return (
     <div className="mx-4 mt-3 rounded-xl border-2 border-dashed border-ink/30 p-3 text-sm">
-      <p className="font-display">🔒 ตรวจคิดเอง (เห็นเฉพาะน้า)</p>
+      <p className="font-display">🔒 ตรวจคิดเอง (เห็นเฉพาะพี่แตงพี่หยก)</p>
       <p className="mb-1 text-[11px] text-muted">
         ออก = สลับไปแอป/หน้าต่างอื่นเกิน 1 วิ (ครั้งที่ 4 ของด่าน ด่านเริ่มใหม่เงียบๆ) · คำถาม = คำถามโบนัสหลังผ่านด่าน ตอบผิดได้ไม่เกิน 2★ · ไม่นับวันล่าดาว
       </p>

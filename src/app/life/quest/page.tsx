@@ -37,7 +37,7 @@ function Quest({ d }: { d: PlayerData }) {
   const editing = !!d.thisWeek;
 
   if (result) return <Reward d={d} r={result} />;
-  if (!qs.length) return <p className="lq-card mt-10 p-5 text-center">ยังไม่มีคำถามที่เปิดใช้ ให้น้าเปิดคำถามก่อน</p>;
+  if (!qs.length) return <p className="lq-card mt-10 p-5 text-center">ยังไม่มีคำถามที่เปิดใช้ ให้พี่แตงพี่หยกเปิดคำถามก่อน</p>;
 
   const q = qs[i];
   const a: Answer = answers[q.id] ?? {};
@@ -162,7 +162,7 @@ function Quest({ d }: { d: PlayerData }) {
           </button>
         ) : (
           <button type="button" disabled={busy} onClick={submit} className="lq-btn lq-btn-pink flex-1 text-lg">
-            {busy ? "กำลังส่ง…" : editing ? "บันทึกการแก้ไข" : "ส่งคำตอบให้น้า"}
+            {busy ? "กำลังส่ง…" : editing ? "บันทึกการแก้ไข" : "ส่งคำตอบให้พี่แตงพี่หยก"}
           </button>
         )}
       </div>
@@ -211,7 +211,7 @@ function Reward({ d, r }: { d: PlayerData; r: Result }) {
       <p className="text-center text-[15px] leading-relaxed">
         ขอบคุณที่ใช้เวลาคุยกับตัวเองนะ
         <br />
-        คำตอบนี้ส่งถึงน้าแล้ว
+        คำตอบนี้ส่งถึงพี่แตงพี่หยกแล้ว
       </p>
       <div className="lq-card w-full space-y-3 p-4 !shadow-[5px_5px_0_#2e2a4a]">
         <div className="flex items-center justify-between">
