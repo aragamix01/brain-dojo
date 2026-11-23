@@ -58,6 +58,16 @@ export async function endSession(role: Role) {
 
 /** The session's PIN version if this request carries a valid cookie for `role`, else null. */
 export async function sessionVersion(role: Role): Promise<number | null> {
+  return (await session(role))?.ver ?? null;
+}
+
+/** A session in use keeps going: once it's a few days old it is issued afresh for the full term. */
+export async function renewSession(role: Role) {
+  const s = await session(role);
+  if (s && s.exp - Date.now() / 1000 < MAX_AGE[role] - 3 * 86_400) await startSession(role, s.ver);
+}
+
+async function session(role: Role): Promise<{ ver: number; exp: number } | null> {
   const key = secret();
   const raw = (await cookies()).get(COOKIE[role])?.value;
   if (!key || !raw) return null;
@@ -68,7 +78,7 @@ export async function sessionVersion(role: Role): Promise<number | null> {
   const got = Buffer.from(parts[3]);
   if (want.length !== got.length || !timingSafeEqual(want, got)) return null;
   if (Number(parts[1]) < Date.now() / 1000) return null;
-  return Number(parts[2]);
+  return { ver: Number(parts[2]), exp: Number(parts[1]) };
 }
 
 export const configured = () => secret() !== null;

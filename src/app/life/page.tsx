@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { afterHydration, syncDailies, syncProgress } from "@/components/LifeSync";
+import { afterHydration, pullProgress, syncDailies, syncProgress } from "@/components/LifeSync";
 import { ACHIEVEMENTS, goalOf, weekEnd } from "@/lib/life/model";
 import { shiftDay } from "@/lib/date";
 import { Bar, errorText, hm, Loading, LockIcon, PinPad, post, useApi, type PlayerData } from "./shared";
@@ -189,13 +189,19 @@ function Home({ d, reload }: { d: PlayerData; reload: () => void }) {
     () =>
       afterHydration(() => {
         void syncDailies(true).then((n) => n && reload());
-        void syncProgress(true);
+        // This PIN's save first (it may come from another phone), then anything new from this one.
+        void pullProgress().then(() => syncProgress());
       }),
     [reload],
   );
 
   const logout = async () => {
     await post(API, { action: "logout" });
+    try {
+      localStorage.removeItem("lq-open"); // Brain Dojo locks again too
+    } catch {
+      /* fine */
+    }
     reload();
   };
 

@@ -48,15 +48,29 @@ export async function syncDailies(force = false): Promise<number> {
   }
 }
 
-/** Sends the whole Brain Dojo save for the parent's view, unless it hasn't changed since last time. */
+const AT_KEY = "lq-progress-at";
+
+const sigOf = (d: ProgressData) => String(hashString(JSON.stringify(d)));
+const read = (k: string) => {
+  try {
+    return localStorage.getItem(k);
+  } catch {
+    return null;
+  }
+};
+const write = (k: string, v: string) => {
+  try {
+    localStorage.setItem(k, v);
+  } catch {
+    /* it resends next time */
+  }
+};
+
+/** Sends the whole Brain Dojo save to the player's account, unless it hasn't changed since last time. */
 export async function syncProgress(force = false): Promise<boolean> {
   const data = snapshot();
-  const sig = String(hashString(JSON.stringify(data)));
-  try {
-    if (!force && localStorage.getItem(PROGRESS_KEY) === sig) return false;
-  } catch {
-    /* storage blocked: just send */
-  }
+  const sig = sigOf(data);
+  if (!force && read(PROGRESS_KEY) === sig) return false;
   try {
     const res = await fetch("/api/lq/player", {
       method: "POST",
@@ -64,12 +78,40 @@ export async function syncProgress(force = false): Promise<boolean> {
       body: JSON.stringify({ action: "syncProgress", data }),
     });
     if (!res.ok) return false;
-    try {
-      localStorage.setItem(PROGRESS_KEY, sig);
-    } catch {
-      /* it resends next time */
-    }
+    const { at } = await res.json();
+    write(PROGRESS_KEY, sig);
+    if (at) write(AT_KEY, String(at));
     return true;
+  } catch {
+    return false;
+  }
+}
+
+/** A phone that has barely been played: nothing on it worth keeping over the account's save. */
+const fresh = (p: ProgressData) => !Object.keys(p.daily).length && p.xp === 0;
+
+/**
+ * One save per PIN: when the account holds a newer save than this phone last saw (played on
+ * another phone), take it, unless this phone has its own unsent progress. Then the bigger save
+ * (more XP) wins and goes back up. Resolves true when the phone's save was replaced.
+ */
+export async function pullProgress(): Promise<boolean> {
+  const since = Number(read(AT_KEY)) || 0;
+  try {
+    const res = await fetch(`/api/lq/player?part=brain&since=${since}`, { cache: "no-store" });
+    if (!res.ok) return false;
+    const r = (await res.json()) as { at?: number; data?: ProgressData };
+    if (!r.data || !r.at) return false;
+    const local = snapshot();
+    const untouched = read(PROGRESS_KEY) === sigOf(local);
+    if (untouched || fresh(local) || (r.data.xp ?? 0) > local.xp) {
+      useProgress.getState().importData(r.data);
+      write(PROGRESS_KEY, sigOf(snapshot()));
+      write(AT_KEY, String(r.at));
+      return true;
+    }
+    await syncProgress(true);
+    return false;
   } catch {
     return false;
   }
@@ -104,7 +146,7 @@ export function LifeSync() {
       timer = null;
       void syncProgress();
     };
-    const offHydrate = afterHydration(flush);
+    const offHydrate = afterHydration(() => void pullProgress().then(flush));
     const offChange = useProgress.subscribe(() => {
       if (!timer) timer = setTimeout(flush, PROGRESS_EVERY_MS);
     });

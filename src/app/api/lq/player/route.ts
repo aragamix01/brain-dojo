@@ -1,4 +1,4 @@
-import { configured, endSession, hashPin, pinMatches, sessionVersion, startSession, validPin, type PinRecord } from "@/lib/life/auth";
+import { configured, endSession, hashPin, pinMatches, renewSession, sessionVersion, startSession, validPin, type PinRecord } from "@/lib/life/auth";
 import { K, store, type Store } from "@/lib/life/db";
 import { bangkokToday, cleanAnswers, UNDERSTANDING, weekStart, XP, type Draft, type Player, type Study, type TaskStatus, type Understanding } from "@/lib/life/model";
 import { award, newId, playerState, pushLog, questions, setGoal, study, submitCheckIn, syncDaily } from "@/lib/life/server";
@@ -9,19 +9,33 @@ const LOCK_SECONDS = 300;
 const json = (data: unknown, status = 200) => Response.json(data, { status, headers: { "Cache-Control": "no-store" } });
 const str = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 
-/** Signed in as the player with the current PIN? */
+/** Signed in as the player with the current PIN? A session in use is renewed, so it never lapses. */
 async function signedIn(db: Store): Promise<boolean> {
   const ver = await sessionVersion("player");
   if (ver === null) return false;
   const pin = await db.get<PinRecord>(K.pin);
-  return !!pin && pin.ver === ver;
+  if (!pin || pin.ver !== ver) return false;
+  await renewSession("player");
+  return true;
 }
 
-export async function GET() {
+type Brain = { data: Record<string, unknown>; at: number };
+
+export async function GET(request: Request) {
   const db = store();
   if (!db || !configured()) return json({ error: "not-configured" }, 503);
+  const params = new URL(request.url).searchParams;
+  const part = params.get("part");
   const hasPin = !!(await db.get<PinRecord>(K.pin));
-  if (!(await signedIn(db))) return json({ hasPin, signedIn: false });
+  const ok = await signedIn(db);
+  // Brain Dojo's gate only needs to know who's here.
+  if (part === "session" || !ok) return json({ hasPin, signedIn: ok });
+  if (part === "brain") {
+    // The saved Brain Dojo progress, when it's newer than the copy this phone has.
+    const brain = await db.get<Brain>(K.brain);
+    const since = Number(params.get("since")) || 0;
+    return json({ signedIn: true, at: brain?.at ?? 0, ...(brain && brain.at > since ? { data: brain.data } : {}) });
+  }
   return json({ hasPin, signedIn: true, ...(await playerState(db)) });
 }
 
@@ -90,8 +104,13 @@ export async function POST(request: Request) {
       if (!data || typeof data !== "object" || Array.isArray(data) || typeof data.daily !== "object")
         return json({ error: "bad-data" }, 400);
       if (JSON.stringify(data).length > 900_000) return json({ error: "too-big" }, 413);
-      await db.set(K.brain, { data, at: Date.now() });
-      return json({ ok: true });
+      // A brand-new phone never wipes out the account's save.
+      const saved = await db.get<Brain>(K.brain);
+      const blank = (d: Record<string, unknown>) => !Object.keys((d.daily as object) ?? {}).length && !d.xp;
+      if (saved && blank(data) && !blank(saved.data)) return json({ error: "would-erase" }, 409);
+      const at = Date.now();
+      await db.set(K.brain, { data, at });
+      return json({ ok: true, at });
     }
     case "careers": {
       const p = await db.get<Player>(K.player);

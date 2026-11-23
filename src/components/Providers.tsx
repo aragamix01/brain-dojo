@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useProgress } from "@/lib/store";
+import { AppGate } from "./AppGate";
 import { CoinToastHost } from "./CoinToast";
 import { LifeSync } from "./LifeSync";
 
@@ -17,7 +18,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   }, []);
   return (
     <>
-      {children}
+      <AppGate>{children}</AppGate>
       <CoinToastHost />
       <LifeSync />
     </>
