@@ -685,6 +685,12 @@ function Questions({ d, patch }: { d: Data; patch: (p: Partial<Data>) => void })
                 ▼
               </button>
             </div>
+            <span
+              className={`flex h-7 w-7 shrink-0 items-center justify-center self-start rounded-full border-2 border-[#2e2a4a] font-lq text-sm font-bold ${q.active ? "bg-[#ffd66b]" : "bg-[#e6e0f5] text-[#5e5878]"}`}
+              aria-label={q.active ? `ข้อ ${list.slice(0, i + 1).filter((x) => x.active).length}` : "ปิดอยู่"}
+            >
+              {q.active ? list.slice(0, i + 1).filter((x) => x.active).length : "–"}
+            </span>
             <div className={`min-w-0 flex-1 ${q.active ? "" : "opacity-50"}`}>
               <p className="text-sm leading-snug">{q.text}</p>
               <span className="mt-0.5 inline-block rounded-full border-[1.5px] border-[#2e2a4a] bg-[#eee8ff] px-2 text-[11px] font-semibold">{TYPE_LABEL[q.type]}</span>
