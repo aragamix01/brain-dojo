@@ -126,8 +126,8 @@ function Welcome({ taken, onBack, onDone }: { taken: string[]; onBack?: () => vo
     }
     setBusy(true);
     const r = await post<{ id: string }>(API, { action: "signup", pin, name: name.trim() });
-    setBusy(false);
     if (r.error) {
+      setBusy(false);
       setMsg(r.error === "name-taken" ? "ชื่อนี้มีคนใช้แล้ว ลองชื่ออื่นนะ" : r.error === "too-many" ? "มีบัญชีเต็มแล้ว ให้พี่แตงพี่หยกลบบัญชีที่ไม่ใช้ก่อน" : errorText(r.error));
       return setStep(r.error === "name-taken" ? "intro" : "set");
     }
@@ -145,7 +145,7 @@ function Welcome({ taken, onBack, onDone }: { taken: string[]; onBack?: () => vo
         {step === "confirm" ? "เพื่อยืนยันว่าจำได้" : "ใช้เข้าสมุดบันทึกของเรา พี่แตงพี่หยกใช้ PIN ของพี่แตงพี่หยกเองแยกกัน"}
       </p>
       {msg && <p className="mb-2 text-sm font-semibold text-[#b42357]">{msg}</p>}
-      <PinPad key={step} len={4} onDone={done} busy={busy} />
+      <PinPad key={step} len={4} onDone={done} busy={busy} busyText="กำลังสร้างบัญชี…" />
       <p className="mt-6 text-center text-xs text-[#5e5878]">ต้องตั้ง PIN ก่อนใช้งาน · ลืม PIN ให้พี่แตงพี่หยกรีเซ็ตให้ได้</p>
     </div>
   );

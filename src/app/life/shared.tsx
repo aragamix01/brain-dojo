@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Answer } from "@/lib/life/model";
 import type { playerState } from "@/lib/life/server";
 
@@ -86,34 +86,56 @@ export function Bar({ pct, color = "#ffd66b", h = "h-3.5" }: { pct: number; colo
 /** "4:45" for PC time in hours and minutes. */
 export const hm = (m: number) => `${Math.floor(m / 60)}:${String(m % 60).padStart(2, "0")}`;
 
-/** Number pad for a `len`-digit PIN; calls onDone with the full PIN. */
-export function PinPad({ len, onDone, busy }: { len: number; onDone: (pin: string) => void; busy?: boolean }) {
+/**
+ * Number pad for a `len`-digit PIN; calls onDone with the full PIN. While `busy` (the PIN is being
+ * checked) the dots stay filled and a "checking" note shows; they clear once it's done.
+ */
+export function PinPad({ len, onDone, busy, busyText = "กำลังตรวจ PIN…" }: { len: number; onDone: (pin: string) => void; busy?: boolean; busyText?: string }) {
   const [pin, setPin] = useState("");
+  const busyRef = useRef(!!busy);
+  useEffect(() => {
+    busyRef.current = !!busy;
+  }, [busy]);
+  // A check that just finished (a wrong PIN, say) empties the dots for the next try.
+  const [wasBusy, setWasBusy] = useState(!!busy);
+  if (wasBusy !== !!busy) {
+    setWasBusy(!!busy);
+    if (!busy) setPin("");
+  }
   const press = (k: string) => {
-    if (busy) return;
+    if (busy || pin.length >= len) return;
     if (k === "del") return setPin(pin.slice(0, -1));
-    if (pin.length >= len) return;
     const next = pin + k;
     setPin(next);
     if (next.length === len) {
       onDone(next);
-      setTimeout(() => setPin(""), 150);
+      // Nothing to check (the first of two entries): clear right away for the next one.
+      setTimeout(() => !busyRef.current && setPin(""), 150);
     }
   };
   return (
     <div>
-      <div className="mb-5 flex justify-center gap-4" aria-label={`ใส่ไปแล้ว ${pin.length} จาก ${len} หลัก`}>
+      <div className={`mb-2 flex justify-center gap-4 ${busy ? "animate-pulse" : ""}`} aria-label={`ใส่ไปแล้ว ${pin.length} จาก ${len} หลัก`}>
         {Array.from({ length: len }, (_, i) => (
           <span key={i} className={`h-[18px] w-[18px] rounded-full border-[2.5px] border-[#2e2a4a] ${i < pin.length ? "bg-[#6a55e0]" : "bg-white"}`} />
         ))}
       </div>
-      <div className="mx-auto grid max-w-[300px] grid-cols-3 gap-3">
+      <p role="status" className="mb-3 flex h-5 items-center justify-center gap-2 text-sm font-semibold text-[#5b47d6]">
+        {busy && (
+          <>
+            <span className="h-4 w-4 animate-spin rounded-full border-[2.5px] border-[#cdbeff] border-t-[#6a55e0]" aria-hidden="true" />
+            {busyText}
+          </>
+        )}
+      </p>
+      <div className={`mx-auto grid max-w-[300px] grid-cols-3 gap-3 transition-opacity ${busy ? "pointer-events-none opacity-50" : ""}`}>
         {["1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "del"].map((k, i) =>
           k ? (
             <button
               key={i}
               type="button"
               onClick={() => press(k)}
+              disabled={busy}
               aria-label={k === "del" ? "ลบ" : k}
               className="lq-btn !min-h-[60px] font-lq text-2xl"
             >

@@ -149,8 +149,9 @@ export async function afterSignIn(id: string, name?: string) {
   adoptAccount(id, name);
   await pullProgress();
   nameIfBlank(name);
-  await syncProgress();
+  // The Dailies decide the PC time shown next, so they go first; the whole save can follow in the background.
   await syncDailies(true);
+  void syncProgress();
 }
 
 /** Runs `fn` once the saved progress has loaded from storage. */
