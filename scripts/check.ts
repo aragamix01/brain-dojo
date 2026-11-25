@@ -590,6 +590,10 @@ check("life quest rules", () => {
   assert.equal(missing({ ...byId("proud"), skippable: true }, { skipped: true }), null);
   assert.ok(missing(byId("time-mgmt"), {}));
   assert.equal(missing(byId("try"), { text: "ยังไม่รู้" }), null);
+  const duty = { ...byId("duty"), textRequired: true };
+  assert.equal(missing(duty, { picks: ["ทำได้เกือบหมด"] }), 'เขียนช่อง "สิ่งที่อยากปรับปรุง" ก่อนนะ', "a required notes box");
+  assert.equal(missing(duty, { picks: ["ทำได้เกือบหมด"], text: "ล้างจาน" }), null);
+  assert.equal(missing(byId("duty"), { picks: ["ทำได้เกือบหมด"] }), null, "notes stay optional by default");
 
   const wk = (week: string, goalDone?: boolean): WeekEntry => ({
     week, questions: [], answers: { "next-goal": { picks: ["สุขภาพ"], text: "นอนเร็ว" } }, submittedAt: 0, history: [], xp: 100, goalDone,

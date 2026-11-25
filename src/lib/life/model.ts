@@ -142,12 +142,13 @@ export function cleanAnswers(raw: unknown, questions: Question[]): Answers {
 /** What's still missing for this question before the check-in can be sent, or null when it's done. */
 export function missing(q: Question, a: Answer | undefined): string | null {
   if (a?.skipped && q.skippable) return null;
+  const note = q.textRequired && q.type !== "text" && !a?.text?.trim() ? `เขียนช่อง "${q.textLabel ?? "เขียนเพิ่มเติม"}" ก่อนนะ` : null;
   if (q.type === "single" || q.type === "multi") {
     if (!a?.picks?.length) return q.type === "multi" ? "เลือกอย่างน้อย 1 ข้อนะ" : "เลือกคำตอบก่อนนะ";
     const open = a.picks.find((p) => q.followUps?.[p] && !a.notes?.[p]?.trim());
-    return open ? `เขียนช่อง "${q.followUps![open]}" ก่อนนะ` : null;
+    return open ? `เขียนช่อง "${q.followUps![open]}" ก่อนนะ` : note;
   }
-  if (q.type === "rating") return a?.rating ? null : "เลือกคะแนนก่อนนะ";
+  if (q.type === "rating") return a?.rating ? note : "เลือกคะแนนก่อนนะ";
   return a?.text?.trim() ? null : "เขียนคำตอบก่อนนะ";
 }
 

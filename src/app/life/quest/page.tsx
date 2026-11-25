@@ -187,9 +187,9 @@ function Quest({ d }: { d: PlayerData }) {
           <label className="mt-1 flex flex-col gap-1.5">
             <span className="text-sm font-semibold">
               {q.textLabel ?? "เขียนเพิ่มเติม"}{" "}
-              {q.type === "text" ? (
-                !q.skippable && <span className="font-normal text-[#b42357]">(ต้องเขียน)</span>
-              ) : (
+              {q.textRequired || (q.type === "text" && !q.skippable) ? (
+                <span className="font-normal text-[#b42357]">(ต้องเขียน)</span>
+              ) : q.type === "text" ? null : (
                 <span className="font-normal text-[#5e5878]">(ไม่บังคับ)</span>
               )}
             </span>

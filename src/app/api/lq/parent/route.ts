@@ -66,6 +66,7 @@ function cleanQuestions(raw: unknown): Question[] | null {
       ...(type === "rating" ? { ratingNotes: (DEFAULT_QUESTIONS.find((q) => q.type === "rating")?.ratingNotes ?? []).slice() } : {}),
       ...(Array.isArray(r.ratingNotes) && r.ratingNotes.length === 5 ? { ratingNotes: r.ratingNotes.map((n: unknown) => str(n, 80)) } : {}),
       ...(r.skippable === true ? { skippable: true } : {}),
+      ...(r.textRequired === true && type !== "text" && str(r.textLabel, 80) ? { textRequired: true } : {}),
       ...followUpsOf(r.followUps, type === "single" || type === "multi" ? options : []),
       active: r.active !== false,
     });

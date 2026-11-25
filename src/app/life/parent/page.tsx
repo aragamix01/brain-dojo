@@ -65,7 +65,7 @@ function PlayerPicker({ d, pick, reload }: { d: Data; pick: (id: string) => void
   );
 }
 
-function Login({ onDone }: { onDone: () => void }) {
+function Login({ onDone }: { onDone: () => Promise<void> | void }) {
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   return (
@@ -82,9 +82,12 @@ function Login({ onDone }: { onDone: () => void }) {
         onDone={async (pin) => {
           setBusy(true);
           const r = await post(API, { action: "login", pin });
-          setBusy(false);
-          if (r.error) setMsg(r.error === "wrong-pin" ? "PIN ไม่ถูก" : errorText(r.error));
-          else onDone();
+          if (r.error) {
+            setBusy(false);
+            return setMsg(r.error === "wrong-pin" ? "PIN ไม่ถูก" : errorText(r.error));
+          }
+          // Stay "checking" until the dashboard has loaded, so the empty pad never flashes.
+          await onDone();
         }}
       />
       <Link href="/life" className="mt-8 text-sm text-[#5b47d6] underline">
@@ -738,6 +741,20 @@ function Questions({ d, patch }: { d: Data; patch: (p: Partial<Data>) => void })
   );
 }
 
+function Switch({ on, onClick, label, note }: { on: boolean; onClick: () => void; label: string; note: string }) {
+  return (
+    <button role="switch" aria-checked={on} aria-label={label} onClick={onClick} className="flex w-full items-center justify-between gap-2 text-left text-[13px] font-semibold">
+      <span>
+        {label}
+        <span className="block font-normal text-[#5e5878]">{note}</span>
+      </span>
+      <span className={`flex h-8 w-[52px] shrink-0 rounded-full border-2 border-[#2e2a4a] p-0.5 ${on ? "justify-end bg-[#6a55e0]" : "justify-start bg-[#e6e0f5]"}`}>
+        <span className="h-6 w-6 rounded-full border-2 border-[#2e2a4a] bg-white" />
+      </span>
+    </button>
+  );
+}
+
 function QuestionEditor({ q, onChange, onDone, onDelete }: { q: Question; onChange: (p: Partial<Question>) => void; onDone: () => void; onDelete: () => void }) {
   const choice = q.type === "single" || q.type === "multi";
   return (
@@ -789,24 +806,24 @@ function QuestionEditor({ q, onChange, onDone, onDelete }: { q: Question; onChan
           ))}
         </div>
       )}
-      <button
-        role="switch"
-        aria-checked={!!q.skippable}
+      <Switch
+        on={!!q.skippable}
         onClick={() => onChange({ skippable: !q.skippable || undefined })}
-        className="flex w-full items-center justify-between gap-2 text-left text-[13px] font-semibold"
-      >
-        <span>
-          ให้กด &ldquo;ขอข้ามข้อนี้&rdquo; ได้
-          <span className="block font-normal text-[#5e5878]">ปิด = ต้องตอบข้อนี้ก่อนส่ง</span>
-        </span>
-        <span className={`flex h-8 w-[52px] shrink-0 rounded-full border-2 border-[#2e2a4a] p-0.5 ${q.skippable ? "justify-end bg-[#6a55e0]" : "justify-start bg-[#e6e0f5]"}`}>
-          <span className="h-6 w-6 rounded-full border-2 border-[#2e2a4a] bg-white" />
-        </span>
-      </button>
+        label="ให้กด “ขอข้ามข้อนี้” ได้"
+        note="ปิด = ต้องตอบข้อนี้ก่อนส่ง"
+      />
       <label className="block text-[13px] font-semibold">
         ช่องเขียนเพิ่มเติม (เว้นว่าง = ไม่มี{q.type === "text" ? ", แต่แบบเขียนเองจะมีช่องเสมอ" : ""})
         <input className="lq-input mt-1 text-sm" value={q.textLabel ?? ""} onChange={(e) => onChange({ textLabel: e.target.value || undefined })} placeholder="เช่น สิ่งที่อยากปรับปรุง" />
       </label>
+      {q.type !== "text" && q.textLabel && (
+        <Switch
+          on={!!q.textRequired}
+          onClick={() => onChange({ textRequired: !q.textRequired || undefined })}
+          label="บังคับเขียนช่องเพิ่มเติม"
+          note={q.textRequired ? "เปิด = ต้องเขียนก่อนไปข้อต่อไป" : "ปิด = เขียนหรือไม่ก็ได้"}
+        />
+      )}
       <div className="flex gap-2">
         <button className="lq-btn flex-1 text-sm" onClick={onDone}>
           เสร็จ

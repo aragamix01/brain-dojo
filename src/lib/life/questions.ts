@@ -10,8 +10,9 @@ export type Question = {
   type: QuestionType;
   /** choices for single / multi */
   options?: string[];
-  /** a free-text box under the choices (optional to fill) */
+  /** a free-text box under the choices or rating (optional to fill unless textRequired) */
   textLabel?: string;
+  textRequired?: boolean;
   textHint?: string;
   /** what each rating 1–5 means */
   ratingNotes?: string[];
