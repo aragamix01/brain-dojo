@@ -20,9 +20,10 @@ export function rewardMinutes(stars: number): number {
   return Math.ceil((DAILY_REWARD.base + s * DAILY_REWARD.perStar) / UNIT_MIN) * UNIT_MIN;
 }
 
-/** Stars a finished Daily is worth for the PC reward; a Star Hunt counts as a full 9. */
+/** Stars a finished Daily is worth for the PC reward; a Star Hunt or a check-in day counts as a full 9. */
 export function rewardStars(r: DailyResult): number {
-  if (r.stages?.[0]?.kind === "hunt") return DAILY_REWARD.maxStars;
+  const kind = r.stages?.[0]?.kind;
+  if (kind === "hunt" || kind === "checkin") return DAILY_REWARD.maxStars;
   return (r.stages ?? []).reduce((a, st) => a + st.stars, 0);
 }
 

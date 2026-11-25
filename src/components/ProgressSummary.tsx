@@ -99,7 +99,7 @@ const secs = (ms: number) => (ms < 60_000 ? `${Math.round(ms / 1000)} วิ` : 
 function AwayLog({ data, days }: { data: ProgressData; days: string[] }) {
   const rows = days.flatMap((day, i) => {
     const stages = data.daily[day]?.stages;
-    if (!stages?.length || stages[0].kind === "hunt") return [];
+    if (!stages?.length || stages[0].kind === "hunt" || stages[0].kind === "checkin") return [];
     if (stages.every((st) => !st.away)) return [{ day: i, text: "ยังไม่มีข้อมูล (ก่อนเริ่มจับ)", bad: false }];
     const notes = stages.flatMap((st) => {
       const parts: string[] = [];

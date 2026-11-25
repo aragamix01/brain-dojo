@@ -65,7 +65,8 @@ export type WeekReport = {
   prev: { runs: number; avgMs: number; hints: number } | null;
 };
 
-const isHunt = (r: DailyResult) => r.stages?.[0]?.kind === "hunt";
+/** Days without games: a Star Hunt, or a check-in day (see life/model CHECKIN_DAYS). */
+const isHunt = (r: DailyResult) => r.stages?.[0]?.kind === "hunt" || r.stages?.[0]?.kind === "checkin";
 
 function weekNumbers(p: ProgressData, days: string[]) {
   const runs = days.map((d) => p.daily[d]).filter((r): r is DailyResult => !!r?.stages && !isHunt(r));

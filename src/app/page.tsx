@@ -16,6 +16,7 @@ import { COINS, questBounty, todayRemaining } from "@/lib/coins";
 import { ACHIEVEMENTS } from "@/lib/achievements";
 import { title } from "@/lib/shop";
 import { HUNT, huntTotal, isHuntDay } from "@/games/daily/hunt";
+import { useCheckInDue } from "@/components/CheckInDue";
 import { isBossDay } from "@/games/daily/plan";
 import { WHATS_NEW_ID, WhatsNew } from "@/components/WhatsNew";
 
@@ -181,6 +182,37 @@ function QuestCard() {
 }
 
 function DailyCard() {
+  const checkIn = useCheckInDue();
+  if (checkIn) return <CheckInCard />;
+  return <GamesDailyCard />;
+}
+
+/** Friday / Saturday until the weekly check-in is sent: it is today's Daily, no games. */
+function CheckInCard() {
+  return (
+    <Link href="/life/quest" className="panel relative flex items-center gap-3 bg-[#6f5cf0] p-4 text-white active:translate-y-0.5">
+      <RedDot show className="-right-2 -top-2" />
+      <div className="flex flex-1 flex-col gap-1">
+        <p className="whitespace-nowrap font-comic text-sm tracking-[2px] text-[#ffe27a]">
+          DAILY VOYAGE · {dayKey().slice(8)}/{dayKey().slice(5, 7)}
+        </p>
+        <p className="font-display text-[22px] font-extrabold leading-tight">📝 วันเช็กอิน!</p>
+        <p className="text-[13px] leading-snug text-[#f3f0ff]">Daily วันนี้คือตอบ Weekly Quest 10 ข้อ · ไม่ต้องเล่นเกม · ได้เวลาคอมเต็มวัน</p>
+        <span className="btn btn-gold mt-1.5 self-start text-[15px] font-extrabold">ไปเช็กอิน</span>
+      </div>
+      <div className="flex shrink-0 flex-col items-center gap-1.5">
+        <svg width="70" height="66" viewBox="0 0 120 112" fill="none" stroke="#1e2a3a" strokeWidth="4" strokeLinejoin="round" strokeLinecap="round" aria-hidden="true" className="animate-bob">
+          <path d="M14 30c0-6 4-10 10-10h30c4 0 6 2 6 5 0-3 2-5 6-5h30c6 0 10 4 10 10v62c0 4-3 6-6 6H66c-3 0-6 2-6 5 0-3-3-5-6-5H20c-3 0-6-2-6-6z" fill="#fff" />
+          <path d="M60 25v78" />
+          <path d="M84 62l4 8 9 1-7 6 2 9-8-5-8 5 2-9-7-6 9-1z" fill="#ffd66b" />
+        </svg>
+        <WeekFlames />
+      </div>
+    </Link>
+  );
+}
+
+function GamesDailyCard() {
   const done = useProgress((s) => s.daily[dayKey()]);
   // The daily dot stays until today's run is finished, not just tapped.
   const hydrated = useHydrated();

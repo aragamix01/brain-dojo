@@ -39,7 +39,9 @@ import { generateRobotLevel } from "@/games/robot/generate";
 import { DailySituation } from "@/games/situation/SituationGame";
 import { theme } from "@/games/situation/data";
 import { SprintGame } from "@/games/sprint/SprintGame";
+import Link from "next/link";
 import { AiNote } from "@/components/AiNote";
+import { useCheckInDue } from "@/components/CheckInDue";
 import { AwayDebug } from "@/components/AwayDebug";
 import { QuizCard } from "@/games/daily/QuizCard";
 import { QuizDemo } from "@/games/daily/QuizDemo";
@@ -427,14 +429,45 @@ function DailyRun({ date }: { date: string }) {
   );
 }
 
+/** Friday / Saturday before the weekly check-in: that is the Daily, the games wait till tomorrow. */
+function CheckInToday() {
+  return (
+    <div className="card p-5 text-center">
+      <p className="text-5xl">📝</p>
+      <p className="mt-2 font-display text-2xl font-extrabold">วันนี้ Daily คือเช็กอิน</p>
+      <p className="mt-2 text-sm leading-relaxed text-muted">
+        ตอบ Weekly Quest 10 ข้อ แทนการเล่นเกม
+        <br />
+        ส่งแล้วนับเป็น Daily วันนี้ ไฟไม่ดับ และได้เวลาคอมเต็มวัน
+      </p>
+      <Link href="/life/quest" className="btn btn-primary mt-4 w-full text-lg">
+        ไปเช็กอิน →
+      </Link>
+    </div>
+  );
+}
+
+function CheckInDone({ r }: { r: DailyResult }) {
+  return (
+    <div className="card speedlines p-5 text-center">
+      <p className="font-display text-3xl text-pink glow-text">Daily Clear!</p>
+      <p className="mt-2 text-sm text-muted">วันนี้เช็กอินประจำสัปดาห์แล้ว 📝</p>
+      <RewardNote r={r} />
+    </div>
+  );
+}
+
 function Daily() {
   const date = dayKey();
   const hydrated = useHydrated();
   const result = useProgress((s) => s.daily[date]);
+  const checkIn = useCheckInDue();
   const [demo] = useState(() => new URLSearchParams(location.search).has("quizdemo"));
   if (demo) return <QuizDemo />;
-  if (!hydrated) return null;
+  if (!hydrated || checkIn === null) return null;
+  if (result?.stages?.[0]?.kind === "checkin") return <CheckInDone r={result} />;
   if (result) return <ShareBox date={date} r={result} />;
+  if (checkIn) return <CheckInToday />;
   return isHuntDay(date) ? <HuntBoard /> : <DailyRun date={date} />;
 }
 

@@ -2,7 +2,12 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { ACHIEVEMENTS, levelFor, missing, type Answer, type Answers } from "@/lib/life/model";
+import { forgetCheckInDue } from "@/components/CheckInDue";
+import { syncDailies } from "@/components/LifeSync";
+import { dayKey } from "@/lib/date";
+import { formatMinutes, rewardMinutes, DAILY_REWARD } from "@/lib/kidtimer/reward";
+import { ACHIEVEMENTS, CHECKIN_KIND, isCheckInDay, levelFor, missing, type Answer, type Answers } from "@/lib/life/model";
+import { useProgress } from "@/lib/store";
 import type { Question } from "@/lib/life/questions";
 import { Bar, errorText, hm, Loading, post, useApi, type PlayerData } from "../shared";
 
@@ -24,7 +29,22 @@ export default function QuestPage() {
   return <Quest d={data} />;
 }
 
-type Result = { xp: number; achievements: string[]; unlocked: number; first: boolean };
+type Result = { xp: number; achievements: string[]; unlocked: number; first: boolean; daily?: number };
+
+/** On a Friday or Saturday the first check-in of the week is that day's Brain Dojo Daily. */
+async function countAsDaily(startedAt: number): Promise<number | undefined> {
+  const today = dayKey();
+  const s = useProgress.getState();
+  if (!isCheckInDay(today) || s.daily[today]) return undefined;
+  s.recordDaily(today, {
+    timeMs: Date.now() - startedAt,
+    hints: 0,
+    stages: [{ kind: CHECKIN_KIND, label: "📝 เช็กอินประจำสัปดาห์", stars: 3, detail: "ตอบ Weekly Quest" }],
+  });
+  forgetCheckInDue();
+  await syncDailies(true);
+  return rewardMinutes(DAILY_REWARD.maxStars);
+}
 
 function Quest({ d }: { d: PlayerData }) {
   const qs = d.questions ?? [];
@@ -35,6 +55,7 @@ function Quest({ d }: { d: PlayerData }) {
   const [result, setResult] = useState<Result | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [hint, setHint] = useState<string | null>(null);
+  const [startedAt] = useState(() => Date.now());
   const editing = !!d.thisWeek;
 
   if (result) return <Reward d={d} r={result} />;
@@ -85,7 +106,7 @@ function Quest({ d }: { d: PlayerData }) {
       if (k >= 0) setI(k);
       setHint("ข้อนี้ยังตอบไม่ครบนะ");
     } else if (r.error) setErr(errorText(r.error));
-    else setResult(r);
+    else setResult({ ...r, daily: r.first ? await countAsDaily(startedAt) : undefined });
   };
 
   const togglePick = (opt: string) => {
@@ -271,7 +292,7 @@ function Reward({ d, r }: { d: PlayerData; r: Result }) {
           </span>
         </div>
         <Bar pct={(lv.into / lv.need) * 100} />
-        {r.first && (
+        {r.first && r.unlocked > 0 && (
           <div className="flex items-center justify-between rounded-[14px] bg-[#2e2a4a] px-3 py-2 text-white">
             <span className="text-[13px]">ปลดล็อกเวลาคอม 30% ที่กั๊กไว้</span>
             <span className="font-lq text-lg font-bold text-[#ffd66b]">+{hm(r.unlocked)} ชม.</span>
@@ -287,6 +308,12 @@ function Reward({ d, r }: { d: PlayerData; r: Result }) {
           </div>
         </div>
       ))}
+      {r.daily && (
+        <div className="flex w-full items-center justify-between rounded-[20px] border-[2.5px] border-[#2e2a4a] bg-[#6a55e0] px-3.5 py-3 text-white">
+          <span className="font-lq text-sm font-semibold">Daily วันนี้เคลียร์แล้ว · ไฟไม่ดับ</span>
+          <span className="font-lq text-lg font-bold text-[#ffd66b]">+{formatMinutes(r.daily)}</span>
+        </div>
+      )}
       {r.first && <p className="text-center text-[13px]">Daily วันที่เหลือของสัปดาห์นี้ ได้เวลาคอมเต็ม 100% เลย</p>}
       <div className="flex-1" />
       <p className="font-lq text-sm font-semibold">ก้าวเล็กๆ สัปดาห์ละก้าว ก็ไปได้ไกลแล้ว</p>

@@ -50,8 +50,8 @@ import { SERIES_COUNT, generateSeries } from "../src/games/series/logic";
 import { bumpLog, weekCompare, weekReport } from "../src/lib/weekly";
 import { emptyProgress } from "../src/lib/store";
 import { WEB_SERIAL_MAX, bangkokDay, dailySerial, makeCode, manualSerial, shopSerial } from "../src/lib/kidtimer/core";
-import { rewardMinutes } from "../src/lib/kidtimer/reward";
-import { bangkokToday, checkInXp, cleanAnswers, earnedAchievements, heldOf, levelFor, missing, weekLabel, weekRewards, type WeekEntry } from "../src/lib/life/model";
+import { rewardMinutes, rewardStars } from "../src/lib/kidtimer/reward";
+import { bangkokToday, checkInXp, cleanAnswers, earnedAchievements, heldOf, isCheckInDay, levelFor, missing, weekLabel, weekRewards, type WeekEntry } from "../src/lib/life/model";
 import { DEFAULT_QUESTIONS } from "../src/lib/life/questions";
 import { decodeProgress, encodeProgress, encodeReport, reportUrl } from "../src/lib/share";
 
@@ -567,6 +567,10 @@ check("life quest rules", () => {
   assert.deepEqual(answers, { mood: { picks: ["สนุก"] }, "time-spent": { picks: ["เรียน", "เล่นเกม"] }, proud: { text: "ส่งงานทัน" } });
   assert.equal(checkInXp(answers), 110);
   assert.equal(checkInXp({}), 100, "a check-in of all skips still earns XP");
+
+  // Friday and Saturday's Daily is the check-in, worth a full-star day.
+  assert.deepEqual(["2026-11-26", "2026-11-27", "2026-11-28", "2026-11-29"].map(isCheckInDay), [false, true, true, false]);
+  assert.equal(rewardMinutes(rewardStars({ timeMs: 0, hints: 0, stages: [{ kind: "checkin", label: "", stars: 3, detail: "" }] })), 60);
 
   // Follow-up boxes and skipping.
   const byId = (id: string) => DEFAULT_QUESTIONS.find((q) => q.id === id)!;

@@ -151,6 +151,18 @@ export function missing(q: Question, a: Answer | undefined): string | null {
   return a?.text?.trim() ? null : "เขียนคำตอบก่อนนะ";
 }
 
+/**
+ * Friday and Saturday: until this week's check-in is sent, it replaces the Brain Dojo Daily.
+ * Sending it then counts as that day's Daily, worth a full-star day of PC time.
+ */
+export const CHECKIN_DAYS = [5, 6];
+export const CHECKIN_KIND = "checkin";
+
+export function isCheckInDay(date: string): boolean {
+  const [y, m, d] = date.split("-").map(Number);
+  return CHECKIN_DAYS.includes(new Date(y, m - 1, d).getDay());
+}
+
 // ---------------------------------------------------------------- achievements
 
 export const ACHIEVEMENTS = [

@@ -53,6 +53,11 @@ export async function GET(request: Request) {
   // The sign-in screens (and Brain Dojo's gate) only need to know who's here.
   if (part === "session" || !id) return json({ signedIn: !!id, id, name: me?.name, players: publicList(list) });
   const db = scoped(root, id);
+  if (part === "checkin") {
+    // Brain Dojo asks this on Fridays and Saturdays: is this week's check-in still to do?
+    const week = weekStart(bangkokToday());
+    return json({ signedIn: true, id, week, sent: !!(await db.hgetall(K.weeks))[week] });
+  }
   if (part === "brain") {
     // The saved Brain Dojo progress, when it's newer than the copy this phone has.
     const brain = await db.get<Brain>(K.brain);
