@@ -51,7 +51,7 @@ import { bumpLog, weekCompare, weekReport } from "../src/lib/weekly";
 import { emptyProgress } from "../src/lib/store";
 import { WEB_SERIAL_MAX, bangkokDay, dailySerial, makeCode, manualSerial, shopSerial } from "../src/lib/kidtimer/core";
 import { rewardMinutes } from "../src/lib/kidtimer/reward";
-import { bangkokToday, checkInXp, cleanAnswers, earnedAchievements, heldOf, levelFor, weekLabel, weekRewards, type WeekEntry } from "../src/lib/life/model";
+import { bangkokToday, checkInXp, cleanAnswers, earnedAchievements, heldOf, levelFor, missing, weekLabel, weekRewards, type WeekEntry } from "../src/lib/life/model";
 import { DEFAULT_QUESTIONS } from "../src/lib/life/questions";
 import { decodeProgress, encodeProgress, encodeReport, reportUrl } from "../src/lib/share";
 
@@ -567,6 +567,25 @@ check("life quest rules", () => {
   assert.deepEqual(answers, { mood: { picks: ["สนุก"] }, "time-spent": { picks: ["เรียน", "เล่นเกม"] }, proud: { text: "ส่งงานทัน" } });
   assert.equal(checkInXp(answers), 110);
   assert.equal(checkInXp({}), 100, "a check-in of all skips still earns XP");
+
+  // Follow-up boxes and skipping.
+  const byId = (id: string) => DEFAULT_QUESTIONS.find((q) => q.id === id)!;
+  const fu = cleanAnswers(
+    {
+      mood: { picks: ["เครียด"], notes: { เครียด: " สอบ ", สนุก: "x" } },
+      interests: { picks: ["Music"], notes: { อื่นๆ: "ไม่ได้เลือก" } },
+      proud: { skipped: true },
+    },
+    DEFAULT_QUESTIONS,
+  );
+  assert.deepEqual(fu, { mood: { picks: ["เครียด"], notes: { เครียด: "สอบ" } }, interests: { picks: ["Music"] } }, "notes only for picked follow-up choices; no skipping unless allowed");
+  assert.equal(missing(byId("mood"), { picks: ["เครียด"] }), 'เขียนช่อง "เครียดเรื่องอะไร?" ก่อนนะ');
+  assert.equal(missing(byId("mood"), fu.mood), null);
+  assert.equal(missing(byId("mood"), { picks: ["ปกติ"] }), null);
+  assert.ok(missing(byId("proud"), { skipped: true }), "a question that can't be skipped needs an answer");
+  assert.equal(missing({ ...byId("proud"), skippable: true }, { skipped: true }), null);
+  assert.ok(missing(byId("time-mgmt"), {}));
+  assert.equal(missing(byId("try"), { text: "ยังไม่รู้" }), null);
 
   const wk = (week: string, goalDone?: boolean): WeekEntry => ({
     week, questions: [], answers: { "next-goal": { picks: ["สุขภาพ"], text: "นอนเร็ว" } }, submittedAt: 0, history: [], xp: 100, goalDone,

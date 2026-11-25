@@ -7,6 +7,7 @@ import {
   changedQuestions,
   checkInXp,
   cleanAnswers,
+  missing,
   earnedAchievements,
   goalOf,
   levelFor,
@@ -113,6 +114,8 @@ export async function submitCheckIn(db: Store, raw: unknown) {
   const week = weekStart(bangkokToday());
   const qs = (await questions(db)).filter((q) => q.active);
   const answers = cleanAnswers(raw, qs);
+  const open = qs.find((q) => missing(q, answers[q.id]));
+  if (open) return { error: "incomplete", question: open.id };
   const all = await db.hgetall<WeekEntry>(K.weeks);
   const before = all[week];
   const xp = checkInXp(answers);

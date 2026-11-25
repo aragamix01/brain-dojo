@@ -4,8 +4,8 @@
 import { shiftDay, weekOf } from "../date";
 import type { Question } from "./questions";
 
-/** One answer: chosen options, a 1–5 rating, an optional written note, or skipped. */
-export type Answer = { picks?: string[]; rating?: number; text?: string; skipped?: boolean };
+/** One answer: chosen options (with the box a choice asks for), a 1–5 rating, a written note, or skipped. */
+export type Answer = { picks?: string[]; notes?: Record<string, string>; rating?: number; text?: string; skipped?: boolean };
 export type Answers = Record<string, Answer>;
 
 /** A submitted weekly check-in. Questions are copied in, so later edits to the bank don't change it. */
@@ -119,10 +119,17 @@ export function cleanAnswers(raw: unknown, questions: Question[]): Answers {
     if (!a || typeof a !== "object") continue;
     const src = a as Record<string, unknown>;
     const ans: Answer = {};
-    if (src.skipped === true) ans.skipped = true;
+    if (src.skipped === true && q.skippable) ans.skipped = true;
     if (Array.isArray(src.picks)) {
       const picks = src.picks.filter((p): p is string => typeof p === "string" && (q.options ?? []).includes(p));
       if (picks.length) ans.picks = q.type === "single" ? picks.slice(0, 1) : picks;
+      const rawNotes = src.notes && typeof src.notes === "object" ? (src.notes as Record<string, unknown>) : {};
+      const notes: Record<string, string> = {};
+      for (const p of ans.picks ?? []) {
+        const n = rawNotes[p];
+        if (q.followUps?.[p] && typeof n === "string" && n.trim()) notes[p] = n.trim().slice(0, 300);
+      }
+      if (Object.keys(notes).length) ans.notes = notes;
     }
     if (q.type === "rating" && Number.isInteger(src.rating) && (src.rating as number) >= 1 && (src.rating as number) <= 5)
       ans.rating = src.rating as number;
@@ -130,6 +137,18 @@ export function cleanAnswers(raw: unknown, questions: Question[]): Answers {
     if (Object.keys(ans).length) out[q.id] = ans;
   }
   return out;
+}
+
+/** What's still missing for this question before the check-in can be sent, or null when it's done. */
+export function missing(q: Question, a: Answer | undefined): string | null {
+  if (a?.skipped && q.skippable) return null;
+  if (q.type === "single" || q.type === "multi") {
+    if (!a?.picks?.length) return q.type === "multi" ? "เลือกอย่างน้อย 1 ข้อนะ" : "เลือกคำตอบก่อนนะ";
+    const open = a.picks.find((p) => q.followUps?.[p] && !a.notes?.[p]?.trim());
+    return open ? `เขียนช่อง "${q.followUps![open]}" ก่อนนะ` : null;
+  }
+  if (q.type === "rating") return a?.rating ? null : "เลือกคะแนนก่อนนะ";
+  return a?.text?.trim() ? null : "เขียนคำตอบก่อนนะ";
 }
 
 // ---------------------------------------------------------------- achievements

@@ -142,6 +142,7 @@ export function LockIcon({ size = 30 }: { size?: number }) {
 export function answerText(a?: Answer): string {
   if (!a) return "—";
   if (a.skipped) return "ข้าม";
-  const parts = [...(a.picks ?? []), ...(a.rating ? [`${a.rating}/5`] : [])];
+  const picks = (a.picks ?? []).map((p) => (a.notes?.[p] ? `${p} (${a.notes[p]})` : p));
+  const parts = [...picks, ...(a.rating ? [`${a.rating}/5`] : [])];
   return parts.join(" · ") || (a.text ? "" : "—");
 }

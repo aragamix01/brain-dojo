@@ -16,6 +16,10 @@ export type Question = {
   /** what each rating 1–5 means */
   ratingNotes?: string[];
   help?: string;
+  /** shows "ขอข้ามข้อนี้"; otherwise the question must be answered before sending */
+  skippable?: boolean;
+  /** choices that open a required box when picked: choice → what to write */
+  followUps?: Record<string, string>;
   active: boolean;
 };
 
@@ -30,6 +34,7 @@ export const DEFAULT_QUESTIONS: Question[] = [
     help: "เลือกอันที่ใกล้ที่สุด",
     type: "single",
     options: ["มีความสุข", "สนุก", "ปกติ", "เหนื่อย", "เครียด", "ไม่ค่อยรู้สึกอะไรเป็นพิเศษ", UNSURE],
+    followUps: { เครียด: "เครียดเรื่องอะไร?" },
     active: true,
   },
   {
@@ -57,6 +62,7 @@ export const DEFAULT_QUESTIONS: Question[] = [
     text: "สัปดาห์นี้การเรียนของเราเป็นอย่างไร?",
     type: "single",
     options: ["เข้าใจดี", "เข้าใจเป็นส่วนใหญ่", "มีบางวิชาไม่เข้าใจ", "ตามบทเรียนไม่ทัน", "ไม่ค่อยตั้งใจเรียน", "ไม่ได้เรียน", UNSURE],
+    followUps: { มีบางวิชาไม่เข้าใจ: "วิชาไหน เรื่องอะไร?", ตามบทเรียนไม่ทัน: "วิชาไหน?" },
     active: true,
   },
   {
@@ -66,6 +72,7 @@ export const DEFAULT_QUESTIONS: Question[] = [
     help: "เลือกได้หลายข้อ",
     type: "multi",
     options: ["ทำการบ้าน", "อ่านหนังสือ", "ทบทวนบทเรียน", "ส่งงาน", "แก้ไขงาน", "ขอความช่วยเหลือ", "ไม่มีงานค้าง", "ยังไม่ได้เริ่มงาน"],
+    followUps: { ขอความช่วยเหลือ: "อยากให้ช่วยเรื่องอะไร?" },
     textLabel: "วิชาที่อยากพัฒนา",
     textHint: "เช่น คณิต เรื่องลิมิต",
     active: true,
@@ -102,6 +109,7 @@ export const DEFAULT_QUESTIONS: Question[] = [
     help: "เลือกได้หลายข้อ",
     type: "multi",
     options: ["Technology", "Business", "Art & Design", "Languages", "Science", "Sports", "Gaming", "Music", "Cooking", "ยังไม่มีสิ่งที่สนใจ", "อื่นๆ"],
+    followUps: { อื่นๆ: "สนใจเรื่องอะไร?" },
     active: true,
   },
   {
@@ -120,6 +128,7 @@ export const DEFAULT_QUESTIONS: Question[] = [
     help: "เลือก 1 เรื่อง แล้วตั้งเป้าเล็กๆ 1 อย่าง",
     type: "single",
     options: ["ตั้งใจเรียน", "ทำการบ้าน", "จัดการเวลา", "ลดเวลาเล่นเกม", "สุขภาพ", "งานบ้าน", "เก็บเงิน", "ค้นหาตัวเอง", "ความสัมพันธ์", "อื่นๆ"],
+    followUps: { อื่นๆ: "เรื่องอะไร?" },
     textLabel: "เป้าหมาย 1 อย่างที่อยากทำให้สำเร็จ",
     textHint: "เช่น อ่านชีวะวันละ 20 นาที",
     active: true,

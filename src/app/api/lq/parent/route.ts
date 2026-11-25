@@ -34,6 +34,17 @@ export async function GET(request: Request) {
 
 const TYPES: QuestionType[] = ["single", "multi", "rating", "text"];
 
+/** Keeps the follow-up boxes of choices that still exist. */
+function followUpsOf(raw: unknown, options: string[]): { followUps?: Record<string, string> } {
+  if (!raw || typeof raw !== "object") return {};
+  const out: Record<string, string> = {};
+  for (const o of options) {
+    const label = str((raw as Record<string, unknown>)[o], 80);
+    if (label) out[o] = label;
+  }
+  return Object.keys(out).length ? { followUps: out } : {};
+}
+
 function cleanQuestions(raw: unknown): Question[] | null {
   if (!Array.isArray(raw) || !raw.length || raw.length > 30) return null;
   const out: Question[] = [];
@@ -54,6 +65,8 @@ function cleanQuestions(raw: unknown): Question[] | null {
       ...(str(r.help, 120) ? { help: str(r.help, 120) } : {}),
       ...(type === "rating" ? { ratingNotes: (DEFAULT_QUESTIONS.find((q) => q.type === "rating")?.ratingNotes ?? []).slice() } : {}),
       ...(Array.isArray(r.ratingNotes) && r.ratingNotes.length === 5 ? { ratingNotes: r.ratingNotes.map((n: unknown) => str(n, 80)) } : {}),
+      ...(r.skippable === true ? { skippable: true } : {}),
+      ...followUpsOf(r.followUps, type === "single" || type === "multi" ? options : []),
       active: r.active !== false,
     });
   }

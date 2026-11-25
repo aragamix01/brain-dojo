@@ -685,6 +685,12 @@ function Questions({ d, patch }: { d: Data; patch: (p: Partial<Data>) => void })
             <div className={`min-w-0 flex-1 ${q.active ? "" : "opacity-50"}`}>
               <p className="text-sm leading-snug">{q.text}</p>
               <span className="mt-0.5 inline-block rounded-full border-[1.5px] border-[#2e2a4a] bg-[#eee8ff] px-2 text-[11px] font-semibold">{TYPE_LABEL[q.type]}</span>
+              {q.followUps && Object.keys(q.followUps).length > 0 && (
+                <span className="ml-1 mt-0.5 inline-block rounded-full border-[1.5px] border-[#2e2a4a] bg-[#fff6ec] px-2 text-[11px] font-semibold">
+                  ✎ {Object.keys(q.followUps).length} ช่อง
+                </span>
+              )}
+              {q.skippable && <span className="ml-1 mt-0.5 inline-block rounded-full border-[1.5px] border-[#2e2a4a] bg-white px-2 text-[11px] font-semibold">ข้ามได้</span>}
             </div>
             <button aria-label={`แก้ไขคำถาม ${i + 1}`} className="h-10 w-10 shrink-0 rounded-xl border-2 border-[#2e2a4a]" onClick={() => setEditing(i)}>
               ✎
@@ -762,6 +768,41 @@ function QuestionEditor({ q, onChange, onDone, onDelete }: { q: Question; onChan
           />
         </label>
       )}
+      {choice && (
+        <div className="space-y-1.5">
+          <p className="text-[13px] font-semibold">ช่องที่ต้องเขียน เมื่อเลือกข้อนั้น (เว้นว่าง = ไม่มี)</p>
+          {[...new Set((q.options ?? []).map((o) => o.trim()).filter(Boolean))].map((o) => (
+            <label key={o} className="flex items-center gap-2 text-[13px]">
+              <span className="w-[38%] shrink-0 truncate">{o}</span>
+              <input
+                className="lq-input !min-h-9 flex-1 !py-1 text-sm"
+                value={q.followUps?.[o] ?? ""}
+                placeholder="เช่น เรื่องอะไร?"
+                aria-label={`ช่องที่ต้องเขียนเมื่อเลือก ${o}`}
+                onChange={(e) => {
+                  const next = { ...q.followUps, [o]: e.target.value };
+                  if (!e.target.value) delete next[o];
+                  onChange({ followUps: Object.keys(next).length ? next : undefined });
+                }}
+              />
+            </label>
+          ))}
+        </div>
+      )}
+      <button
+        role="switch"
+        aria-checked={!!q.skippable}
+        onClick={() => onChange({ skippable: !q.skippable || undefined })}
+        className="flex w-full items-center justify-between gap-2 text-left text-[13px] font-semibold"
+      >
+        <span>
+          ให้กด &ldquo;ขอข้ามข้อนี้&rdquo; ได้
+          <span className="block font-normal text-[#5e5878]">ปิด = ต้องตอบข้อนี้ก่อนส่ง</span>
+        </span>
+        <span className={`flex h-8 w-[52px] shrink-0 rounded-full border-2 border-[#2e2a4a] p-0.5 ${q.skippable ? "justify-end bg-[#6a55e0]" : "justify-start bg-[#e6e0f5]"}`}>
+          <span className="h-6 w-6 rounded-full border-2 border-[#2e2a4a] bg-white" />
+        </span>
+      </button>
       <label className="block text-[13px] font-semibold">
         ช่องเขียนเพิ่มเติม (เว้นว่าง = ไม่มี{q.type === "text" ? ", แต่แบบเขียนเองจะมีช่องเสมอ" : ""})
         <input className="lq-input mt-1 text-sm" value={q.textLabel ?? ""} onChange={(e) => onChange({ textLabel: e.target.value || undefined })} placeholder="เช่น สิ่งที่อยากปรับปรุง" />

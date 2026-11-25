@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { ACHIEVEMENTS, levelFor, type Answer, type Answers } from "@/lib/life/model";
+import { ACHIEVEMENTS, levelFor, missing, type Answer, type Answers } from "@/lib/life/model";
 import type { Question } from "@/lib/life/questions";
 import { Bar, errorText, hm, Loading, post, useApi, type PlayerData } from "../shared";
 
@@ -34,6 +34,7 @@ function Quest({ d }: { d: PlayerData }) {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [hint, setHint] = useState<string | null>(null);
   const editing = !!d.thisWeek;
 
   if (result) return <Reward d={d} r={result} />;
@@ -44,6 +45,7 @@ function Quest({ d }: { d: PlayerData }) {
   const set = (next: Answer) => {
     setAnswers({ ...answers, [q.id]: { ...next, skipped: undefined } });
     setSaved("idle");
+    setHint(null);
   };
 
   const saveDraft = async (ans = answers) => {
@@ -53,22 +55,36 @@ function Quest({ d }: { d: PlayerData }) {
     setSaved(r.error ? "idle" : "saved");
   };
   const go = (step: number) => {
+    const need = step > 0 ? missing(q, a) : null;
+    if (need) return setHint(need);
+    setHint(null);
     void saveDraft();
     setI(Math.max(0, Math.min(qs.length - 1, i + step)));
     window.scrollTo({ top: 0 });
   };
   const skip = () => {
+    setHint(null);
     const ans = { ...answers, [q.id]: { skipped: true } };
     setAnswers(ans);
     void saveDraft(ans);
     if (i < qs.length - 1) setI(i + 1);
   };
   const submit = async () => {
+    // Every question must be done (or skipped where allowed); open the first one that isn't.
+    const open = qs.findIndex((x) => missing(x, answers[x.id]));
+    if (open >= 0) {
+      setI(open);
+      return setHint(missing(qs[open], answers[qs[open].id]));
+    }
     setBusy(true);
     setErr(null);
-    const r = await post<Result>(API, { action: "submit", answers });
+    const r = await post<Result & { question?: string }>(API, { action: "submit", answers });
     setBusy(false);
-    if (r.error) setErr(errorText(r.error));
+    if (r.error === "incomplete") {
+      const k = qs.findIndex((x) => x.id === r.question);
+      if (k >= 0) setI(k);
+      setHint("ข้อนี้ยังตอบไม่ครบนะ");
+    } else if (r.error) setErr(errorText(r.error));
     else setResult(r);
   };
 
@@ -99,7 +115,7 @@ function Quest({ d }: { d: PlayerData }) {
                 key={x.id}
                 type="button"
                 tabIndex={-1}
-                onClick={() => setI(k)}
+                onClick={() => (setI(k), setHint(null))}
                 className="h-2 flex-1 rounded-full"
                 style={{ background: k <= i ? "#6a55e0" : answers[x.id] ? "#cdbeff" : "#e6e0f5" }}
               />
@@ -130,11 +146,31 @@ function Quest({ d }: { d: PlayerData }) {
             ))}
           </div>
         )}
+        {(a.picks ?? [])
+          .filter((p) => q.followUps?.[p])
+          .map((p) => (
+            <label key={p} className="flex flex-col gap-1.5 rounded-[18px] border-[2.5px] border-[#2e2a4a] bg-[#eee8ff] p-3">
+              <span className="text-sm font-semibold">
+                {p}: {q.followUps![p]} <span className="font-normal text-[#b42357]">(ต้องเขียน)</span>
+              </span>
+              <input
+                className="lq-input"
+                value={a.notes?.[p] ?? ""}
+                maxLength={300}
+                onChange={(e) => set({ ...a, notes: { ...a.notes, [p]: e.target.value } })}
+              />
+            </label>
+          ))}
         {q.type === "rating" && <Rating q={q} value={a.rating} onPick={(n) => set({ ...a, rating: n })} />}
         {(q.type === "text" || q.textLabel) && (
           <label className="mt-1 flex flex-col gap-1.5">
             <span className="text-sm font-semibold">
-              {q.textLabel ?? "เขียนเพิ่มเติม"} <span className="font-normal text-[#5e5878]">(ไม่บังคับ)</span>
+              {q.textLabel ?? "เขียนเพิ่มเติม"}{" "}
+              {q.type === "text" ? (
+                !q.skippable && <span className="font-normal text-[#b42357]">(ต้องเขียน)</span>
+              ) : (
+                <span className="font-normal text-[#5e5878]">(ไม่บังคับ)</span>
+              )}
             </span>
             <textarea
               rows={3}
@@ -146,10 +182,18 @@ function Quest({ d }: { d: PlayerData }) {
             />
           </label>
         )}
-        <button type="button" onClick={skip} className="min-h-11 self-center px-3 font-lq text-sm font-semibold text-[#5b47d6] underline">
-          ขอข้ามข้อนี้
-        </button>
+        {q.skippable && (
+          <button type="button" onClick={skip} className="min-h-11 self-center px-3 font-lq text-sm font-semibold text-[#5b47d6] underline">
+            ขอข้ามข้อนี้
+          </button>
+        )}
       </div>
+
+      {hint && (
+        <p role="alert" className="text-center text-sm font-semibold text-[#b42357]">
+          {hint}
+        </p>
+      )}
 
       {err && <p className="text-center text-sm font-semibold text-[#b42357]">{err}</p>}
       <div className="flex gap-2.5 pb-2">
